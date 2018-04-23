@@ -26,5 +26,5 @@ setup(
     ],
     python_requires = '>=3.6',
     packages = find_packages(),
-    package_data = ...
+    package_data = {'vac2fost': ['data/default_mcfost_conf.para']},
 )

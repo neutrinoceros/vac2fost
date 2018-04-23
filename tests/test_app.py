@@ -12,7 +12,7 @@ import f90nml
 
 from vac2fost import main as app
 
-here = pathlib.Path(__file__).parent.parent
+here = pathlib.Path(__file__).absolute().parent
 
 # int tests -------------------------------------------------------------------
 
@@ -23,7 +23,7 @@ class TestLocalVersion():
         app(str(here/'sample/vac2fost_conf.nml'))
 
     def test_format(self):
-        f = pyfits.open(here / 'hd142527_dusty0000.fits')[0]
+        f = pyfits.open(here.parent / 'hd142527_dusty0000.fits')[0]
         opt = f90nml.read(here / 'sample/vac2fost_conf.nml')['mcfost_list']
         assert f.data.shape[1:] == (opt['nphi'], 2*opt['nz']+1, opt['nr'])
 
