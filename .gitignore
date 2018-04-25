@@ -5,3 +5,6 @@ data*
 *~
 mcfost_conf.para
 *__pycache__*
+.cache
+dist/*
+*egg-info*
