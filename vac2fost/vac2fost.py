@@ -42,6 +42,13 @@ import f90nml
 
 from amrvac_pywrap import amrvac_convert as vac_conv
 
+try:
+    res = subprocess.check_output('which mcfost', shell=True).decode('utf-8')
+    assert not 'not found' in res
+except AssertionError:
+    raise EnvironmentError('Installation of MCFOST not found.')
+
+
 def sort_raw_data(block:np.array, nr:int, nphi:int) -> np.array:
     '''Sort the block data lines along phi then r'''
     slicer  = block[:,1].argsort()
