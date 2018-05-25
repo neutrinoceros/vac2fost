@@ -22,9 +22,9 @@ Known limitations
    3) gaussian redistribution is currently unreliable (hard coded parameters)
    4) interpolation does not account for the curvature of polar cells
    5) a cylindrical grid is currently used for 3D,
-      we may latter implement the spherical option
+      we may later implement the spherical option
    6) input simulation is assumed to be 2D (r,phi)
-   7) mutli-grain is not supported yet
+   7) gas density not being read yet
    8) when dust density is available, gas density is being ignored.
       That needs fixing if we wish to generate molecular lines synthetic observations.
 '''
@@ -40,7 +40,7 @@ import astropy.io.fits as pyfits
 from scipy.interpolate import interp2d
 import f90nml
 
-from amrvac_pywrap import amrvac_convert as vac_conv
+from amrvac_pywrap import amrvac_convert
 
 try:
     res = subprocess.check_output('which mcfost', shell=True).decode('utf-8')
@@ -49,7 +49,7 @@ except AssertionError:
     raise EnvironmentError('Installation of MCFOST not found.')
 
 
-def sort_raw_data(block:np.array, nr:int, nphi:int) -> np.array:
+def sort_raw_data(block:np.array, nr:int, nphi:int) -> np.ndarray:
     '''Sort the block data lines along phi then r'''
     slicer  = block[:,1].argsort()
     block_s = block[slicer] #sort along phi
@@ -67,10 +67,9 @@ def gauss(z, sigma):
     return 1./(np.sqrt(2*np.pi) * sigma) * np.exp(-z**2/(2*sigma**2))
 
 
-def twoD2threeD(arr2d:np.array, scale_height:np.array, zvect:np.array) -> np.array:
+def twoD2threeD(arr2d:np.ndarray, scale_height:np.ndarray, zvect:np.ndarray) -> np.ndarray:
     '''Convert surface density 2d array into volumic density 3d
     cylindrical array assuming a gaussian vertical distribution.
-
 
     formats
     arr2d : (nr, nphi)
@@ -169,45 +168,44 @@ def get_target_grid(mcfost_list, mesh_list, silent=True):
         shutil.rmtree(tmp_fost_dir)
     return target_grid
 
-def get_grain_sizes_hdu(dust_list) -> pyfits.ImageHDU:
-    '''Return a HDU object containing grain sizes in microns.'''
+def get_grain_micron_sizes(dust_list) -> np.ndarray:
+    '''Read grain sizes (assumed in [cm]), from AMRVAC parameters and
+    convert to microns.'''
     #only works with one dust size for now
-    #gas is not taken into account either
-    gs = dust_list['my_grain_size']
-    if isinstance(gs, list):
-        cm_sizes = gs
-    elif isinstance(gs, float):
-        cm_sizes = [gs]
-    assert cm_sizes == sorted(cm_sizes), 'MCFOST requires that grain sizes are given in increasing order'
-    µm_sizes = [s*1e4 for s in cm_sizes]
+    #gas is not taken into account either !
+    cm_sizes = np.array(dust_list['grain_size'])
+    µm_sizes = 1e4 * cm_sizes
     #gas_grain = min(min(µm_sizes)/10, 1e-9)
     #µm_sizes.insert(0, gas_grain) #add a fake grain size to represent the gas
-    grain_sizes = pyfits.ImageHDU(µm_sizes)
-    return grain_sizes
+    return µm_sizes
 
-def get_dat_from_blk(blk_file):
+
+def get_dat_from_blk(blk_file:str):
     '''Extract the data as a numpy array, ignoring weirdly shaped header.'''
     with open(blk_file, 'r') as blk:
     # pre-read the .blk output to learn where the actual data is written
         n_trash_lines = 0
         line = blk.readline()
         columns = line.split()[1:]
-        densities = [columns.index(key) for key in columns if 'rho' in key.lower()]
-        if len(densities) == 1:
+        densities_indices = [columns.index(key) for key in columns if 'rho' in key.lower()]
+        if len(densities_indices) == 1:
             warn('only one density field detected (no dust) !')
-        else:
-            assert len(densities) == 2, 'Multi-grain mode not implemented'
-            densities = densities[1:]
+        elif len(densities_indices) > 2:
+            warn('this case has not been tested yet')
+            #densities_indices = densities_indices[1:] #tmp
 
         while line.startswith('#') or line=='' or len(line.split())==1:
             n_trash_lines += 1
             line = blk.readline()
 
     blk_dat = np.loadtxt(blk_file, skiprows=n_trash_lines)
-    return blk_dat, densities
+    return blk_dat, densities_indices
 
 
 def main(config_file, offset:int=None, output_dir:str='.', dbg=False):
+    print('==========================================')
+    print(          'Starting vac2fost.main()')
+    print('==========================================')
 
     # .. input reading ..
 
@@ -223,7 +221,7 @@ def main(config_file, offset:int=None, output_dir:str='.', dbg=False):
     if isinstance(output_dir, str):
         output_dir = pathlib.Path(output_dir)
 
-    sim, blk_finame = vac_conv(
+    sim, blk_finame = amrvac_convert(
         fork_args=config['fork_options'],
         outnum=outnum,
         target_dir=output_dir,
@@ -239,17 +237,14 @@ def main(config_file, offset:int=None, output_dir:str='.', dbg=False):
         silent=(not dbg)
     )
 
-    #devnote:
-    #there's something fishy here : why should we return block data AND densities ?
-    block_dat, densities = get_dat_from_blk(blk_finame)
+    block_dat, densities_indices = get_dat_from_blk(blk_finame)
 
     n_rad = sim.conf['meshlist']['domain_nx1']
     n_phi = sim.conf['meshlist']['domain_nx2']
 
     sorted_data     = sort_raw_data(block=block_dat, nr=n_rad, nphi=n_phi)
     reshaped_data   = [sorted_data[:,i].reshape((n_phi, n_rad)).T for i in range(sorted_data.shape[1])]
-    reshaped_arrays = [reshaped_data[i] for i in densities]
-
+    reshaped_arrays = [reshaped_data[i] for i in densities_indices]
 
     # .. interpolation to new grid ..
 
@@ -284,29 +279,46 @@ def main(config_file, offset:int=None, output_dir:str='.', dbg=False):
     nz = config['mcfost_list']['nz']
     z_vect = np.linspace(-zmax, zmax, 2*nz+1)
     scale_height_grid = config['target_options']['aspect_ratio'] * rad_grid_new
-    threeD_arrays = [twoD2threeD(arr, scale_height_grid, z_vect) for arr in interpolated_arrays]
+    threeD_arrays = np.array([twoD2threeD(arr, scale_height_grid, z_vect) for arr in interpolated_arrays])
 
-
-    # .. normalization ..
-    grain_sizes = get_grain_sizes_hdu(sim.conf['usr_dust_list'])
-    norm_mode = 0 #todo : make it relevant
 
 
     # .. build a .fits file ..
 
-    #the transposition is handling a weird behaviour of fits files...
-    final_array = np.stack(threeD_arrays, axis=3).transpose()
+    grain_sizes = get_grain_micron_sizes(sim.conf['usr_dust_list'])
+    assert len(grain_sizes) == len(threeD_arrays) - 1
 
-    densities = pyfits.PrimaryHDU(final_array)
-    densities.header.append(('read_n_a', norm_mode)) #MCFOST option. Indicate how to normalize relative densities.
+    #the transposition is handling a weird behavior of fits files...
+    final_array = np.stack(threeD_arrays[grain_sizes.argsort()], axis=3).transpose()
 
+    densitiesHDU = pyfits.PrimaryHDU(final_array)
+    mcfost_keywords = {
+        'read_n_a': 0, #automatic normalization of size-bins from mcfost param file.
+        # following keywords are too long according to fits standards  !
+        # --------------------------------------------------------------
+        #'read_gas_density': 0, #set to 1 to add gas density
+        #'gas_to_dust': sim.conf['usr_dust_list']['gas2dust_ratio'], #required when reading gas
+    }
+
+    for it in mcfost_keywords.items():
+        densitiesHDU.header.append(it)
+
+    grain_sizesHDU = pyfits.ImageHDU(grain_sizes[grain_sizes.argsort()])
+
+    hdus = [
+        densitiesHDU,
+        grain_sizesHDU,
+        #pyfits.ImageHDU(gas_density)
+    ]
     fits_finame = output_dir / blk_finame.name.replace('.blk', '.fits')
     with open(fits_finame, 'w') as fo:
-        hdul = pyfits.HDUList(hdus=[densities, grain_sizes])
+        hdul = pyfits.HDUList(hdus=hdus)
         hdul.writeto(fo)
     print(f'Successfully wrote {fits_finame}')
 
-
+    print('==========================================')
+    print(          'End of vac2fost.main()')
+    print('==========================================')
     # .. finally, yield some info back (for testing) ..
 
     return dict(

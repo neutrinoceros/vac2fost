@@ -8,3 +8,4 @@ mcfost_conf.para
 .cache
 dist/*
 *egg-info*
+tmp/*
