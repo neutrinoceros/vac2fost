@@ -49,12 +49,9 @@ try:
 except AssertionError:
     raise EnvironmentError('Installation of MCFOST not found.')
 
-def unique_sorted_list(arr:list):
-    return sorted(list(set((arr))))
 
 def gauss(z, sigma):
     return 1./(np.sqrt(2*np.pi) * sigma) * np.exp(-z**2/(2*sigma**2))
-
 
 def twoD2threeD(arr2d:np.ndarray, scale_height:np.ndarray, zvect:np.ndarray) -> np.ndarray:
     '''Convert surface density 2d array into volumic density 3d
@@ -157,15 +154,11 @@ def get_target_grid(mcfost_list, mesh_list, silent=True):
         shutil.rmtree(tmp_fost_dir)
     return target_grid
 
-def get_grain_micron_sizes(dust_list) -> np.ndarray:
+def get_grain_micron_sizes(amrvac_conf:f90nml.Namelist) -> np.ndarray:
     '''Read grain sizes (assumed in [cm]), from AMRVAC parameters and
     convert to microns.'''
-    #only works with one dust size for now
-    #gas is not taken into account either !
-    cm_sizes = np.array(dust_list['grain_size'])
+    cm_sizes = np.array(amrvac_conf['usr_dust_list']['grain_size'])
     µm_sizes = 1e4 * cm_sizes
-    #gas_grain = min(min(µm_sizes)/10, 1e-9)
-    #µm_sizes.insert(0, gas_grain) #add a fake grain size to represent the gas
     return µm_sizes
 
 
@@ -177,9 +170,6 @@ def main(config_file, offset:int=None, output_dir:str='.', dbg=False):
     # .. input reading ..
 
     config = f90nml.read(config_file)
-
-    # if type(config['fork_options']['conf']) == str:
-    #     config['fork_options']['conf'] = [config['fork_options']['conf']]
 
     if offset is None:
         offset = config['target_options']['offset']
@@ -194,7 +184,8 @@ def main(config_file, offset:int=None, output_dir:str='.', dbg=False):
     datfile = interpret_shell_path(options['origin']) + '/' + vtu_filename
     datshape = tuple([sim_conf['meshlist'][f'domain_nx{n}'] for n in (1,2)])
 
-    dh = VacDataSorter(file_name=datfile, data_shape=datshape)
+    simdata = VacDataSorter(file_name=datfile, data_shape=datshape)
+
 
     # .. interpolation to target grid ..
 
@@ -211,12 +202,12 @@ def main(config_file, offset:int=None, output_dir:str='.', dbg=False):
     rad_vect_new = rad_grid_new[:,0]
     phi_vect_new = phi_grid_new[0]
 
-    rad_vect_old, azim_vect_old = [dh.get_axis(n) for n in range(2)]
+    rad_vect_old, azim_vect_old = [simdata.get_axis(n) for n in range(2)]
 
-    density_keys = sorted(filter(lambda k: 'rho' in k, dh.fields.keys()))
+    density_keys = sorted(filter(lambda k: 'rho' in k, simdata.fields.keys()))
     interpolated_arrays = []
     for k in density_keys:
-        interpolator = interp2d(azim_vect_old, rad_vect_old, dh[k], kind='cubic')
+        interpolator = interp2d(azim_vect_old, rad_vect_old, simdata[k], kind='cubic')
         interpolated_arrays.append(interpolator(phi_vect_new, rad_vect_new))
     assert interpolated_arrays[0].shape == (n_rad_new, n_phi_new)
     print("interpolation ok")
@@ -234,7 +225,7 @@ def main(config_file, offset:int=None, output_dir:str='.', dbg=False):
 
     # .. build a .fits file ..
 
-    grain_sizes = get_grain_micron_sizes(sim_conf['usr_dust_list'])
+    grain_sizes = get_grain_micron_sizes(sim_conf)
     assert len(grain_sizes) == len(threeD_arrays) - 1
 
     #the transposition is handling a weird behavior of fits files...
