@@ -83,14 +83,17 @@ def get_grain_micron_sizes(amrvac_conf:f90nml.Namelist) -> np.ndarray:
     return µm_sizes
 
 
-def main(config_file, offset:int=None, output_dir:str='.', dbg=False):
+def main(config_file:str, offset:int=None, output_dir:str='.', dbg=False):
     print('==========================================')
     print(          'Starting vac2fost.main()')
     print('==========================================')
 
     # .. input reading ..
 
-    config = f90nml.read(config_file)
+    if isinstance(config_file, f90nml.Namelist):
+        config = config_file
+    else:
+        config = f90nml.read(config_file)
 
     if offset is None:
         offset = config['target_options']['offset']
