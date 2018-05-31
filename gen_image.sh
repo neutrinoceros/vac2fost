@@ -8,7 +8,7 @@
 
 DENS=hd142527_dusty0000.fits
 CONF=mcfost_conf.para
-OUT=out
+OUT=tmp/mcfost_out
 
 [ ! -d "$OUT" ] && mkdir $OUT
 
@@ -26,4 +26,6 @@ fi
 
 call="mcfost $CONF -density_file $DENS -root_dir $OUT -3D"
 eval $call
+
+# no way to catch an error from MCFOST currently...
 eval $call -img 1300
