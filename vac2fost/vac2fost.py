@@ -40,25 +40,14 @@ import astropy.io.fits as pyfits
 from scipy.interpolate import interp2d
 import f90nml
 
-from amrvac_pywrap import amrvac_convert
+from amrvac_pywrap import interpret_shell_path, read_amrvac_conf
+from vtk_vacreader import VacDataSorter
 
 try:
     res = subprocess.check_output('which mcfost', shell=True).decode('utf-8')
     assert not 'not found' in res
 except AssertionError:
     raise EnvironmentError('Installation of MCFOST not found.')
-
-
-def sort_raw_data(block:np.array, nr:int, nphi:int) -> np.ndarray:
-    '''Sort the block data lines along phi then r'''
-    slicer  = block[:,1].argsort()
-    block_s = block[slicer] #sort along phi
-    for i in range(nphi):
-        #second sort along r
-        m_block = block_s[i*nr:(i+1)*nr]
-        m_block = m_block[m_block[:,0].argsort()]
-        block_s[i*nr:(i+1)*nr] = m_block
-    return block_s
 
 def unique_sorted_list(arr:list):
     return sorted(list(set((arr))))
@@ -180,28 +169,6 @@ def get_grain_micron_sizes(dust_list) -> np.ndarray:
     return µm_sizes
 
 
-def get_dat_from_blk(blk_file:str):
-    '''Extract the data as a numpy array, ignoring weirdly shaped header.'''
-    with open(blk_file, 'r') as blk:
-    # pre-read the .blk output to learn where the actual data is written
-        n_trash_lines = 0
-        line = blk.readline()
-        columns = line.split()[1:]
-        densities_indices = [columns.index(key) for key in columns if 'rho' in key.lower()]
-        if len(densities_indices) == 1:
-            warn('only one density field detected (no dust) !')
-        elif len(densities_indices) > 2:
-            warn('this case has not been tested yet')
-            #densities_indices = densities_indices[1:] #tmp
-
-        while line.startswith('#') or line=='' or len(line.split())==1:
-            n_trash_lines += 1
-            line = blk.readline()
-
-    blk_dat = np.loadtxt(blk_file, skiprows=n_trash_lines)
-    return blk_dat, densities_indices
-
-
 def main(config_file, offset:int=None, output_dir:str='.', dbg=False):
     print('==========================================')
     print(          'Starting vac2fost.main()')
@@ -211,8 +178,8 @@ def main(config_file, offset:int=None, output_dir:str='.', dbg=False):
 
     config = f90nml.read(config_file)
 
-    if type(config['fork_options']['conf']) == str:
-        config['fork_options']['conf'] = [config['fork_options']['conf']]
+    # if type(config['fork_options']['conf']) == str:
+    #     config['fork_options']['conf'] = [config['fork_options']['conf']]
 
     if offset is None:
         offset = config['target_options']['offset']
@@ -221,77 +188,59 @@ def main(config_file, offset:int=None, output_dir:str='.', dbg=False):
     if isinstance(output_dir, str):
         output_dir = pathlib.Path(output_dir)
 
-    sim, blk_finame = amrvac_convert(
-        fork_args=config['fork_options'],
-        outnum=outnum,
-        target_dir=output_dir,
-        ext='blk',
-        dbg=dbg
-    )
+    options = config['target_options']
+    sim_conf = read_amrvac_conf(files=options['amrvac_conf'], origin=options['origin'])
+    vtu_filename = sim_conf['filelist']['base_filename'] + f'{outnum}.vtu'
+    datfile = interpret_shell_path(options['origin']) + '/' + vtu_filename
+    datshape = tuple([sim_conf['meshlist'][f'domain_nx{n}'] for n in (1,2)])
 
-    # .. data reading and formating ..
+    dh = VacDataSorter(file_name=datfile, data_shape=datshape)
+
+    # .. interpolation to target grid ..
 
     target_grid = get_target_grid(
         mcfost_list=config['mcfost_list'],
-        mesh_list=sim.conf['meshlist'],
+        mesh_list=sim_conf['meshlist'],
         silent=(not dbg)
     )
-
-    block_dat, densities_indices = get_dat_from_blk(blk_finame)
-
-    n_rad = sim.conf['meshlist']['domain_nx1']
-    n_phi = sim.conf['meshlist']['domain_nx2']
-
-    sorted_data     = sort_raw_data(block=block_dat, nr=n_rad, nphi=n_phi)
-    reshaped_data   = [sorted_data[:,i].reshape((n_phi, n_rad)).T for i in range(sorted_data.shape[1])]
-    reshaped_arrays = [reshaped_data[i] for i in densities_indices]
-
-    # .. interpolation to new grid ..
-
-    rad_vect  = unique_sorted_list(block_dat[:,0])
-    azim_vect = unique_sorted_list(block_dat[:,1])
-    assert len(rad_vect)  == n_rad
-    assert len(azim_vect) == n_phi
-
     rad_grid_new = target_grid[0,:,0,:].T
     phi_grid_new = target_grid[2,:,0,:].T
-
-
-    # define the target grid to interpolate data
     n_rad_new, n_phi_new = rad_grid_new.shape
     assert n_rad_new == config['mcfost_list']['nr']
     assert n_phi_new == config['mcfost_list']['nphi']
-
     rad_vect_new = rad_grid_new[:,0]
     phi_vect_new = phi_grid_new[0]
 
+    rad_vect_old, azim_vect_old = [dh.get_axis(n) for n in range(2)]
+
+    density_keys = sorted(filter(lambda k: 'rho' in k, dh.fields.keys()))
     interpolated_arrays = []
-    for arr in reshaped_arrays:
-        interpolator = interp2d(azim_vect, rad_vect, arr, kind='cubic')
+    for k in density_keys:
+        interpolator = interp2d(azim_vect_old, rad_vect_old, dh[k], kind='cubic')
         interpolated_arrays.append(interpolator(phi_vect_new, rad_vect_new))
     assert interpolated_arrays[0].shape == (n_rad_new, n_phi_new)
+    print("interpolation ok")
 
 
     # .. conversion to 3D ..
 
     zmax = config['target_options']['zmax']
-
     nz = config['mcfost_list']['nz']
     z_vect = np.linspace(-zmax, zmax, 2*nz+1)
     scale_height_grid = config['target_options']['aspect_ratio'] * rad_grid_new
     threeD_arrays = np.array([twoD2threeD(arr, scale_height_grid, z_vect) for arr in interpolated_arrays])
-
+    print("3D conversion ok")
 
 
     # .. build a .fits file ..
 
-    grain_sizes = get_grain_micron_sizes(sim.conf['usr_dust_list'])
+    grain_sizes = get_grain_micron_sizes(sim_conf['usr_dust_list'])
     assert len(grain_sizes) == len(threeD_arrays) - 1
 
     #the transposition is handling a weird behavior of fits files...
-    final_array = np.stack(threeD_arrays[grain_sizes.argsort()], axis=3).transpose()
+    dust_densities_array = np.stack(threeD_arrays[grain_sizes.argsort()], axis=3).transpose()
+    dust_densities_HDU = pyfits.PrimaryHDU(dust_densities_array)
 
-    densitiesHDU = pyfits.PrimaryHDU(final_array)
     mcfost_keywords = {
         'read_n_a': 0, #automatic normalization of size-bins from mcfost param file.
         # following keywords are too long according to fits standards  !
@@ -301,20 +250,20 @@ def main(config_file, offset:int=None, output_dir:str='.', dbg=False):
     }
 
     for it in mcfost_keywords.items():
-        densitiesHDU.header.append(it)
+        dust_densities_HDU.header.append(it)
 
-    grain_sizesHDU = pyfits.ImageHDU(grain_sizes[grain_sizes.argsort()])
+    grain_sizes_HDU = pyfits.ImageHDU(grain_sizes[grain_sizes.argsort()])
 
     hdus = [
-        densitiesHDU,
-        grain_sizesHDU,
+        dust_densities_HDU,
+        grain_sizes_HDU,
         #pyfits.ImageHDU(gas_density)
     ]
-    fits_finame = output_dir / blk_finame.name.replace('.blk', '.fits')
-    with open(fits_finame, 'w') as fo:
+    fits_filename = output_dir / pathlib.Path(vtu_filename).name.replace('.vtu', '.fits')
+    with open(fits_filename, 'w') as fo:
         hdul = pyfits.HDUList(hdus=hdus)
         hdul.writeto(fo)
-    print(f'Successfully wrote {fits_finame}')
+    print(f'Successfully wrote {fits_filename}')
 
     print('==========================================')
     print(          'End of vac2fost.main()')
@@ -322,7 +271,7 @@ def main(config_file, offset:int=None, output_dir:str='.', dbg=False):
     # .. finally, yield some info back (for testing) ..
 
     return dict(
-        finame = fits_finame,
+        finame = fits_filename,
         rads   = rad_grid_new.T,
         phis   = phi_grid_new.T,
     )
