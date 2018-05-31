@@ -238,7 +238,7 @@ def main(config_file, offset:int=None, output_dir:str='.', dbg=False):
     assert len(grain_sizes) == len(threeD_arrays) - 1
 
     #the transposition is handling a weird behavior of fits files...
-    dust_densities_array = np.stack(threeD_arrays[grain_sizes.argsort()], axis=3).transpose()
+    dust_densities_array = np.stack(threeD_arrays[1 + grain_sizes.argsort()], axis=3).transpose()
     dust_densities_HDU = pyfits.PrimaryHDU(dust_densities_array)
 
     mcfost_keywords = {
