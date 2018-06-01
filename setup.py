@@ -22,7 +22,7 @@ setup(
         'numpy>=1.13.3',
         'astropy>=2.0.2'
         'f90nml>=1.0.2',
-        'amrvac-pywrap>=0.0.4', #same author
+        'amrvac-pywrap>=0.0.5',
     ],
     python_requires = '>=3.6',
     packages = find_packages(),
