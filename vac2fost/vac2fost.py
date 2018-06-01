@@ -29,6 +29,7 @@ Known limitations
       That needs fixing if we wish to generate molecular lines synthetic observations.
 '''
 
+import os
 import pathlib
 import subprocess
 import shutil
@@ -118,6 +119,7 @@ class MCFOSTUtils:
         if tmp_fost_dir.exists():
             shutil.rmtree(tmp_fost_dir)
         try:
+            os.environ['OMP_NUM_THREADS'] = '1'
             subprocess.call(
                 f'mcfost mcfost_conf.para -disk_struct -root_dir {tmp_fost_dir}',
                 shell=True,
