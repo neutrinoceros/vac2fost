@@ -9,9 +9,9 @@
 /
 
 &target_options
-    origin = '$AMRVAC_DIR/tests/disk/transition/'
+    origin = 'tests/sample/'
     amrvac_conf = 'hd142527.nml', 'add_multidust.nml'
     offset = 0
-    zmax = 5    !use same unit at distance in the original simulation
+    zmax = 5         ! use same distance unit in the original simulation
     aspect_ratio = 0.01
 /
