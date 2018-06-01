@@ -1,73 +1,57 @@
-mcfost support
-==============
+VAC2FOST
+========
+
+`vac2mcfost.py` is a `python3` interface script that translates a `.vtu`
+amrvac output file into a `.fits` that can be fed to mcfost through
+the option `-density_file`.
+
 
 .. note::
 
    What I still need to do here:
 
-   * add conversion factors for dust (read the vac conf)
    * add more tests
         a) handle lists of conf (already supported but currently not being tested)
-        b) on grain sizes...
-        c) work from outside (if path correct)
+        b) call mcfost
    * consider adding switch for cylindrical/spherial griding
         a) handle at least one case correctly (with zmax and scale_height issues)
    * add option for dust settling method (Gauss vs Fromang, cf McFost options)
 
 
+
 Dependencies
 ------------
 
-The inteface relies on `pyvac/fork.py` functions.
+This package relies on `amrvac_pywrap` and `vtk_vacreader` packages (developed
+by Clément Robert).
 
-.. note::
-
-   This micro project is currently deeply rooted in the VAC directory.
-   It would probably be a better idea to disconnect the two...
 
 
 Content
 -------
 
-`vac2mcfost.py` is a python3 interface script that translates a `.dat`
-amrvac output file into a `.fits` that can be fed to mcfost through
-the option `-density_file`.
 
 
-`sample/` contains sample configuration files used by `test_api.py`
+`tests/sample/` contains sample configuration files used by `tests/test_app.py` 
+and `tests/test_shell.py` 
 
-`doc/default_mcfost_conf.para` contains a basic mcfost configuration
-from which is generated `mcfost_conf.para` when the api is called,
-where certain parameters can be overwritten with value found in
+`vac2fost/data/default_mcfost_conf.para` contains a basic mcfost configuration
+from which is generated `mcfost_conf.para` (into the current directory) when the
+app is called, where certain parameters can be overwritten with value found in
 `api_script.nml:&mcfost_list`
 
-`test_app.py` is meant to be run with `pytest`. Some tests can only
-pass if you ran `setup.py` beforehand, and correctly exported your
-instaldir to your `$PATH`
 
 
 Usage
 -----
 
-To first test the interface, you need to run our reference simulation,
-located at `$AMRVAC_DIR/tests/disk/transition/hd142527.nml`
-
-When it's done, you can run `pytest` in this directory to check if the
-interface works in your environment, then `./gen_image.sh` to generate
-an actual image with mcfost.
+Run `pytest` in this directory to check if the interface works in your 
+environment, then `./gen_image.sh` to generate an actual image with mcfost.
 
 The minimal requirement is a `configuration.nml` (name does not have
 to match this example) file formated as follow
 
  .. code:: fortran
-
-           &fork_options
-           ! Options for the ForkSimulation object
-               dim    = 2
-               outdir = '.'
-               origin = '/path/to/mod_usr.t/parent/directory'
-               conf   = 'relative/path/to/vac/config_file/from/origin'
-           /
 
            &mcfost_list
            ! this list describes mcfost parameters
@@ -84,9 +68,10 @@ to match this example) file formated as follow
 
            &target_options
            ! additional options
+               origin = '/path/to/mod_usr.t/parent/directory'
+               amrvac_conf = 'relative/path/to/vac/config_file/from/origin'
                offset = 0  ! output number of the .dat file to be converted
 
-               ! <-!-> items currently in this list need to be moved or rethought about
                zmax = 5    ! use same unit at distance in the original simulation
                aspect_ratio = 0.01
            /
@@ -107,13 +92,13 @@ The app can be used in two fashions
 
   .. code:: python
 
-            from vac2mcfost import main as api
+            from vac2fost import main as vac2fost
 
             conf_file = ... #(str or pathlib.Path)
             dat_file  = ... #(str or pathlib.Path)
             
-            api(conf_file)
-            api(conf_file, offset)
+            vac2fost(conf_file)
+            vac2fost(conf_file, offset)
   
 note that if `offset` is defined as a parameter **and** included in
 the configuration, the parameter value is used.
