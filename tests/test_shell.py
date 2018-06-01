@@ -16,7 +16,6 @@ class TestShellCalling():
     '''require that vac2fost.py be accessible through your $PATH env variable'''
 
     def test_command_line_call(self):
-        print(f'ROOT : {root}')
         exitcode = subprocess.call(
             str(root /'vac2fost.py ') + str(root.parent / 'tests/sample/vac2fost_conf.nml'),
             shell=True
