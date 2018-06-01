@@ -25,12 +25,7 @@ class TestShellCalling():
 
     def test_command_line_call_w_offset(self):
         exitcode = subprocess.call(
-            root / 'vac2fost.py ' + str(root.parent / 'test/sample/vac2fost_conf.nml -o 2'),
+            str(root / 'vac2fost.py ') + str(root.parent / 'tests/sample/vac2fost_conf.nml -o 2'),
             shell=True
         )
         assert exitcode == 0
-
-
-    # def test_install(self):
-    #     exitcode = subprocess.call('which vac2fost.py', shell=True)
-    #     assert exitcode == 0
