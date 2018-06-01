@@ -108,6 +108,7 @@ def main(config_file:str, offset:int=None, output_dir:str='.', dbg=False):
     datfile = interpret_shell_path(options['origin']) + '/' + vtu_filename
     datshape = tuple([sim_conf['meshlist'][f'domain_nx{n}'] for n in (1,2)])
 
+    print(f'loading data from {datfile}')
     simdata = VacDataSorter(file_name=datfile, data_shape=datshape)
 
 
@@ -148,7 +149,6 @@ def main(config_file:str, offset:int=None, output_dir:str='.', dbg=False):
 
 
     # .. build a .fits file ..
-
     grain_sizes = get_grain_micron_sizes(sim_conf)
     assert len(grain_sizes) == len(threeD_arrays) - 1
 
