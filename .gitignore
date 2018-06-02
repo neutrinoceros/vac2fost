@@ -9,3 +9,4 @@ mcfost_conf.para
 dist/*
 *egg-info*
 tmp/*
+tests/output
