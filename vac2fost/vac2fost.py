@@ -113,22 +113,32 @@ class MCFOSTUtils:
         else:
             out = None
         __class__.write_mcfost_conf(mcfost_list, mesh_list)
-        # generate a grid data file with mcfost itself and extract it
-        tmp_fost_dir = pathlib.Path('tmp_mcfost')
 
-        if tmp_fost_dir.exists():
-            shutil.rmtree(tmp_fost_dir)
-        try:
-            os.environ['OMP_NUM_THREADS'] = '1'
-            subprocess.call(
-                f'mcfost mcfost_conf.para -disk_struct -root_dir {tmp_fost_dir}',
-                shell=True,
-                stdout=out
-            )
-            assert tmp_fost_dir.exists()
-            target_grid = pyfits.open(tmp_fost_dir/'data_disk/grid.fits.gz')[0].data
-        finally:
-            shutil.rmtree(tmp_fost_dir)
+        grid_file_name = 'mcfost_grid.fits.gz'
+
+        gen_needed = True
+        if pathlib.Path(grid_file_name).exists():
+            target_grid = pyfits.open(grid_file_name)[0].data
+            found = target_grid.shape
+            hoped = mcfost_list['nphi'], 2*mcfost_list['nz']+1, mcfost_list['nr']
+            gen_needed = found[1:] != hoped
+
+        if gen_needed:
+            # generate a grid data file with mcfost itself and extract it
+            tmp_fost_dir = pathlib.Path('tmp_mcfost')
+            assert not tmp_fost_dir.exists()
+            try:
+                os.environ['OMP_NUM_THREADS'] = '1'
+                subprocess.call(
+                    f'mcfost mcfost_conf.para -disk_struct -root_dir {tmp_fost_dir}',
+                    shell=True,
+                    stdout=out
+                )
+                assert tmp_fost_dir.exists()
+                shutil.move(tmp_fost_dir/'data_disk/grid.fits.gz', grid_file_name)
+            finally:
+                shutil.rmtree(tmp_fost_dir)
+            target_grid = pyfits.open(grid_file_name)[0].data
         return target_grid
 
 
