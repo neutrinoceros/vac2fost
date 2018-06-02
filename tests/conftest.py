@@ -1,5 +1,7 @@
-# source :
-# https://docs.pytest.org/en/latest/example/simple.html#incremental-testing-test-steps
+'''Define the 'incremental' decorator for pytest.
+source:
+https://docs.pytest.org/en/latest/example/simple.html#incremental-testing-test-steps
+'''
 
 import pytest
 
