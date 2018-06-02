@@ -25,8 +25,8 @@ def test_get_grid():
 def test_get_large_grid():
     config = f90nml.read(here / 'sample/vac2fost_conf.nml')
 
-    config['mcfost_list']['nr'] = 1024
-    config['mcfost_list']['nphi'] = 1024
+    config['mcfost_list']['nr'] = 200
+    config['mcfost_list']['nphi'] = 200
 
     mesh_dimensions = {'xprobmin1': 70, 'xprobmax1': 450}
     success = False
