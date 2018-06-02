@@ -16,6 +16,7 @@ def test_get_grid():
         target_grid = MCFOSTUtils.get_mcfost_grid(
             mcfost_list=config['mcfost_list'],
             mesh_list=mesh_dimensions,
+            output_dir=here/'output/test_get_grid/',
             silent=False
         )
         success = True
@@ -34,6 +35,7 @@ def test_get_large_grid():
         target_grid = MCFOSTUtils.get_mcfost_grid(
             mcfost_list=config['mcfost_list'],
             mesh_list=mesh_dimensions,
+            output_dir=here/'output/test_get_large_grid/',
             silent=False
         )
         success = True
