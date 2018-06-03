@@ -307,7 +307,7 @@ if __name__=='__main__':
         help='configuration file (namelist) for this script'
     )
     parser.add_argument(
-        '-n', dest='off', type=int,
+        '-o', dest='off', type=int,
         required=False,
         default=None,
         help='output number of the target .dat VAC output file to be converted'
