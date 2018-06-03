@@ -182,13 +182,14 @@ def get_grain_micron_sizes(amrvac_conf:f90nml.Namelist) -> np.ndarray:
     return µm_sizes
 
 
-def main(config_file:str, offset:int=None, output_dir:str='.', dbg=False):
-    print('==========================================')
-    print('          Start vac2fost.main()')
-    print('==========================================')
+def main(config_file:str, offset:int=None, output_dir:str='.', verbose=False, dbg=False):
+    printer = {
+        True: print,
+        False: lambda *args, **kwargs: None,
+    }[verbose]
+    printer(' --------- Start vac2fost.main() ---------')
 
-    # -------------------------------------------------------------
-    print('reading input ...', end=' ', flush=True)
+    printer('reading input ...', end=' ', flush=True)
     if isinstance(config_file, f90nml.Namelist):
         config = config_file
     else:
@@ -208,15 +209,15 @@ def main(config_file:str, offset:int=None, output_dir:str='.', dbg=False):
     datfile = interpret_shell_path(options['origin']) + '/' + vtu_filename
     datshape = tuple([sim_conf['meshlist'][f'domain_nx{n}'] for n in (1,2)])
     assert pathlib.Path(datfile).exists()
-    print('ok')
+    printer('ok')
 
     # -------------------------------------------------------------
-    print(f'loading data from {datfile}', end=' ', flush=True)
+    printer(f'loading data from {datfile}', end=' ', flush=True)
     simdata = VacDataSorter(file_name=datfile, data_shape=datshape)
-    print('ok')
+    printer('ok')
 
     # -------------------------------------------------------------
-    print('interpolating to MCFOST grid ...', end=' ', flush=True)
+    printer('interpolating to MCFOST grid ...', end=' ', flush=True)
     target_grid = MCFOSTUtils.get_mcfost_grid(
         mcfost_list=config['mcfost_list'],
         mesh_list=sim_conf['meshlist'],
@@ -239,22 +240,22 @@ def main(config_file:str, offset:int=None, output_dir:str='.', dbg=False):
         interpolator = interp2d(azim_vect_old, rad_vect_old, simdata[k], kind='cubic')
         interpolated_arrays.append(interpolator(phi_vect_new, rad_vect_new))
     assert interpolated_arrays[0].shape == (n_rad_new, n_phi_new)
-    print('ok')
+    printer('ok')
 
 
     # -------------------------------------------------------------
-    print('converting 2D arrays to 3D ...', end=' ', flush=True)
+    printer('converting 2D arrays to 3D ...', end=' ', flush=True)
     zmax = config['target_options']['zmax']
     nz = config['mcfost_list']['nz']
     z_vect = np.linspace(-zmax, zmax, 2*nz+1)
     scale_height_grid = config['target_options']['aspect_ratio'] * rad_grid_new
     threeD_arrays = np.array([twoD2threeD(arr, scale_height_grid, z_vect) for arr in interpolated_arrays])
-    print('ok')
+    printer('ok')
 
 
 
     # -------------------------------------------------------------
-    print('building the .fits file ...', end=' ', flush=True)
+    printer('building the .fits file ...', end=' ', flush=True)
     grain_sizes = get_grain_micron_sizes(sim_conf)
     assert len(grain_sizes) == len(threeD_arrays) - 1
 
@@ -284,12 +285,9 @@ def main(config_file:str, offset:int=None, output_dir:str='.', dbg=False):
     with open(fits_filename, 'w') as fo:
         hdul = pyfits.HDUList(hdus=hdus)
         hdul.writeto(fo)
-    print('ok')
-    print(f'Successfully wrote {fits_filename}')
-
-    print('==========================================')
-    print('          End of vac2fost.main()')
-    print('==========================================')
+    printer('ok')
+    printer(f'Successfully wrote {fits_filename}')
+    printer(' --------- End   vac2fost.main() ---------')
     # .. finally, yield some info back (for testing) ..
 
     return dict(
@@ -309,7 +307,7 @@ if __name__=='__main__':
         help='configuration file (namelist) for this script'
     )
     parser.add_argument(
-        '-o', dest='off', type=int,
+        '-n', dest='off', type=int,
         required=False,
         default=None,
         help='output number of the target .dat VAC output file to be converted'
@@ -321,9 +319,14 @@ if __name__=='__main__':
         help='select output directory for generated files'
     )
     parser.add_argument(
+        '--verbose',
+        action='store_true',
+        help='activate verbose mode'
+    )
+    parser.add_argument(
         '--debug',
         action='store_true',
-        help='activate debug mode (verbose)'
+        help='activate debug mode (verbose for MCSOST)'
     )
     script_args = parser.parse_args()
 
