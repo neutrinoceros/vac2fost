@@ -30,10 +30,10 @@ Known limitations
 '''
 
 import os
-import pathlib
-import subprocess
 import shutil
+import subprocess
 from argparse import ArgumentParser
+from pathlib import Path
 
 import numpy as np
 import astropy.io.fits as pyfits
@@ -86,8 +86,8 @@ class MCFOSTUtils:
                 print(f'Warning: unable to locate {key}')
 
     def write_mcfost_conf(mcfost_list, mesh_list, output_dir:str='.'):
-        output_dir = pathlib.Path(output_dir)
-        with open(pathlib.Path(__file__).parent/'data/default_mcfost_conf.para', 'r') as fi:
+        output_dir = Path(output_dir)
+        with open(Path(__file__).parent/'data/default_mcfost_conf.para', 'r') as fi:
             lines = fi.readlines()
 
         clines = lines[:] #copy
@@ -109,12 +109,12 @@ class MCFOSTUtils:
 
     def get_mcfost_grid(mcfost_list, mesh_list, output_dir:str='.', silent=True):
         '''pre-run MCFOST in -disk_struct mode to extract the exact grid used.'''
-        output_dir = pathlib.Path(output_dir)
+        output_dir = Path(output_dir)
         if not output_dir.exists():
             subprocess.call(f'mkdir --parents {output_dir}', shell=True)
         __class__.write_mcfost_conf(mcfost_list, mesh_list, output_dir)
 
-        grid_file_name = pathlib.Path(output_dir) / 'mcfost_grid.fits.gz'
+        grid_file_name = Path(output_dir) / 'mcfost_grid.fits.gz'
 
         gen_needed = True
         if grid_file_name.exists():
@@ -130,7 +130,7 @@ class MCFOSTUtils:
                 pass
 
             # generate a grid data file with mcfost itself and extract it
-            tmp_fost_dir = pathlib.Path('TMP_VAC2FOST_MCFOST_GRID')
+            tmp_fost_dir = Path('TMP_VAC2FOST_MCFOST_GRID')
             try:
                 os.environ['OMP_NUM_THREADS'] = '1'
                 subprocess.call(
@@ -141,7 +141,7 @@ class MCFOSTUtils:
                 assert tmp_fost_dir.exists()
                 shutil.move(tmp_fost_dir / 'data_disk/grid.fits.gz', grid_file_name)
             finally:
-                if output_dir != pathlib.Path('.'):
+                if output_dir != Path('.'):
                     os.remove('./mcfost_conf.para')
                 shutil.rmtree(tmp_fost_dir)
             target_grid = pyfits.open(grid_file_name)[0].data
@@ -199,7 +199,7 @@ def main(config_file:str, offset:int=None, output_dir:str='.', verbose=False, db
         offset = config['target_options']['offset']
     outnum = str(offset).zfill(4)
 
-    output_dir = pathlib.Path(output_dir)
+    output_dir = Path(output_dir)
     if not output_dir.exists():
         subprocess.call(f'mkdir --parents {output_dir}', shell=True)
 
@@ -208,7 +208,7 @@ def main(config_file:str, offset:int=None, output_dir:str='.', verbose=False, db
     vtu_filename = sim_conf['filelist']['base_filename'] + f'{outnum}.vtu'
     datfile = interpret_shell_path(options['origin']) + '/' + vtu_filename
     datshape = tuple([sim_conf['meshlist'][f'domain_nx{n}'] for n in (1,2)])
-    assert pathlib.Path(datfile).exists()
+    assert Path(datfile).exists()
     printer('ok')
 
     # -------------------------------------------------------------
@@ -281,7 +281,7 @@ def main(config_file:str, offset:int=None, output_dir:str='.', verbose=False, db
         grain_sizes_HDU,
         #pyfits.ImageHDU(gas_density)
     ]
-    fits_filename = output_dir / pathlib.Path(vtu_filename).name.replace('.vtu', '.fits')
+    fits_filename = output_dir / Path(vtu_filename).name.replace('.vtu', '.fits')
     with open(fits_filename, 'w') as fo:
         hdul = pyfits.HDUList(hdus=hdus)
         hdul.writeto(fo)
