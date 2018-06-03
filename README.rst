@@ -32,8 +32,8 @@ Content
 
 
 
-`tests/sample/` contains sample configuration files used by `tests/test_app.py` 
-and `tests/test_shell.py` 
+`tests/sample/` contains sample configuration files used by `tests/test_app.py`
+and `tests/test_shell.py`
 
 `vac2fost/data/default_mcfost_conf.para` contains a basic mcfost configuration
 from which is generated `mcfost_conf.para` (into the current directory) when the
@@ -45,7 +45,7 @@ app is called, where certain parameters can be overwritten with value found in
 Usage
 -----
 
-Run `pytest` in this directory to check if the interface works in your 
+Run `pytest` in this directory to check if the interface works in your
 environment, then `./gen_image.sh` to generate an actual image with mcfost.
 
 The minimal requirement is a `configuration.nml` (name does not have
