@@ -124,11 +124,15 @@ class MCFOSTUtils:
             gen_needed = found[1:] != hoped
 
         if gen_needed:
+            try:
+                shutil.copyfile(output_dir / 'mcfost_conf.para', './mcfost_conf.para')
+            except shutil.SameFileError:
+                pass
+
             # generate a grid data file with mcfost itself and extract it
             tmp_fost_dir = pathlib.Path('TMP_VAC2FOST_MCFOST_GRID')
             try:
                 os.environ['OMP_NUM_THREADS'] = '1'
-                shutil.copyfile(output_dir / 'mcfost_conf.para', './mcfost_conf.para')
                 subprocess.call(
                     f'mcfost mcfost_conf.para -disk_struct -root_dir {tmp_fost_dir}',
                     shell=True,
