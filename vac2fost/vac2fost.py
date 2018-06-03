@@ -203,6 +203,7 @@ def main(config_file:str, offset:int=None, output_dir:str='.', dbg=False):
     vtu_filename = sim_conf['filelist']['base_filename'] + f'{outnum}.vtu'
     datfile = interpret_shell_path(options['origin']) + '/' + vtu_filename
     datshape = tuple([sim_conf['meshlist'][f'domain_nx{n}'] for n in (1,2)])
+    assert pathlib.Path(datfile).exists()
     print('ok')
 
     # -------------------------------------------------------------
