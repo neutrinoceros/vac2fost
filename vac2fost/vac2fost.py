@@ -334,5 +334,6 @@ if __name__=='__main__':
         config_file=script_args.configuration,
         offset=script_args.off,
         output_dir=script_args.output,
+        verbose=script_args.verbose,
         dbg=script_args.debug
     )
