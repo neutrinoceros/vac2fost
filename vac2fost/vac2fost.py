@@ -29,6 +29,7 @@ Known limitations
       That needs fixing if we wish to generate molecular lines synthetic observations.
 '''
 
+from collections import OrderedDict as od
 import os
 import shutil
 import subprocess
@@ -49,74 +50,130 @@ try:
 except AssertionError:
     raise EnvironmentError('Installation of MCFOST not found.')
 
+
 class MCFOSTUtils:
     '''Utility functions to call MCFOST in vac2fost.main() to define the final grid.'''
 
-    mcfost_args_locations = {
-        # locate mcfost arguments in default.para by (line,column)
-        # photons
-        'nphot_temp': (3,0),
-        'nphot_sed': (4,0),
-        'nphot_img': (5,0),
-        # grid
-        'nr'   : (15,0),
-        'nz'   : (15,1),
-        'nphi' : (15,2),
-        'nr_in': (15,3),
-        'rmin' : (47,0),
-        'rmax' : (47,2),
-        'maps_size': (18,2),
-        # dust
-        'total_dust_mass': (45,0), #in solar masses
-        'gas2dust_ratio' : (45,1),
-        # star
-        'distance': (21,0),
-        'star_temp': (70,0),
-        'star_mass': (70,2),
-        # density
-        'scale_height': (46,0),
-        'ref_rad': (46,1), # where 'scale_height' is defined
-        'flaring': (48,0),
-    }
+    blocks_descriptors = od(
+        #name every mcfost parameter (by order of appearence) and give default values
+        [
+            ('Photons', (
+                od([('nphot_temp', '1.28e5')]),
+                od([('nphot_sed', '1.28e3')]),
+                od([('nphot_img', '1.28e5')])
+            )),
 
-    def update_lines(lines, params:dict):
-        for key,val in params.items():
-            try:
-                pos = __class__.mcfost_args_locations[key]
-                mline = lines[pos[0]].split()
-                mline[pos[1]] = str(val)
-                lines[pos[0]] = '  ' + ' '.join(mline) + '\n'
-            except KeyError:
-                print(f'Warning: unable to locate {key}')
+            ('Wavelengts', (
+                od([('n_lambda', 50), ('lambda_min', 0.1), ('lambda_max', 3e3)]),
+                od([('compute_temp', True), ('compute_sed', True), ('use_default_wl', True)]),
+                od([('wavelength_file', 'wavelengths.dat')]),
+                od([('separation', False), ('stokes_parameters', False)])
+            )),
+            ('Grid', (
+                 od([('geometry', '1')]),
+                 od([('nr', 100), ('nz', 10), ('nphi', 100), ('nr_in', 30)])
+            )),
+            ('Maps', (
+                od([('nx', 501), ('ny', 501), ('maps_size', 400)]),
+                od([('imin', 0), ('imax', 0), ('n_incl', 1), ('centered', False)]),
+                od([('az_min', 0), ('az_max', 240), ('n_az_angles', 1)]),
+                od([('distance_pc', 140)]),
+                od([('disk_position_angle', 0)])
+            )),
+            ('Scattering', (
+                od([('scattering_method', '0')]),
+                od([('theory', 1)])
+            )),
+            ('Symmetries', (
+                od([('sym_image', False)]),
+                od([('sym_central', False)]),
+                od([('sym_axial', False)]),
+            )),
+            ('Disk physics', (
+                od([('dust_settling', 3), ('exp_strat', 0.5), ('a_srat', 1.0)]),
+                od([('dust_radial_migration', False)]),
+                od([('sublimate_dust', False)]),
+                od([('hydrostatic_eq', False)]),
+                od([('viscous_heating', False), ('alpha_viscosity', '1e-3')]),
+             )),
+            ('Number of zones', (
+                od([('n_zones', '1')]),
+            )),
+            ('Zone', (
+                od([('zone_type', 1)]),
+                od([('dust_mass', '1e-3'), ('gas_to_dust_ratio', 100)]),
+                od([('scale_height', 10.0), ('ref_radius', 100), ('profile_exp', 2)]),
+                od([('rin', 10), ('edge', 0), ('rout', 200), ('rc', 100)]),
+                od([('flaring_index', 1.125)]),
+                od([('density_exp', -0.5), ('gamma_exp', 0.0)])
+            )),
+            ('Grains', (
+                od([('n_species', 1)]),
+                od([('grain_type', 'Mie'), ('n_components', 1), ('mixing_rule', 2), ('porosity', 0.), ('mass_fraction', 0.75), ('vmax_dhs', 0.9)]),
+                od([('optical_indices_file', 'Draine_Si_sUV.dat'), ('volume_fraction', 1.0)]),
+                od([('heating_method', 2)]),
+                od([('sp_min', 0.1), ('sp_max', 1000), ('sexp', 3.5), ('n_grains', 100)])
+            )),
+            ('Molecular RT', (
+                od([('lpop', True), ('laccurate_pop', True), ('LTE', True), ('profile_width', 15.)]),
+                od([('v_turb', 0.2)]),
+                od([('nmol', 1)]),
+                od([('mol_data_file', 'co@xplot.dat'), ('level_max', 6)]),
+                od([('vmax', 1.0), ('n_speed', 20)]),
+                od([('cst_mol_abund', True), ('abund', '1e-6'), ('abund_file', 'abundance.fits.gz')]),
+                od([('ray_tracing', True), ('n_lines_rt', 3)]),
+                od([('transition_num_1', 1), ('transition_num_2', 2), ('transition_num_3', 3)])
+            )),
+            ('Star', (
+                od([('n_stars', 1)]),
+                od([('star_temp', 4000.0), ('star_radius', 2.0), ('star_mass', 1.0), ('star_x',0.), ('star_y', 0.), ('star_z', 0), ('star_is_bb', True)]),
+                od([('star_rad_file', 'lte4000-3.5.NextGen.fits.gz')]),
+                od([('fUV', 0.0), ('slope_fUV', 2.2)]),
+            ))
+        ])
 
-    def write_mcfost_conf(mcfost_list, mesh_list, output_dir:str='.'):
-        output_dir = Path(output_dir)
-        with open(Path(__file__).parent/'data/default_mcfost_conf.para', 'r') as fi:
-            lines = fi.readlines()
+    def write_mcfost_conf(output_file:str, custom:dict={}):
+        '''to be tested'''
+        if Path(output_file).exists():
+            print(f'Warning: {output_file} already exists, and will be overwritten.')
+        with open(output_file, 'w') as fi:
+            fi.write('3.0'.ljust(10) + 'mcfost minimal version' + '\n\n')
+            for block, lines in __class__.blocks_descriptors.items():
+                fi.write(f'# {block}\n')
+                for line in lines:
+                    parameters = []
+                    for param, default in line.items():
+                        if param in custom:
+                            val = custom[param]
+                        else:
+                            val = default
+                        parameters.append(str(val))
+                    fi.write('  ' + '  '.join(parameters).ljust(36) + '  ' + ', '.join(line.keys()))
+                    fi.write('\n')
+                fi.write('\n')
+            fi.write(f'\n\n\n%% GENERATED BY {__file__} %%\n')
+        print(f'wrote {output_file}')
 
-        clines = lines[:] #copy
-        __class__.update_lines(clines, mcfost_list)
-
-        auto_fills = {
-            'rmin': mesh_list['xprobmin1'],
-            'rmax': mesh_list['xprobmax1'],
-            'maps_size': 2*mesh_list['xprobmax1']
-        }
-        __class__.update_lines(clines, auto_fills)
-
-        mcfost_conf_file = output_dir / 'mcfost_conf.para'
-        if mcfost_conf_file.exists():
-            print(f'Warning: {mcfost_conf_file} already exists, and will be overwritten.')
-        with open(mcfost_conf_file, 'w') as fo:
-            fo.write(''.join(clines))
-            fo.write(f'\n\n\n%% GENERATED BY {__file__} %%\n')
-
-    def get_mcfost_grid(mcfost_list, mesh_list, output_dir:str='.', silent=True):
+    def get_mcfost_grid(mesh_list:dict, mcfost_list:dict={}, output_dir:str='.', silent=True):
         '''pre-run MCFOST in -disk_struct mode to extract the exact grid used.'''
         output_dir = Path(output_dir)
         if not output_dir.exists():
             subprocess.call(f'mkdir --parents {output_dir}', shell=True)
-        __class__.write_mcfost_conf(mcfost_list, mesh_list, output_dir)
+
+
+        #dev note: embedding the configuration writter here is bad design
+        custom={}
+        custom.update(mcfost_list)
+        custom.update({
+            'rmin': mesh_list['xprobmin1'],
+            'rmax': mesh_list['xprobmax1'],
+            'maps_size': 2*mesh_list['xprobmax1']
+        })
+
+        __class__.write_mcfost_conf(
+            output_file=str(output_dir/'mcfost_conf.para'),
+            custom=custom
+        )
 
         grid_file_name = Path(output_dir) / 'mcfost_grid.fits.gz'
 
@@ -224,8 +281,8 @@ def main(config_file:str, offset:int=None, output_dir:str='.', verbose=False, db
     # -------------------------------------------------------------
     printer('interpolating to MCFOST grid ...', end=' ', flush=True)
     target_grid = MCFOSTUtils.get_mcfost_grid(
-        mcfost_list=config['mcfost_list'],
         mesh_list=sim_conf['meshlist'],
+        mcfost_list=config['mcfost_list'],
         output_dir=output_dir,
         silent=(not dbg)
     )
