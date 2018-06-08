@@ -54,6 +54,10 @@ class MCFOSTUtils:
 
     mcfost_args_locations = {
         # locate mcfost arguments in default.para by (line,column)
+        # photons
+        'nphot_temp': (3,0),
+        'nphot_sed': (4,0),
+        'nphot_img': (5,0),
         # grid
         'nr'   : (15,0),
         'nz'   : (15,1),
