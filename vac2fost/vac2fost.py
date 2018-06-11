@@ -111,7 +111,7 @@ class MCFOSTUtils:
                 od([('n_species', 1)]),
                 od([('grain_type', 'Mie'), ('n_components', 1), ('mixing_rule', 2), ('porosity', 0.), ('mass_fraction', 0.75), ('vmax_dhs', 0.9)]),
                 od([('optical_indices_file', 'Draine_Si_sUV.dat'), ('volume_fraction', 1.0)]),
-                od([('heating_method', 2)]),
+                od([('heating_method', 1)]),
                 od([('sp_min', 0.1), ('sp_max', 1000), ('sexp', 3.5), ('n_grains', 100)])
             )),
             ('Molecular RT', (
