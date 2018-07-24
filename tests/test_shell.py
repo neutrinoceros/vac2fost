@@ -21,7 +21,7 @@ class TestShellCalling():
         comm = ' '.join([
             str(root /'vac2fost.py'),
             str(here / 'sample/vac2fost_conf.nml'),
-            f'-d {output_dir}'
+            f'-o {output_dir}'
         ])
         exitcode = subprocess.call(comm, shell=True)
         assert exitcode == 0
@@ -31,8 +31,8 @@ class TestShellCalling():
         comm = ' '.join([
             str(root /'vac2fost.py'),
             str(here / 'sample/vac2fost_conf.nml'),
-            f'-d {output_dir}',
-            '-o 2'
+            f'-o {output_dir}',
+            '-n 2'
         ])
         exitcode = subprocess.call(comm, shell=True)
         assert exitcode == 0

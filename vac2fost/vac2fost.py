@@ -369,24 +369,24 @@ if __name__=='__main__':
         help='configuration file (namelist) for this script'
     )
     parser.add_argument(
-        '-o', dest='off', type=int,
+        '-n', dest='num', type=int,
         required=False,
         default=None,
         help='output number of the target .dat VAC output file to be converted'
     )
     parser.add_argument(
-        '-d', dest='output', type=str,
+        '-o', '--output', dest='output', type=str,
         required=False,
         default='.',
         help='select output directory for generated files'
     )
     parser.add_argument(
-        '--verbose',
+        '-v', '--verbose',
         action='store_true',
         help='activate verbose mode'
     )
     parser.add_argument(
-        '--debug',
+        '--dbg', '--debug', dest='dbg',
         action='store_true',
         help='activate debug mode (verbose for MCSOST)'
     )
@@ -394,8 +394,8 @@ if __name__=='__main__':
 
     main(
         config_file=script_args.configuration,
-        offset=script_args.off,
+        offset=script_args.num,
         output_dir=script_args.output,
         verbose=script_args.verbose,
-        dbg=script_args.debug
+        dbg=script_args.dbg
     )
