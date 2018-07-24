@@ -372,7 +372,7 @@ if __name__=='__main__':
         '-n', dest='num', type=int,
         required=False,
         default=None,
-        help='output number of the target .dat VAC output file to be converted'
+        help='output number of the target .vtu VAC output file to be converted'
     )
     parser.add_argument(
         '-o', '--output', dest='output', type=str,
