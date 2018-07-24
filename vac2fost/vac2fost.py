@@ -31,6 +31,7 @@ Known limitations
 
 from collections import OrderedDict as od
 import os
+import sys
 import shutil
 import subprocess
 from argparse import ArgumentParser
@@ -360,42 +361,80 @@ def main(config_file:str, offset:int=None, output_dir:str='.', verbose=False, db
 
 
 
+def generate_conf_template():
+    target = {
+        'origin': '<path to the simulation repository, where datafiles are located>',
+        'amrvac_conf': '<one or multiple file path relative to origin, separated by comas ",">',
+        'zmax': '<<real> maximum height of the disk for vertical extrapolation (cylindrical). Use same unit as in .vtu data>',
+        'aspect_ratio': '<<real> constant aspect ratio for vertical extrapolation>'
+    }
+    mcfost_params = {
+        'nr': 128,
+        'nr_in': 4,
+        'nphi': 128,
+        'nz': 10
+    }
+    template = f90nml.Namelist({
+        'mcfost_list': f90nml.Namelist(mcfost_params),
+        'target_options': f90nml.Namelist(target)
+    })
+    return template
 
 if __name__=='__main__':
     # Parse the script arguments
-    parser = ArgumentParser()
-    parser.add_argument(
+    p = ArgumentParser(description='Parse arguments for main app')
+    p.add_argument(
         dest='configuration', type=str,
+        nargs='?',
+        default=None,
         help='configuration file (namelist) for this script'
     )
-    parser.add_argument(
+    p.add_argument(
         '-n', dest='num', type=int,
         required=False,
         default=None,
         help='output number of the target .vtu VAC output file to be converted'
     )
-    parser.add_argument(
+    p.add_argument(
         '-o', '--output', dest='output', type=str,
         required=False,
         default='.',
         help='select output directory for generated files'
     )
-    parser.add_argument(
+    p.add_argument(
         '-v', '--verbose',
         action='store_true',
         help='activate verbose mode'
     )
-    parser.add_argument(
+    p.add_argument(
         '--dbg', '--debug', dest='dbg',
         action='store_true',
         help='activate debug mode (verbose for MCSOST)'
     )
-    script_args = parser.parse_args()
+    p.add_argument(
+        '--genconf', action='store_true',
+        help='generate configuration file template for this script in the current dir'
+    )
+
+    args = p.parse_args()
+
+    if args.genconf:
+        template = generate_conf_template()
+        finame = 'template_vac2fost.nml'
+        if Path(finame).exists():
+            sys.exit(f'Error: {finame} already exists, exiting vac2fost.py')
+        else:
+            with open(finame, 'w') as fi:
+                template.write(fi)
+                print(f'Generated {finame}')
+        sys.exit()
+    elif not args.configuration:
+        sys.exit('Error: a configuration file is required as first argument. You can generate a template with --genconf')
 
     main(
-        config_file=script_args.configuration,
-        offset=script_args.num,
-        output_dir=script_args.output,
-        verbose=script_args.verbose,
-        dbg=script_args.dbg
+        config_file=args.configuration,
+        offset=args.num,
+        output_dir=args.output,
+        verbose=args.verbose,
+        dbg=args.dbg
     )
