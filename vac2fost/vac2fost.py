@@ -239,7 +239,7 @@ def twoD2threeD(arr2d:np.ndarray, scale_height:np.ndarray, zvect:np.ndarray) -> 
 def get_grain_micron_sizes(amrvac_conf:f90nml.Namelist) -> np.ndarray:
     '''Read grain sizes (assumed in [cm]), from AMRVAC parameters and
     convert to microns.'''
-    cm_sizes = np.array(amrvac_conf['usr_dust_list']['grain_size'])
+    cm_sizes = np.array(amrvac_conf['usr_dust_list']['grain_size_cm'])
     µm_sizes = 1e4 * cm_sizes
     return µm_sizes
 
