@@ -1,31 +1,23 @@
 #!/usr/bin/env python3
-'''A script for converting vac .dat data files to .fits
+'''A conversion tool from AMRVAC (.vtu) to MCFOST (.fits) 
+
+Run `vac2fost.py --help` for documentation on command line usage
 
 Steps
-1) convert .dat to .blk with amrvac itself
-2) convert .blk to .fits.gz
-    a) sort the raw data points (original order is messy)
-    b) reshape to 2D numpy arrays
-    c) interpolate data to fit a MCFOST grid (log-spacing)
+    a) load AMRVAC data with vtk_vacreader.VacDataSorter(), sort it as 2D arrays
+    b) dry-run MCFOST to get the exact target grid
+    c) interpolate data to the target grid (log-spacing)
     d) convert to 3D (gaussian redistribution of density)
-    e) unit conversion                                    <<<<< NOT IMPLEMENTED YET
-
-
-Arguments
--c configuration file for this script
--d .dat file to be converted
-
 
 Known limitations
-   1) amr is not supported
+   1) amr is not supported by reader
    2) portability is not guaranted
-   3) gaussian redistribution is currently unreliable (hard coded parameters)
-   4) interpolation does not account for the curvature of polar cells
-   5) a cylindrical grid is currently used for 3D,
+   3) interpolation does not account for the curvature of polar cells
+   4) a cylindrical grid is currently used for 3D,
       we may later implement the spherical option
-   6) input simulation is assumed to be 2D (r,phi)
-   7) gas density not being read yet
-   8) when dust density is available, gas density is being ignored.
+   5) input simulation is assumed to be 2D (r,phi)
+   6) gas density not being read yet
+   7) when dust density is available, gas density is being ignored.
       That needs fixing if we wish to generate molecular lines synthetic observations.
 '''
 
