@@ -1,5 +1,6 @@
-'''tests for installed version, called through shell'''
+'''test the shell interface'''
 
+import os
 from pathlib import Path
 import subprocess
 import pytest
@@ -19,7 +20,7 @@ class TestShellCalling():
     def test_command_line_call(self):
         output_dir = here / 'output/test_command_line_call/'
         comm = ' '.join([
-            str(root /'vac2fost.py'),
+            str(root / 'vac2fost.py'),
             str(here / 'sample/vac2fost_conf.nml'),
             f'-o {output_dir}'
         ])
@@ -29,10 +30,27 @@ class TestShellCalling():
     def test_command_line_call_w_offset(self):
         output_dir = here / 'output/test_command_line_call_w_offset/'
         comm = ' '.join([
-            str(root /'vac2fost.py'),
+            str(root / 'vac2fost.py'),
             str(here / 'sample/vac2fost_conf.nml'),
             f'-o {output_dir}',
             '-n 2'
         ])
         exitcode = subprocess.call(comm, shell=True)
         assert exitcode == 0
+
+class TestNarrowCases:
+    def test_genconf(self):
+        output_dir = here / 'output/test_genconf/'
+        comm = ' '.join([
+            str(root / 'vac2fost.py'),
+            '--genconf',
+            f'--output {output_dir}'
+        ])
+        subprocess.call(comm, shell=True)
+        outfile = output_dir / 'template_vac2fost.nml'
+        success = False
+        try:
+            success = Path(outfile).exists()
+            os.remove(outfile)
+        finally:
+            assert success

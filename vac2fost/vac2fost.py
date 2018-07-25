@@ -420,7 +420,9 @@ if __name__=='__main__':
 
     if args.genconf:
         template = generate_conf_template()
-        finame = 'template_vac2fost.nml'
+        finame = args.output + '/template_vac2fost.nml'
+        if not Path(args.output).exists():
+            subprocess.call(f'mkdir --parents {args.output}', shell=True)
         if Path(finame).exists():
             sys.exit(f'Error: {finame} already exists, exiting vac2fost.py')
         else:
