@@ -158,8 +158,8 @@ class MCFOSTUtils:
         custom={}
         custom.update(mcfost_list)
         custom.update({
-            'rmin': mesh_list['xprobmin1'],
-            'rmax': mesh_list['xprobmax1'],
+            'rin': mesh_list['xprobmin1'],
+            'rout': mesh_list['xprobmax1'],
             'maps_size': 2*mesh_list['xprobmax1']
         })
 
