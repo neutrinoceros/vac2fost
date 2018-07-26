@@ -248,7 +248,15 @@ def get_grain_micron_sizes(amrvac_conf:f90nml.Namelist) -> np.ndarray:
     return µm_sizes
 
 
-def main(config_file:str, offset:int=None, output_dir:str='.', d2g_bin=False read_gas=False, verbose=False, dbg=False):
+def main(
+        config_file:str,
+        offset:int=None,
+        output_dir:str='.',
+        g2d_bin=False,
+        read_gas=False,
+        verbose=False,
+        dbg=False
+):
     printer = {
         True: print,
         False: lambda *args, **kwargs: None,
@@ -279,7 +287,7 @@ def main(config_file:str, offset:int=None, output_dir:str='.', d2g_bin=False rea
 
     # decide if an additional fake dust bin, based on gas density, is necessary
     grain_sizes_µm = get_grain_micron_sizes(sim_conf)
-    small_grains_from_gas = bool((min(grain_sizes_µm) > minsize_grain_µm) * d2g_bin)
+    small_grains_from_gas = bool((min(grain_sizes_µm) > minsize_grain_µm) * g2d_bin)
 
     # do we want to pass the gas component to mcfost ?
     if read_gas:
@@ -437,6 +445,16 @@ if __name__=='__main__':
         help='select output directory for generated files'
     )
     p.add_argument(
+        '--g2d',
+        action='store_true',
+        help='activate gas-to-dust mode'
+    )
+    p.add_argument(
+        '--gas',
+        action='store_true',
+        help='pass information on gas component to mcfost (not implemented !)'
+    )
+    p.add_argument(
         '-v', '--verbose',
         action='store_true',
         help='activate verbose mode'
@@ -472,6 +490,8 @@ if __name__=='__main__':
         config_file=args.configuration,
         offset=args.num,
         output_dir=args.output,
+        g2d_bin=args.g2d,
+        read_gas=args.gas,
         verbose=args.verbose,
         dbg=args.dbg
     )
