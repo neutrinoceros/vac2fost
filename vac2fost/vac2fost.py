@@ -148,6 +148,29 @@ class MCFOSTUtils:
         if not silent:
             print(f'wrote {output_file}')
 
+    def translate_amrvac_conf(amrvac_conf: f90nml.Namelist) -> dict:
+        '''pass amrvac parameters to mcfost'''
+        # convenient aliases
+        mesh = amrvac_conf['mesh_list']
+        dl2 = amrvac_conf['usr_dust_list']
+
+        parameters = {}
+        # Zone
+        parameters.update({
+            'rin': mesh['xprobmin1'],
+            'rout': mesh['xprobmax1'],
+            'maps_size': 2*mesh['xprobmax1'],
+            'gas_to_dust_ratio': dl2['gas2dust_ratio'],
+            #'dust_mass': ... #can not be passed from the configuration file alone
+        })
+        # Grains
+        parameters.update({
+            #min/max grain sizes in microns
+            'sp_min': min(block_descriptor('sp_min'), 1e4 * min(dl2['grain_size_cm'])),
+            'sp_max': max(block_descriptor('sp_max'), 1e4 * max(dl2['grain_size_cm'])),
+        })
+        return parameters
+
     def get_mcfost_grid(mesh_list:dict, mcfost_list:dict={}, output_dir:str='.', silent=True):
         '''pre-run MCFOST in -disk_struct mode to extract the exact grid used.'''
         output_dir = Path(output_dir)
