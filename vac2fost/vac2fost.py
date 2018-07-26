@@ -284,8 +284,7 @@ def main(config_file:str, offset:int=None, output_dir:str='.', verbose=False, db
 
     # -------------------------------------------------------------
 
-
-
+    printer('writting the mcfost configuration file ...', end=' ', flush=True)
     custom = {}
     custom.update(MCFOSTUtils.translate_amrvac_conf(sim_conf))
     custom.update(config['mcfost_list'])
@@ -296,6 +295,9 @@ def main(config_file:str, offset:int=None, output_dir:str='.', verbose=False, db
         custom=custom,
         silent=(not dbg)
     )
+    printer('ok')
+
+    # -------------------------------------------------------------
 
     printer('interpolating to MCFOST grid ...', end=' ', flush=True)
     target_grid = MCFOSTUtils.get_mcfost_grid(
