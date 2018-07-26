@@ -3,20 +3,35 @@
 from pathlib import Path
 import f90nml
 
+from amrvac_pywrap import read_amrvac_conf
 from vac2fost.vac2fost import MCFOSTUtils
 
 here = Path(__file__).absolute().parent
 
-def test_get_grid():
-    config = f90nml.read(here / 'sample/vac2fost_conf.nml')
 
-    mesh_dimensions = {'xprobmin1': 70, 'xprobmax1': 450}
+config = f90nml.read(here / 'sample/vac2fost_conf.nml')
+options = config['target_options']
+sim_conf = read_amrvac_conf(files=options['amrvac_conf'], origin=options['origin'])
+
+custom = {}
+custom.update(MCFOSTUtils.translate_amrvac_conf(sim_conf))
+
+def test_get_grid():
+    output_dir = here / 'output/test_get_grid/'
+
+    custom.update(config['mcfost_list'])
+    mcfost_para_file = str(output_dir/'mcfost_conf.para')
+    MCFOSTUtils.write_mcfost_conf(
+        output_file=mcfost_para_file,
+        custom=custom,
+    )
+
     success = False
     try:
         target_grid = MCFOSTUtils.get_mcfost_grid(
+            mcfost_conf=mcfost_para_file,
             mcfost_list=config['mcfost_list'],
-            mesh_list=mesh_dimensions,
-            output_dir=here/'output/test_get_grid/',
+            output_dir=output_dir,
             silent=False
         )
         success = True
@@ -24,18 +39,25 @@ def test_get_grid():
         assert success
 
 def test_get_large_grid():
-    config = f90nml.read(here / 'sample/vac2fost_conf.nml')
+    output_dir = here / 'output/test_get_large_grid/'
 
+    custom.update(config['mcfost_list'])
+    mcfost_para_file = str(output_dir/'mcfost_conf.para')
+    MCFOSTUtils.write_mcfost_conf(
+        output_file=mcfost_para_file,
+        custom=custom,
+    )
+
+    #overwrite
     config['mcfost_list']['nr'] = 200
     config['mcfost_list']['nphi'] = 200
 
-    mesh_dimensions = {'xprobmin1': 70, 'xprobmax1': 450}
     success = False
     try:
         target_grid = MCFOSTUtils.get_mcfost_grid(
+            mcfost_conf=mcfost_para_file,
             mcfost_list=config['mcfost_list'],
-            mesh_list=mesh_dimensions,
-            output_dir=here/'output/test_get_large_grid/',
+            output_dir=output_dir,
             silent=False
         )
         success = True
