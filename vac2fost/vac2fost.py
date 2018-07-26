@@ -172,7 +172,7 @@ class MCFOSTUtils:
         })
         return parameters
 
-    def get_mcfost_grid(mcfost_list:dict={}, output_dir:str='.', silent=True) -> np.ndarray:
+    def get_mcfost_grid(mcfost_conf:str, mcfost_list:dict={}, output_dir:str='.', silent=True) -> np.ndarray:
         '''pre-run MCFOST in -disk_struct mode to extract the exact grid used.'''
         output_dir = Path(output_dir)
         if not output_dir.exists():
@@ -188,7 +188,7 @@ class MCFOSTUtils:
             gen_needed = found[1:] != hoped
 
         if gen_needed:
-            assert (output_dir / 'mcfost_conf.para').exists()
+            assert Path(mcfost_conf).exists()
             try:
                 shutil.copyfile(output_dir / 'mcfost_conf.para', './mcfost_conf.para')
             except shutil.SameFileError:
@@ -290,14 +290,16 @@ def main(config_file:str, offset:int=None, output_dir:str='.', verbose=False, db
     custom.update(MCFOSTUtils.translate_amrvac_conf(sim_conf))
     custom.update(config['mcfost_list'])
 
+    mcfost_para_file = str(output_dir/'mcfost_conf.para')
     MCFOSTUtils.write_mcfost_conf(
-        output_file=str(output_dir/'mcfost_conf.para'),
+        output_file=mcfost_para_file,
         custom=custom,
         silent=(not dbg)
     )
 
     printer('interpolating to MCFOST grid ...', end=' ', flush=True)
     target_grid = MCFOSTUtils.get_mcfost_grid(
+        mcfost_conf=mcfost_para_file,
         mcfost_list=config['mcfost_list'],
         output_dir=output_dir,
         silent=(not dbg)
