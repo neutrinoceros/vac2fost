@@ -1,0 +1,150 @@
+variables:
+  PYENV: "vac2fost-test-env"
+
+cache:
+  paths:
+    - deps/
+  untracked: false
+
+before_script:
+  - hostname
+  - pwd
+  - echo $USER
+  - echo $GITLAB_USER_ID
+  - echo $GITLAB_USER_NAME
+  - echo $GITLAB_USER_LOGIN
+  - module load userspace/170135
+  - module load python/3.6.3_anaconda3
+  - export PATH=$PATH:deps/
+  - export MCFOST_UTILS=`pwd`/deps/mcfost_utils
+
+stages:
+  - cleanup
+  - build
+  - install
+  - finish_install
+  - validate_install
+  - unit_tests
+  - tests
+
+clear_env:
+  stage: cleanup
+  script:
+    - conda remove --name $PYENV --all --yes
+    - rm -fr `pwd`/deps
+
+create_env:
+  stage: build
+  script:
+    - conda create --name $PYENV --file environment.yml --channel conda-forge --yes
+    - conda install pip --name $PYENV --yes
+
+download_deps:
+  stage: build
+  script:
+    - bash dl_deps.sh
+
+install_mcfost:
+  stage: build
+  script:
+    - mkdir deps || echo "skip mkdir"
+    - cd deps/
+    - wget http://ipag.osug.fr/public/pintec/mcfost/linux/mcfost.tgz
+    - tar xvzf mcfost.tgz
+    - chmod +x mcfost
+    - mkdir -p $MCFOST_UTILS || echo "skip mkdir"
+    - ./mcfost -setup
+
+install_deps:
+  stage: install
+  script:
+    - source activate $PYENV
+    - pip install `pwd`/deps/vtk_vacreader-project
+    - pip install `pwd`/deps/amrvac-pywrap-project
+
+validate_mcfost:
+  stage: install
+  script:
+    - which mcfost
+    - mcfost -version
+
+install_vac2fost:
+  stage: finish_install
+  script:
+    - source activate $PYENV
+    - export PATH=$PATH:`pwd`/deps
+    - pip install .
+
+check:
+  stage: validate_install
+  tags:
+    - python3
+    - slurm
+  script:
+    - source activate $PYENV
+    - python -c "import vac2fost"
+
+params:
+  stage: unit_tests
+  script:
+    - source activate $PYENV
+    - pytest tests/test_params.py
+io:
+  stage: unit_tests
+  script:
+    - source activate $PYENV
+    - pytest tests/test_io.py
+
+dust_binning_mode:
+  stage: unit_tests
+  script:
+    - source activate $PYENV
+    - pytest tests/test_dust_binning_mode.py
+
+# code_quality:
+#   stage: tests
+#   script:
+#     - source activate $PYENV
+#     - pytest tests/test_code_quality.py
+
+# test_env:
+#   stage: tests
+#   script:
+#     - source activate $PYENV
+#     - pytest tests/test_env.py
+
+# mcfost_grid:
+#   stage: tests
+#   script:
+#     - source activate $PYENV
+#     - pytest tests/test_mcfost_grid.py
+
+# mcfost_writter:
+#   stage: tests
+#   script:
+#     - source activate $PYENV
+#     - pytest tests/test_mcfost_writter.py
+
+# shell:
+#   stage: tests
+#   script:
+#     - source activate $PYENV
+#     - pytest tests/test_shell.py
+
+# scripting:
+#   stage: tests
+#   script:
+#     - source activate $PYENV
+#     - pytest tests/test_scripting.py
+
+# gas_reading:
+#   stage: tests
+#   script:
+#     - source activate $PYENV
+#     - pytest tests/test_gas_reading.py
+
+# regression:
+#   stage: tests
+#   script:
+#     - source activate $PYENV
+#     - pytest tests/test_regression.py

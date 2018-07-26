@@ -2,7 +2,7 @@
 
 set -eu
 if [ -d deps ] ; then
-    read -p "Found existing deps directory. Do you wish to erase it ? [y]/n    " choice
+    read -p "Found existing deps directory. Overwrite it ? [y]/n    " choice
     case $choice in
 	[nN]*)
 	    echo "exiting install script !"
@@ -28,3 +28,4 @@ case $choice in
     *)
 	echo "deps were downloaded but not installed !"
 esac
+
