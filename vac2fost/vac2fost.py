@@ -151,7 +151,7 @@ class MCFOSTUtils:
     def translate_amrvac_conf(amrvac_conf: f90nml.Namelist) -> dict:
         '''pass amrvac parameters to mcfost'''
         # convenient aliases
-        mesh = amrvac_conf['mesh_list']
+        mesh = amrvac_conf['meshlist']
         dl2 = amrvac_conf['usr_dust_list']
 
         parameters = {}
@@ -164,34 +164,19 @@ class MCFOSTUtils:
             #'dust_mass': ... #can not be passed from the configuration file alone
         })
         # Grains
+        #todo: use get_micron...
         parameters.update({
             #min/max grain sizes in microns
-            'sp_min': min(block_descriptor('sp_min'), 1e4 * min(dl2['grain_size_cm'])),
-            'sp_max': max(block_descriptor('sp_max'), 1e4 * max(dl2['grain_size_cm'])),
+            'sp_min': min(1e-1, 1e4 * min(dl2['grain_size_cm'])),
+            'sp_max': max(1e3,  1e4 * max(dl2['grain_size_cm'])),
         })
         return parameters
 
-    def get_mcfost_grid(mesh_list:dict, mcfost_list:dict={}, output_dir:str='.', silent=True):
+    def get_mcfost_grid(mcfost_list:dict={}, output_dir:str='.', silent=True) -> np.ndarray:
         '''pre-run MCFOST in -disk_struct mode to extract the exact grid used.'''
         output_dir = Path(output_dir)
         if not output_dir.exists():
             subprocess.call(f'mkdir --parents {output_dir}', shell=True)
-
-
-        #dev note: embedding the configuration writter here is bad design
-        custom={}
-        custom.update(mcfost_list)
-        custom.update({
-            'rin': mesh_list['xprobmin1'],
-            'rout': mesh_list['xprobmax1'],
-            'maps_size': 2*mesh_list['xprobmax1']
-        })
-
-        __class__.write_mcfost_conf(
-            output_file=str(output_dir/'mcfost_conf.para'),
-            custom=custom,
-            silent=silent
-        )
 
         grid_file_name = Path(output_dir) / 'mcfost_grid.fits.gz'
 
@@ -203,6 +188,7 @@ class MCFOSTUtils:
             gen_needed = found[1:] != hoped
 
         if gen_needed:
+            assert (output_dir / 'mcfost_conf.para').exists()
             try:
                 shutil.copyfile(output_dir / 'mcfost_conf.para', './mcfost_conf.para')
             except shutil.SameFileError:
@@ -297,9 +283,21 @@ def main(config_file:str, offset:int=None, output_dir:str='.', verbose=False, db
     printer('ok')
 
     # -------------------------------------------------------------
+
+
+
+    custom = {}
+    custom.update(MCFOSTUtils.translate_amrvac_conf(sim_conf))
+    custom.update(config['mcfost_list'])
+
+    MCFOSTUtils.write_mcfost_conf(
+        output_file=str(output_dir/'mcfost_conf.para'),
+        custom=custom,
+        silent=(not dbg)
+    )
+
     printer('interpolating to MCFOST grid ...', end=' ', flush=True)
     target_grid = MCFOSTUtils.get_mcfost_grid(
-        mesh_list=sim_conf['meshlist'],
         mcfost_list=config['mcfost_list'],
         output_dir=output_dir,
         silent=(not dbg)
