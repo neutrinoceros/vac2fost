@@ -126,7 +126,9 @@ class MCFOSTUtils:
         ])
 
     def write_mcfost_conf(output_file:str, custom:dict={}, silent=True):
-        '''to be tested'''
+        '''Write a configuration file for mcfost using values from <custom>,
+        and falling back to defaults found in block_descriptor defined above
+        '''
         if Path(output_file).exists() and not silent:
             print(f'Warning: {output_file} already exists, and will be overwritten.')
         with open(output_file, 'w') as fi:
