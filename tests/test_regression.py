@@ -16,6 +16,7 @@ out = app(
     str(here/'sample/vac2fost_conf.nml'),
     output_dir=outdir
 )
+
 class TestRegression:
     def test_mcfost_conf(self):
         with open(here/'ref/mcfost_conf.para') as fi:

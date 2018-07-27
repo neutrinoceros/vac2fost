@@ -273,6 +273,20 @@ def get_grain_micron_sizes(amrvac_conf:f90nml.Namelist) -> np.ndarray:
         µm_sizes = []
     return µm_sizes
 
+def get_dust_mass(data: VacDataSorter) -> float:
+    '''estimate the total dust mass in the grid in code units
+    (solar mass = 1) is assumed by the present script and MCFOST
+    '''
+    # devnote : assume a linearly spaced grid
+    dphi = 2*np.pi / data.shape[1]
+    rvect = data.get_ticks(0)
+    dr = rvect[1] - rvect[0]
+    cell_surfaces = dphi/2 * ((rvect + dr/2)**2 - (rvect - dr/2)**2)
+
+    mass = 0.0
+    for _, field in filter(lambda item: 'rhod' in item[0], data):
+        mass += np.sum([cell_surfaces * field[:,i] for i in range(field.shape[1])])
+    return mass
 
 def main(
         config_file:str,
@@ -344,6 +358,7 @@ def main(
 
     custom.update(MCFOSTUtils.translate_amrvac_conf(sim_conf, conv2au=conv2au))
     custom.update(config['mcfost_list'])
+    custom.update({'dust_mass': get_dust_mass(simdata)})
 
     mcfost_para_file = str(output_dir/'mcfost_conf.para')
     MCFOSTUtils.write_mcfost_conf(
@@ -373,7 +388,7 @@ def main(
     rad_vect_old  = simdata.get_ticks('r') * conv2au
     azim_vect_old = simdata.get_ticks('phi')
 
-    density_keys = sorted(filter(lambda k: 'rho' in k, simdata.fields.keys()))
+    density_keys = sorted(filter(lambda k: 'rho' in k, simdata.fields.keys())) #todo : update me
     interpolated_arrays = []
     for k in density_keys:
         interpolator = interp2d(azim_vect_old, rad_vect_old, simdata[k], kind='cubic')
