@@ -43,6 +43,7 @@ try:
 except AssertionError:
     raise EnvironmentError('Installation of MCFOST not found.')
 
+minsize_grain_µm = 0.1
 
 class MCFOSTUtils:
     '''Utility functions to call MCFOST in vac2fost.main() to define the final grid.'''
@@ -105,7 +106,7 @@ class MCFOSTUtils:
                 od([('grain_type', 'Mie'), ('n_components', 1), ('mixing_rule', 2), ('porosity', 0.), ('mass_fraction', 0.75), ('vmax_dhs', 0.9)]),
                 od([('optical_indices_file', 'Draine_Si_sUV.dat'), ('volume_fraction', 1.0)]),
                 od([('heating_method', 1)]),
-                od([('sp_min', 0.1), ('sp_max', 1000), ('sexp', 3.5), ('n_grains', 100)])
+                od([('sp_min', minsize_grain_µm), ('sp_max', 1000), ('sexp', 3.5), ('n_grains', 100)])
             )),
             ('Molecular RT', (
                 od([('lpop', True), ('laccurate_pop', True), ('LTE', True), ('profile_width', 15.)]),
@@ -150,27 +151,35 @@ class MCFOSTUtils:
         if not silent:
             print(f'wrote {output_file}')
 
-    def get_mcfost_grid(mesh_list:dict, mcfost_list:dict={}, output_dir:str='.', silent=True):
+    def translate_amrvac_conf(amrvac_conf: f90nml.Namelist) -> dict:
+        '''pass amrvac parameters to mcfost'''
+        # convenient aliases
+        mesh = amrvac_conf['meshlist']
+        dl2 = amrvac_conf['usr_dust_list']
+
+        parameters = {}
+        # Zone
+        parameters.update({
+            'rin': mesh['xprobmin1'],
+            'rout': mesh['xprobmax1'],
+            'maps_size': 2*mesh['xprobmax1'],
+            'gas_to_dust_ratio': dl2['gas2dust_ratio'],
+            #'dust_mass': ... #can not be passed from the configuration file alone
+        })
+        # Grains
+        sizes_µm = get_grain_micron_sizes(amrvac_conf)
+        parameters.update({
+            #min/max grain sizes in microns
+            'sp_min': min(1e-1, min(sizes_µm)),
+            'sp_max': max(1e3,  max(sizes_µm)),
+        })
+        return parameters
+
+    def get_mcfost_grid(mcfost_conf:str, mcfost_list:dict={}, output_dir:str='.', silent=True) -> np.ndarray:
         '''pre-run MCFOST in -disk_struct mode to extract the exact grid used.'''
         output_dir = Path(output_dir)
         if not output_dir.exists():
             subprocess.call(f'mkdir --parents {output_dir}', shell=True)
-
-
-        #dev note: embedding the configuration writter here is bad design
-        custom={}
-        custom.update(mcfost_list)
-        custom.update({
-            'rin': mesh_list['xprobmin1'],
-            'rout': mesh_list['xprobmax1'],
-            'maps_size': 2*mesh_list['xprobmax1']
-        })
-
-        __class__.write_mcfost_conf(
-            output_file=str(output_dir/'mcfost_conf.para'),
-            custom=custom,
-            silent=silent
-        )
 
         grid_file_name = Path(output_dir) / 'mcfost_grid.fits.gz'
 
@@ -182,6 +191,7 @@ class MCFOSTUtils:
             gen_needed = found[1:] != hoped
 
         if gen_needed:
+            assert Path(mcfost_conf).exists()
             try:
                 shutil.copyfile(output_dir / 'mcfost_conf.para', './mcfost_conf.para')
             except shutil.SameFileError:
@@ -240,7 +250,15 @@ def get_grain_micron_sizes(amrvac_conf:f90nml.Namelist) -> np.ndarray:
     return µm_sizes
 
 
-def main(config_file:str, offset:int=None, output_dir:str='.', verbose=False, dbg=False):
+def main(
+        config_file:str,
+        offset:int=None,
+        output_dir:str='.',
+        g2d_bin=False,
+        read_gas=False,
+        verbose=False,
+        dbg=False
+):
     printer = {
         True: print,
         False: lambda *args, **kwargs: None,
@@ -268,6 +286,15 @@ def main(config_file:str, offset:int=None, output_dir:str='.', verbose=False, db
     datshape = tuple([sim_conf['meshlist'][f'domain_nx{n}'] for n in (1,2)])
     if not Path(datfile).exists():
         raise FileNotFoundError(datfile)
+
+    # decide if an additional fake dust bin, based on gas density, is necessary
+    grain_sizes_µm = get_grain_micron_sizes(sim_conf)
+    small_grains_from_gas = bool((min(grain_sizes_µm) > minsize_grain_µm) * g2d_bin)
+
+    # do we want to pass the gas component to mcfost ?
+    if read_gas:
+        raise NotImplementedError
+
     printer('ok')
 
     # -------------------------------------------------------------
@@ -276,9 +303,25 @@ def main(config_file:str, offset:int=None, output_dir:str='.', verbose=False, db
     printer('ok')
 
     # -------------------------------------------------------------
+
+    printer('writting the mcfost configuration file ...', end=' ', flush=True)
+    custom = {}
+    custom.update(MCFOSTUtils.translate_amrvac_conf(sim_conf))
+    custom.update(config['mcfost_list'])
+
+    mcfost_para_file = str(output_dir/'mcfost_conf.para')
+    MCFOSTUtils.write_mcfost_conf(
+        output_file=mcfost_para_file,
+        custom=custom,
+        silent=(not dbg)
+    )
+    printer('ok')
+
+    # -------------------------------------------------------------
+
     printer('interpolating to MCFOST grid ...', end=' ', flush=True)
     target_grid = MCFOSTUtils.get_mcfost_grid(
-        mesh_list=sim_conf['meshlist'],
+        mcfost_conf=mcfost_para_file,
         mcfost_list=config['mcfost_list'],
         output_dir=output_dir,
         silent=(not dbg)
@@ -316,10 +359,16 @@ def main(config_file:str, offset:int=None, output_dir:str='.', verbose=False, db
     # -------------------------------------------------------------
     printer('building the .fits file ...', end=' ', flush=True)
     grain_sizes = get_grain_micron_sizes(sim_conf)
-    assert len(grain_sizes) == len(threeD_arrays) - 1
+    if small_grains_from_gas:
+        grain_sizes = np.insert(grain_sizes, 0, minsize_grain_µm)
+        argsort_offset = 0
+        assert len(grain_sizes) == len(threeD_arrays)
+    else:
+        argsort_offset = 1
+        assert len(grain_sizes) == len(threeD_arrays) - 1
 
     #the transposition is handling a weird behavior of fits files...
-    dust_densities_array = np.stack(threeD_arrays[1 + grain_sizes.argsort()], axis=3).transpose()
+    dust_densities_array = np.stack(threeD_arrays[argsort_offset + grain_sizes.argsort()], axis=3).transpose()
     dust_densities_HDU = pyfits.PrimaryHDU(dust_densities_array)
 
     mcfost_keywords = {
@@ -398,6 +447,16 @@ if __name__=='__main__':
         help='select output directory for generated files'
     )
     p.add_argument(
+        '--g2d',
+        action='store_true',
+        help='activate gas-to-dust mode'
+    )
+    p.add_argument(
+        '--gas',
+        action='store_true',
+        help='pass information on gas component to mcfost (not implemented !)'
+    )
+    p.add_argument(
         '-v', '--verbose',
         action='store_true',
         help='activate verbose mode'
@@ -433,6 +492,8 @@ if __name__=='__main__':
         config_file=args.configuration,
         offset=args.num,
         output_dir=args.output,
+        g2d_bin=args.g2d,
+        read_gas=args.gas,
         verbose=args.verbose,
         dbg=args.dbg
     )
