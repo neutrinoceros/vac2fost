@@ -151,7 +151,7 @@ class MCFOSTUtils:
         if not silent:
             print(f'wrote {output_file}')
 
-    def translate_amrvac_conf(amrvac_conf: f90nml.Namelist) -> dict:
+    def translate_amrvac_conf(amrvac_conf: f90nml.Namelist, conv2au:float= 1.0) -> dict:
         '''pass amrvac parameters to mcfost'''
         # convenient aliases
         mesh = amrvac_conf['meshlist']
@@ -160,9 +160,9 @@ class MCFOSTUtils:
         parameters = {}
         # Zone
         parameters.update({
-            'rin': mesh['xprobmin1'],
-            'rout': mesh['xprobmax1'],
-            'maps_size': 2*mesh['xprobmax1'],
+            'rin': mesh['xprobmin1']*conv2au,
+            'rout': mesh['xprobmax1']*conv2au,
+            'maps_size': 2*mesh['xprobmax1']*conv2au,
             'gas_to_dust_ratio': dl2['gas2dust_ratio'],
             #'dust_mass': ... #can not be passed from the configuration file alone
         })
@@ -287,6 +287,13 @@ def main(
     if not Path(datfile).exists():
         raise FileNotFoundError(datfile)
 
+    #optional definition of the distance unit
+    try:
+        conv2au = config['target_options']['conv2au']
+    except KeyError:
+        printer('\nWarning: no parameter conv2au was found. Distance unit in simulation is assumed to be 1au (astronomical unit).')
+        conv2au = 1.0
+
     # decide if an additional fake dust bin, based on gas density, is necessary
     grain_sizes_µm = get_grain_micron_sizes(sim_conf)
     small_grains_from_gas = bool((min(grain_sizes_µm) > minsize_grain_µm) * g2d_bin)
@@ -306,7 +313,8 @@ def main(
 
     printer('writting the mcfost configuration file ...', end=' ', flush=True)
     custom = {}
-    custom.update(MCFOSTUtils.translate_amrvac_conf(sim_conf))
+
+    custom.update(MCFOSTUtils.translate_amrvac_conf(sim_conf, conv2au=conv2au))
     custom.update(config['mcfost_list'])
 
     mcfost_para_file = str(output_dir/'mcfost_conf.para')
@@ -334,7 +342,8 @@ def main(
     rad_vect_new = rad_grid_new[:,0]
     phi_vect_new = phi_grid_new[0]
 
-    rad_vect_old, azim_vect_old = [simdata.get_axis(n) for n in range(2)]
+    rad_vect_old  = simdata.get_ticks('r') * conv2au
+    azim_vect_old = simdata.get_ticks('phi')
 
     density_keys = sorted(filter(lambda k: 'rho' in k, simdata.fields.keys()))
     interpolated_arrays = []
