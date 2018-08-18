@@ -22,7 +22,8 @@ setup(
         'numpy>=1.13.3',
         'astropy>=2.0.2'
         'f90nml>=1.0.2',
-        'amrvac-pywrap>=0.0.5',
+        'amrvac-pywrap>=0.0.6',
+        'vtk_vacreader>=1.0.0'
     ],
     python_requires = '>=3.6',
     packages = find_packages(),
