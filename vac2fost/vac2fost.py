@@ -153,26 +153,34 @@ class MCFOSTUtils:
 
     def translate_amrvac_conf(amrvac_conf: f90nml.Namelist, conv2au:float= 1.0) -> dict:
         '''pass amrvac parameters to mcfost'''
-        # convenient aliases
-        mesh = amrvac_conf['meshlist']
-        dl2 = amrvac_conf['usr_dust_list']
-
         parameters = {}
+
         # Zone
+        mesh = amrvac_conf['meshlist']
         parameters.update({
             'rin': mesh['xprobmin1']*conv2au,
             'rout': mesh['xprobmax1']*conv2au,
             'maps_size': 2*mesh['xprobmax1']*conv2au,
-            'gas_to_dust_ratio': dl2['gas2dust_ratio'],
-            #'dust_mass': ... #can not be passed from the configuration file alone
         })
-        # Grains
-        sizes_µm = get_grain_micron_sizes(amrvac_conf)
-        parameters.update({
-            #min/max grain sizes in microns
-            'sp_min': min(1e-1, min(sizes_µm)),
-            'sp_max': max(1e3,  max(sizes_µm)),
-        })
+
+
+        try:
+            dl2 = amrvac_conf['usr_dust_list']
+            parameters.update({
+                'gas_to_dust_ratio': dl2['gas2dust_ratio'],
+                #'dust_mass': ... #can not be passed from the configuration file alone
+            })
+            # Grains
+            sizes_µm = get_grain_micron_sizes(amrvac_conf)
+            parameters.update({
+                #min/max grain sizes in microns
+                'sp_min': min(1e-1, min(sizes_µm)),
+                'sp_max': max(1e3,  max(sizes_µm)),
+            })
+        except KeyError:
+            #in case the list 'usr_dust_list' is not found, pass default values to mcfost
+            pass
+
         return parameters
 
     def get_mcfost_grid(mcfost_conf:str, mcfost_list:dict={}, output_dir:str='.', silent=True) -> np.ndarray:
@@ -245,8 +253,12 @@ def twoD2threeD(arr2d:np.ndarray, scale_height:np.ndarray, zvect:np.ndarray) -> 
 def get_grain_micron_sizes(amrvac_conf:f90nml.Namelist) -> np.ndarray:
     '''Read grain sizes (assumed in [cm]), from AMRVAC parameters and
     convert to microns.'''
-    cm_sizes = np.array(amrvac_conf['usr_dust_list']['grain_size_cm'])
-    µm_sizes = 1e4 * cm_sizes
+    try:
+        cm_sizes = np.array(amrvac_conf['usr_dust_list']['grain_size_cm'])
+        µm_sizes = 1e4 * cm_sizes
+    except KeyError:
+        #no grain size detected, gas only
+        µm_sizes = []
     return µm_sizes
 
 
@@ -296,7 +308,11 @@ def main(
 
     # decide if an additional fake dust bin, based on gas density, is necessary
     grain_sizes_µm = get_grain_micron_sizes(sim_conf)
-    small_grains_from_gas = bool((min(grain_sizes_µm) > minsize_grain_µm) * g2d_bin)
+    if grain_sizes_µm != []:
+        small_grains_from_gas = bool((min(grain_sizes_µm) > minsize_grain_µm) * g2d_bin)
+    else:
+        printer('Warning: no grain size detected, using gas as a proxy')
+        small_grains_from_gas = True
 
     # do we want to pass the gas component to mcfost ?
     if read_gas:
