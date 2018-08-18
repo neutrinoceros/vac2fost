@@ -306,7 +306,7 @@ def main(
 
     # -------------------------------------------------------------
     printer(f'loading data from {datfile}', end=' ', flush=True)
-    simdata = VacDataSorter(file_name=datfile, data_shape=datshape)
+    simdata = VacDataSorter(file_name=datfile, shape=datshape)
     printer('ok')
 
     # -------------------------------------------------------------
