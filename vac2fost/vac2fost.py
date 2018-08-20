@@ -209,17 +209,20 @@ class MCFOSTUtils:
             tmp_fost_dir = Path('TMP_VAC2FOST_MCFOST_GRID')
             try:
                 os.environ['OMP_NUM_THREADS'] = '1'
-                subprocess.call(
+                subprocess.check_call(
                     f'mcfost mcfost_conf.para -disk_struct -root_dir {tmp_fost_dir}',
                     shell=True,
                     stdout={True: subprocess.PIPE, False: None}[silent]
                 )
-                assert tmp_fost_dir.exists()
-                shutil.move(tmp_fost_dir / 'data_disk/grid.fits.gz', grid_file_name)
+                if tmp_fost_dir.exists():
+                    shutil.move(tmp_fost_dir / 'data_disk/grid.fits.gz', grid_file_name)
+            except subprocess.CalledProcessError as exc:
+                raise RuntimeError(f'\nError in mcfost, exited with exitcode {exc.returncode}')
             finally:
                 if output_dir != Path('.'):
                     os.remove('./mcfost_conf.para')
-                shutil.rmtree(tmp_fost_dir)
+                if tmp_fost_dir.exists():
+                    shutil.rmtree(tmp_fost_dir)
             target_grid = pyfits.open(grid_file_name)[0].data
         return target_grid
 
