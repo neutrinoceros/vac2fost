@@ -422,7 +422,7 @@ def main(
         hdul = pyfits.HDUList(hdus=hdus)
         hdul.writeto(fo)
     printer('ok')
-    print(f'Successfully wrote {fits_filename}')
+    printer(f'Successfully wrote {fits_filename}')
     printer(' --------- End   vac2fost.main() ---------')
     # .. finally, yield some info back (for testing) ..
 
