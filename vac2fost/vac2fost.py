@@ -217,7 +217,14 @@ class MCFOSTUtils:
                 if tmp_fost_dir.exists():
                     shutil.move(tmp_fost_dir / 'data_disk/grid.fits.gz', grid_file_name)
             except subprocess.CalledProcessError as exc:
-                raise RuntimeError(f'\nError in mcfost, exited with exitcode {exc.returncode}')
+                errtip = f'\nError in mcfost, exited with exitcode {exc.returncode}'
+                if exc.returncode == 174:
+                    errtip += (
+                        '\nThis is probably a memory issue. '
+                        'Try reducing your target resolution or alternatively, '
+                        'give more cpu memory to this task.'
+                    )
+                raise RuntimeError(errtip)
             finally:
                 if output_dir != Path('.'):
                     os.remove('./mcfost_conf.para')
