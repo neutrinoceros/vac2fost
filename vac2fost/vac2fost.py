@@ -196,7 +196,7 @@ class MCFOSTUtils:
             with fits.open(grid_file_name, mode='readonly') as fi:
                 target_grid = fi[0].data
             found = target_grid.shape
-            hoped = mcfost_list['nphi'], 2*mcfost_list['nz']+1, mcfost_list['nr']
+            hoped = mcfost_list['nphi'], mcfost_list['nz'], mcfost_list['nr']
             gen_needed = found[1:] != hoped
 
         if gen_needed:
@@ -386,7 +386,7 @@ def main(
     printer('converting 2D arrays to 3D ...', end=' ', flush=True)
     zmax = config['target_options']['zmax']
     nz = config['mcfost_list']['nz']
-    z_vect = np.linspace(-zmax, zmax, 2*nz+1)
+    z_vect = np.linspace(0, zmax, nz)
     scale_height_grid = config['target_options']['aspect_ratio'] * rad_grid_new
     threeD_arrays = np.array([twoD2threeD(arr, scale_height_grid, z_vect) for arr in interpolated_arrays])
     printer('ok')
