@@ -30,7 +30,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 
 import numpy as np
-import astropy.io.fits as pyfits
+from astropy.io import fits
 from scipy.interpolate import interp2d
 import f90nml
 
@@ -193,7 +193,8 @@ class MCFOSTUtils:
 
         gen_needed = True
         if grid_file_name.exists():
-            target_grid = pyfits.open(grid_file_name)[0].data
+            with fits.open(grid_file_name, mode='readonly') as fi:
+                target_grid = fi[0].data
             found = target_grid.shape
             hoped = mcfost_list['nphi'], 2*mcfost_list['nz']+1, mcfost_list['nr']
             gen_needed = found[1:] != hoped
@@ -230,7 +231,8 @@ class MCFOSTUtils:
                     os.remove('./mcfost_conf.para')
                 if tmp_fost_dir.exists():
                     shutil.rmtree(tmp_fost_dir)
-            target_grid = pyfits.open(grid_file_name)[0].data
+            with fits.open(grid_file_name, mode='readonly') as fi:
+                target_grid = fi[0].data
         return target_grid
 
 
@@ -404,7 +406,7 @@ def main(
 
     #the transposition is handling a weird behavior of fits files...
     dust_densities_array = np.stack(threeD_arrays[argsort_offset + grain_sizes.argsort()], axis=3).transpose()
-    dust_densities_HDU = pyfits.PrimaryHDU(dust_densities_array)
+    dust_densities_HDU = fits.PrimaryHDU(dust_densities_array)
 
     mcfost_keywords = {
         'read_n_a': 0, #automatic normalization of size-bins from mcfost param file.
@@ -417,16 +419,16 @@ def main(
     for it in mcfost_keywords.items():
         dust_densities_HDU.header.append(it)
 
-    grain_sizes_HDU = pyfits.ImageHDU(grain_sizes[grain_sizes.argsort()])
+    grain_sizes_HDU = fits.ImageHDU(grain_sizes[grain_sizes.argsort()])
 
     hdus = [
         dust_densities_HDU,
         grain_sizes_HDU,
-        #pyfits.ImageHDU(gas_density)
+        #fits.ImageHDU(gas_density)
     ]
     fits_filename = output_dir / Path(vtu_filename).name.replace('.vtu', '.fits')
-    with open(fits_filename, 'w') as fo:
-        hdul = pyfits.HDUList(hdus=hdus)
+    with open(fits_filename, 'wb') as fo:
+        hdul = fits.HDUList(hdus=hdus)
         hdul.writeto(fo)
     printer('ok')
     printer(f'Successfully wrote {fits_filename}')
