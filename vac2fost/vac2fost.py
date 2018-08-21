@@ -425,7 +425,7 @@ def main(
         #pyfits.ImageHDU(gas_density)
     ]
     fits_filename = output_dir / Path(vtu_filename).name.replace('.vtu', '.fits')
-    with open(fits_filename, 'w') as fo:
+    with open(fits_filename, 'wb') as fo:
         hdul = pyfits.HDUList(hdus=hdus)
         hdul.writeto(fo)
     printer('ok')
