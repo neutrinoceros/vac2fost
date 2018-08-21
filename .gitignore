@@ -1,12 +1,27 @@
-*fits
-*blk
-./data*
-*html
+# data files
+# ----------
+*.fits
+*.fits.gz
+*.blk
+*.png
+*.html
+*.para
+
+# backup files
+# ------------
+*\#*
 *~
-mcfost_conf.para
+
+# caches
+# ------
 *__pycache__*
 .cache
+.pytest_cache
+tests/output
+
+# distro and misc
+# ---------------
+./data*
 dist/*
 *egg-info*
 tmp/*
-tests/output
