@@ -43,7 +43,7 @@
 
 # Zone
   1                                     zone_type
-  1e-3  100.0                           dust_mass, gas_to_dust_ratio
+  0.0003997547968135546  100.0          dust_mass, gas_to_dust_ratio
   10.0  100  2                          scale_height, ref_radius, profile_exp
   70.0  0  450.0  100                   rin, edge, rout, rc
   1.125                                 flaring_index
