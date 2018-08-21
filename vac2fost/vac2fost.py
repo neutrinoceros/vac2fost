@@ -193,7 +193,8 @@ class MCFOSTUtils:
 
         gen_needed = True
         if grid_file_name.exists():
-            target_grid = fits.open(grid_file_name)[0].data #todo: contextmanager
+            with fits.open(grid_file_name, mode='readonly') as fi:
+                target_grid = fi[0].data
             found = target_grid.shape
             hoped = mcfost_list['nphi'], 2*mcfost_list['nz']+1, mcfost_list['nr']
             gen_needed = found[1:] != hoped
@@ -230,7 +231,8 @@ class MCFOSTUtils:
                     os.remove('./mcfost_conf.para')
                 if tmp_fost_dir.exists():
                     shutil.rmtree(tmp_fost_dir)
-            target_grid = fits.open(grid_file_name)[0].data #todo: contextmanager
+            with fits.open(grid_file_name, mode='readonly') as fi:
+                target_grid = fi[0].data
         return target_grid
 
 
