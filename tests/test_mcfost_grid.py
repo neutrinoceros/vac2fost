@@ -1,5 +1,6 @@
 '''Test basic consistency of main() called through python.'''
 
+from os import mkdir
 from pathlib import Path
 import f90nml
 
@@ -18,7 +19,8 @@ custom.update(MCFOSTUtils.translate_amrvac_conf(sim_conf))
 
 def test_get_grid():
     output_dir = here / 'output/test_get_grid/'
-
+    if not output_dir.is_dir():
+        mkdir(output_dir)
     custom.update(config['mcfost_list'])
     mcfost_para_file = str(output_dir/'mcfost_conf.para')
     MCFOSTUtils.write_mcfost_conf(
@@ -40,6 +42,8 @@ def test_get_grid():
 
 def test_get_large_grid():
     output_dir = here / 'output/test_get_large_grid/'
+    if not output_dir.is_dir():
+        mkdir(output_dir)
 
     custom.update(config['mcfost_list'])
     mcfost_para_file = str(output_dir/'mcfost_conf.para')
