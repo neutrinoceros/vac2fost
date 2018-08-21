@@ -96,7 +96,7 @@ class MCFOSTUtils:
             ('Zone', (
                 od([('zone_type', 1)]),
                 od([('dust_mass', '1e-3'), ('gas_to_dust_ratio', 100)]),
-                od([('scale_height', 10.0), ('ref_radius', 100), ('profile_exp', 2)]),
+                od([('scale_height', 10.0), ('ref_radius', 100.0), ('profile_exp', 2)]),
                 od([('rin', 10), ('edge', 0), ('rout', 200), ('rc', 100)]),
                 od([('flaring_index', 1.125)]),
                 od([('density_exp', -0.5), ('gamma_exp', 0.0)])
@@ -151,7 +151,7 @@ class MCFOSTUtils:
         if not silent:
             print(f'wrote {output_file}')
 
-    def translate_amrvac_conf(amrvac_conf: f90nml.Namelist, conv2au:float= 1.0) -> dict:
+    def translate_amrvac_conf(amrvac_conf: f90nml.Namelist, conv2au:float=1.0) -> dict:
         '''pass amrvac parameters to mcfost'''
         parameters = {}
 
@@ -163,6 +163,14 @@ class MCFOSTUtils:
             'maps_size': 2*mesh['xprobmax1']*conv2au,
         })
 
+        # aspect ratio may be defined in the hd simulation conf file
+        try:
+            parameters.update({
+                'ref_radius': 1.0, #AU
+                'scale_height': amrvac_conf['disk_list']['aspect_ratio'] #at ref radius
+            })
+        except KeyError:
+            pass
 
         try:
             dl2 = amrvac_conf['usr_dust_list']
