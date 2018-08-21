@@ -20,7 +20,7 @@ setup(
     keywords = 'interface data-analysis',
     install_requires = [
         'numpy>=1.13.3',
-        'astropy>=2.0.2'
+        'astropy>=3.0.4'
         'f90nml>=1.0.2',
         'amrvac-pywrap>=0.0.6',
         'vtk_vacreader>=1.0.0'
