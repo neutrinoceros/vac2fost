@@ -307,36 +307,20 @@ def main(
     printer('reading input ...', end=' ', flush=True)
     itf = Interface(config_file, num=offset, output_dir=output_dir, g2d_bin=g2d_bin)
     printer('ok')
-    #itf.run()
 
-
-    # -------------------------------------------------------------
-    #printer(f'loading data from {datfile}', end=' ', flush=True)
-    simdata = itf.get_input_data()
+    printer(f"loading data from {itf.io['in'].filename}", end=' ', flush=True)
+    simdata = itf.input_data
     printer('ok')
 
-    # -------------------------------------------------------------
-
     printer('writting the mcfost configuration file ...', end=' ', flush=True)
-    custom = {}
-
-    custom.update(MCFOSTUtils.translate_amrvac_conf(itf))
-    custom.update(itf.config['mcfost_list'])
-    custom.update({'dust_mass': get_dust_mass(simdata)})
-
-    mcfost_para_file = str(itf.io['out'].directory/'mcfost_conf.para')
-    MCFOSTUtils.write_mcfost_conf(
-        output_file=mcfost_para_file,
-        custom=custom,
-        silent=(not dbg)
-    )
+    itf.write_mcfost_conf_file()
     printer('ok')
 
     # -------------------------------------------------------------
 
     printer('interpolating to MCFOST grid ...', end=' ', flush=True)
     target_grid = MCFOSTUtils.get_mcfost_grid(
-        mcfost_conf=mcfost_para_file,
+        mcfost_conf=itf.mcfost_para_file,
         mcfost_list=itf.config['mcfost_list'],
         output_dir=itf.io['out'].directory,
         silent=(not dbg)
@@ -445,8 +429,15 @@ class Interface:
     '''a class to hold global variables as attributes and give
     better structure to the sequence'''
 
-    def __init__(self, config_file:str, num:int=None, output_dir:str='.', g2d_bin=False):
-        self._base_args = {'config_file': config_file, 'output_dir': output_dir, 'num': num, 'g2d_bin': g2d_bin}
+    def __init__(self, config_file:str, num:int=None, output_dir:str='.',
+                 g2d_bin=False, dbg=False):
+        self._base_args = {
+            'config_file': config_file,
+            'output_dir': output_dir,
+            'num': num,
+            'g2d_bin': g2d_bin,
+            'dbg': dbg,
+        }
         self._dim = 2 #no support for 3D input yet
         self.messages = []
         self.warnings = []
@@ -458,10 +449,11 @@ class Interface:
 
         self.num = num or self.config['target_options']['offset']
 
-        to = self.config['target_options']
+        to = self.config['target_options'] # alias
         self.sim_conf = read_amrvac_conf(files=to['amrvac_conf'], origin=to['origin'])
 
         self.small_grains_from_gas = True
+        self._input_data = None
 
         if not self.io['out'].directory.exists():
             subprocess.call(f"mkdir --parents self.io['out'].directory", shell=True)
@@ -527,10 +519,28 @@ class Interface:
         })
         return res
 
-    def get_input_data(self):
-        return VacDataSorter(
-            file_name=str(self.io['in'].directory/self.io['in'].filename),
-            shape=self.io['in'].shape
+    @property
+    def mcfost_para_file(self):
+        return str(self.io['out'].directory/'mcfost_conf.para')
+
+    @property
+    def input_data(self):
+        if self._input_data is None:
+            self._input_data = VacDataSorter(
+                file_name=str(self.io['in'].directory/self.io['in'].filename),
+                shape=self.io['in'].shape
+            )
+        return self._input_data
+
+    def write_mcfost_conf_file(self):
+        custom = {}
+        custom.update(MCFOSTUtils.translate_amrvac_conf(self))
+        custom.update(self.config['mcfost_list'])
+        custom.update({'dust_mass': get_dust_mass(self.input_data)})
+        MCFOSTUtils.write_mcfost_conf(
+            output_file=self.mcfost_para_file,
+            custom=custom,
+            silent=(not self._base_args['dbg'])
         )
 
     def run(self):
