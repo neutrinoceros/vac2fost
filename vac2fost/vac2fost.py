@@ -312,8 +312,7 @@ def main(
 
     # -------------------------------------------------------------
     #printer(f'loading data from {datfile}', end=' ', flush=True)
-    simdata = VacDataSorter(file_name=str(itf.io['in'].directory/itf.io['in'].filename),
-                            shape=itf.io['in'].shape)
+    simdata = itf.get_input_data()
     printer('ok')
 
     # -------------------------------------------------------------
@@ -527,6 +526,12 @@ class Interface:
             )
         })
         return res
+
+    def get_input_data(self):
+        return VacDataSorter(
+            file_name=str(self.io['in'].directory/self.io['in'].filename),
+            shape=self.io['in'].shape
+        )
 
     def run(self):
         pass
