@@ -324,7 +324,7 @@ def main(
     custom.update(itf.config['mcfost_list'])
     custom.update({'dust_mass': get_dust_mass(simdata)})
 
-    mcfost_para_file = str(output_dir/'mcfost_conf.para')
+    mcfost_para_file = str(itf.output_dir/'mcfost_conf.para')
     MCFOSTUtils.write_mcfost_conf(
         output_file=mcfost_para_file,
         custom=custom,
@@ -338,7 +338,7 @@ def main(
     target_grid = MCFOSTUtils.get_mcfost_grid(
         mcfost_conf=mcfost_para_file,
         mcfost_list=itf.config['mcfost_list'],
-        output_dir=output_dir,
+        output_dir=itf.output_dir,
         silent=(not dbg)
     )
     rad_grid_new = target_grid[0,:,0,:].T
@@ -397,7 +397,7 @@ def main(
         grain_sizes_HDU,
         #fits.ImageHDU(gas_density)
     ]
-    fits_filename = output_dir / Path(itf.files['input']).name.replace('.vtu', '.fits')
+    fits_filename = itf.output_dir / Path(itf.files['input']).name.replace('.vtu', '.fits')
     with open(fits_filename, 'wb') as fo:
         hdul = fits.HDUList(hdus=hdus)
         hdul.writeto(fo)
@@ -464,10 +464,10 @@ class Interface:
 
         self.small_grains_from_gas = True
         
-        output_dir = Path(output_dir)
-        if not output_dir.exists():
+        self.output_dir = Path(output_dir)
+        if not self.output_dir.exists():
             subprocess.call(f'mkdir --parents {output_dir}', shell=True)
-            self.warnings.append(f'rep {output_dir} was created')
+            self.warnings.append(f'rep {self.output_dir} was created')
 
 
         vtu_filename = self.sim_conf['filelist']['base_filename'] + str(self.num).zfill(4) + '.vtu'
