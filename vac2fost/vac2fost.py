@@ -451,17 +451,13 @@ class Interface:
         self._dim = 2 #no support for 3D input yet
         self.messages = []
         self.warnings = []
-        #self.files = {'input': None, 'ouptut': None}
-        #self.shapes = {'input': np.zeros(self._dim), 'ouptut': np.zeros(3)}
 
         if isinstance(config_file, f90nml.Namelist):
             self.config = config_file
         else:
             self.config = f90nml.read(config_file)
 
-        self.num = num
-        if num is None:
-            self.num = self.config['target_options']['offset']
+        self.num = num or self.config['target_options']['offset']
 
         to = self.config['target_options']
         self.sim_conf = read_amrvac_conf(files=to['amrvac_conf'], origin=to['origin'])
