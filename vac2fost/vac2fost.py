@@ -21,7 +21,7 @@ Known limitations
       That needs fixing if we wish to generate molecular lines synthetic observations.
 '''
 
-from collections import OrderedDict as od
+from collections import OrderedDict as od, namedtuple
 import os
 import sys
 import shutil
@@ -312,7 +312,8 @@ def main(
 
     # -------------------------------------------------------------
     #printer(f'loading data from {datfile}', end=' ', flush=True)
-    simdata = VacDataSorter(file_name=itf.files['input'], shape=itf.shapes['input'])
+    simdata = VacDataSorter(file_name=str(itf.io['in'].directory/itf.io['in'].filename),
+                            shape=itf.io['in'].shape)
     printer('ok')
 
     # -------------------------------------------------------------
@@ -324,7 +325,7 @@ def main(
     custom.update(itf.config['mcfost_list'])
     custom.update({'dust_mass': get_dust_mass(simdata)})
 
-    mcfost_para_file = str(itf.output_dir/'mcfost_conf.para')
+    mcfost_para_file = str(itf.io['out'].directory/'mcfost_conf.para')
     MCFOSTUtils.write_mcfost_conf(
         output_file=mcfost_para_file,
         custom=custom,
@@ -338,7 +339,7 @@ def main(
     target_grid = MCFOSTUtils.get_mcfost_grid(
         mcfost_conf=mcfost_para_file,
         mcfost_list=itf.config['mcfost_list'],
-        output_dir=itf.output_dir,
+        output_dir=itf.io['out'].directory,
         silent=(not dbg)
     )
     rad_grid_new = target_grid[0,:,0,:].T
@@ -397,12 +398,12 @@ def main(
         grain_sizes_HDU,
         #fits.ImageHDU(gas_density)
     ]
-    fits_filename = itf.output_dir / Path(itf.files['input']).name.replace('.vtu', '.fits')
-    with open(fits_filename, 'wb') as fo:
+
+    with open(itf.io['out'].filename, 'wb') as fo:
         hdul = fits.HDUList(hdus=hdus)
         hdul.writeto(fo)
     printer('ok')
-    printer(f'Successfully wrote {fits_filename}')
+    printer(f"Successfully wrote {itf.io['out'].filename}")
     printer(' --------- End   vac2fost.main() ---------')
 
     printer('Messages collection:')
@@ -413,7 +414,7 @@ def main(
 
     # .. finally, yield some info back (for testing) ..
     return dict(
-        finame = fits_filename,
+        finame = itf.io['out'].filename,
         rads   = rad_grid_new.T,
         phis   = phi_grid_new.T,
     )
@@ -439,16 +440,19 @@ def generate_conf_template():
 
 #////////////////////////////////////////////////////////////
 # v2.0 dev zone
+DataInfo = namedtuple('DataInfo', ['shape', 'directory', 'filename'])
+
 class Interface:
     '''a class to hold global variables as attributes and give
     better structure to the sequence'''
 
     def __init__(self, config_file:str, num:int=None, output_dir:str='.', g2d_bin=False):
+        self._base_args = {'config_file': config_file, 'output_dir': output_dir, 'num': num, 'g2d_bin': g2d_bin}
         self._dim = 2 #no support for 3D input yet
         self.messages = []
         self.warnings = []
-        self.files = {'input': None, 'ouptut': None}
-        self.shapes = {'input': np.zeros(self._dim), 'ouptut': np.zeros(3)}
+        #self.files = {'input': None, 'ouptut': None}
+        #self.shapes = {'input': np.zeros(self._dim), 'ouptut': np.zeros(3)}
 
         if isinstance(config_file, f90nml.Namelist):
             self.config = config_file
@@ -463,20 +467,13 @@ class Interface:
         self.sim_conf = read_amrvac_conf(files=to['amrvac_conf'], origin=to['origin'])
 
         self.small_grains_from_gas = True
-        
-        self.output_dir = Path(output_dir)
-        if not self.output_dir.exists():
-            subprocess.call(f'mkdir --parents {output_dir}', shell=True)
-            self.warnings.append(f'rep {self.output_dir} was created')
 
+        if not self.io['out'].directory.exists():
+            subprocess.call(f"mkdir --parents self.io['out'].directory", shell=True)
+            self.warnings.append(f"rep {self.io['out'].directory} was created")
 
-        vtu_filename = self.sim_conf['filelist']['base_filename'] + str(self.num).zfill(4) + '.vtu'
-        self.files['input'] = interpret_shell_path(to['origin']) + '/' + vtu_filename
-        self.shapes['input'] = tuple(
-            [self.sim_conf['meshlist'][f'domain_nx{n}'] for n in range(1, self._dim+1)]
-        )
-        if not Path(self.files['input']).exists():
-            raise FileNotFoundError(self.files['input'])
+        if not (self.io['in'].directory/self.io['in'].filename).exists():
+            raise FileNotFoundError(self.io['in'].directory/self.io['in'].filename)
 
         #optional definition of the distance unit
         self.conv2au = 1.0
@@ -512,6 +509,28 @@ class Interface:
     @property
     def argsort_offset(self):
         return 1 - int(self.small_grains_from_gas)
+
+    @property
+    def io(self) -> dict:
+        vtu_filename = self.sim_conf['filelist']['base_filename'] + str(self.num).zfill(4) + '.vtu'
+        res = {}
+        res.update({
+            'in': DataInfo(
+                directory=Path(interpret_shell_path(self.config['target_options']['origin'])),
+                filename=vtu_filename,
+                shape=tuple(
+                    [self.sim_conf['meshlist'][f'domain_nx{n}'] for n in range(1, self._dim+1)]
+                )
+            )
+        })
+        res.update({
+            'out': DataInfo(
+                directory=Path(self._base_args['output_dir']),
+                filename=res['in'].filename.replace('.vtu', '.fits'),
+                shape='' #TODO : fill me
+            )
+        })
+        return res
 
     def run(self):
         pass
