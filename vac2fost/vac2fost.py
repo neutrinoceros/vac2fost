@@ -485,6 +485,32 @@ def generate_conf_template():
     })
     return template
 
+#////////////////////////////////////////////////////////////
+# v2.0 dev zone
+class Interface:
+    '''a class to hold global variables as attributes and give 
+    better structure to the sequence'''
+
+    def __init__(self):
+        self.messages = []
+        self.warnings = []
+
+    def run(self):
+        pass
+
+def main2(**args):
+    itf = Interface(**args)
+    itf.run()
+
+    print('Messages collection:')
+    print('\n    '.join(itf.messages))
+    print()
+    print('Warnings collection:')
+    print('\n    '.join(itf.warnings))
+
+#////////////////////////////////////////////////////////////
+
+
 if __name__=='__main__':
     # Parse the script arguments
     p = ArgumentParser(description='Parse arguments for main app')
