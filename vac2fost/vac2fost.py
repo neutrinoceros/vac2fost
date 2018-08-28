@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-'''A conversion tool from AMRVAC (.vtu) to MCFOST (.fits) 
+'''A conversion tool from AMRVAC (.vtu) to MCFOST (.fits)
 
 Run `vac2fost.py --help` for documentation on command line usage
 
@@ -151,35 +151,36 @@ class MCFOSTUtils:
         if not silent:
             print(f'wrote {output_file}')
 
-    def translate_amrvac_conf(amrvac_conf: f90nml.Namelist, conv2au:float=1.0) -> dict:
+    def translate_amrvac_conf(itf) -> dict:
+        #itf must be of type Interface (can't be parsed properly before python 3.7
         '''pass amrvac parameters to mcfost'''
         parameters = {}
 
         # Zone
-        mesh = amrvac_conf['meshlist']
+        mesh = itf.sim_conf['meshlist']
         parameters.update({
-            'rin': mesh['xprobmin1']*conv2au,
-            'rout': mesh['xprobmax1']*conv2au,
-            'maps_size': 2*mesh['xprobmax1']*conv2au,
+            'rin': mesh['xprobmin1']*itf.conv2au,
+            'rout': mesh['xprobmax1']*itf.conv2au,
+            'maps_size': 2*mesh['xprobmax1']*itf.conv2au,
         })
 
         # aspect ratio may be defined in the hd simulation conf file
         try:
             parameters.update({
                 'ref_radius': 1.0, #AU
-                'scale_height': amrvac_conf['disk_list']['aspect_ratio'] #at ref radius
+                'scale_height': itf.sim_conf['disk_list']['aspect_ratio'] #at ref radius
             })
         except KeyError:
             pass
 
         try:
-            dl2 = amrvac_conf['usr_dust_list']
+            dl2 = itf.sim_conf['usr_dust_list']
             parameters.update({
                 'gas_to_dust_ratio': dl2['gas2dust_ratio'],
                 #'dust_mass': ... #can not be passed from the configuration file alone
             })
             # Grains
-            sizes_µm = get_grain_micron_sizes(amrvac_conf)
+            sizes_µm = itf.grain_micron_sizes
             parameters.update({
                 #min/max grain sizes in microns
                 'sp_min': min(1e-1, min(sizes_µm)),
@@ -190,6 +191,7 @@ class MCFOSTUtils:
             pass
 
         return parameters
+
 
     def get_mcfost_grid(mcfost_conf:str, mcfost_list:dict={}, output_dir:str='.', silent=True) -> np.ndarray:
         '''pre-run MCFOST in -disk_struct mode to extract the exact grid used.'''
@@ -270,16 +272,6 @@ def twoD2threeD(arr2d:np.ndarray, scale_height:np.ndarray, zvect:np.ndarray) -> 
         arr3d[:,k,:] = arr2d[:,:] * gauss(z, sigma=scale_height)
     return arr3d
 
-def get_grain_micron_sizes(amrvac_conf:f90nml.Namelist) -> np.ndarray:
-    '''Read grain sizes (assumed in [cm]), from AMRVAC parameters and
-    convert to microns.'''
-    try:
-        cm_sizes = np.array(amrvac_conf['usr_dust_list']['grain_size_cm'])
-        µm_sizes = 1e4 * cm_sizes
-    except KeyError:
-        #no grain size detected, gas only
-        µm_sizes = []
-    return µm_sizes
 
 def get_dust_mass(data: VacDataSorter) -> float:
     '''estimate the total dust mass in the grid in code units
@@ -309,54 +301,18 @@ def main(
         True: print,
         False: lambda *args, **kwargs: None,
     }[verbose]
+
+
     printer(' --------- Start vac2fost.main() ---------')
-
     printer('reading input ...', end=' ', flush=True)
-    if isinstance(config_file, f90nml.Namelist):
-        config = config_file
-    else:
-        config = f90nml.read(config_file)
-
-    if offset is None:
-        offset = config['target_options']['offset']
-    outnum = str(offset).zfill(4)
-
-    output_dir = Path(output_dir)
-    if not output_dir.exists():
-        subprocess.call(f'mkdir --parents {output_dir}', shell=True)
-
-    options = config['target_options']
-    sim_conf = read_amrvac_conf(files=options['amrvac_conf'], origin=options['origin'])
-    vtu_filename = sim_conf['filelist']['base_filename'] + f'{outnum}.vtu'
-    datfile = interpret_shell_path(options['origin']) + '/' + vtu_filename
-    datshape = tuple([sim_conf['meshlist'][f'domain_nx{n}'] for n in (1,2)])
-    if not Path(datfile).exists():
-        raise FileNotFoundError(datfile)
-
-    #optional definition of the distance unit
-    try:
-        conv2au = config['target_options']['conv2au']
-    except KeyError:
-        printer('\nWarning: no parameter conv2au was found. Distance unit in simulation is assumed to be 1au (astronomical unit).')
-        conv2au = 1.0
-
-    # decide if an additional fake dust bin, based on gas density, is necessary
-    grain_sizes_µm = get_grain_micron_sizes(sim_conf)
-    if grain_sizes_µm != []:
-        small_grains_from_gas = bool((min(grain_sizes_µm) > minsize_grain_µm) * g2d_bin)
-    else:
-        printer('Warning: no grain size detected, using gas as a proxy')
-        small_grains_from_gas = True
-
-    # do we want to pass the gas component to mcfost ?
-    if read_gas:
-        raise NotImplementedError
-
+    itf = Interface(config_file, num=offset, output_dir=output_dir, g2d_bin=g2d_bin)
     printer('ok')
+    #itf.run()
+
 
     # -------------------------------------------------------------
-    printer(f'loading data from {datfile}', end=' ', flush=True)
-    simdata = VacDataSorter(file_name=datfile, shape=datshape)
+    #printer(f'loading data from {datfile}', end=' ', flush=True)
+    simdata = VacDataSorter(file_name=itf.files['input'], shape=itf.shapes['input'])
     printer('ok')
 
     # -------------------------------------------------------------
@@ -364,8 +320,8 @@ def main(
     printer('writting the mcfost configuration file ...', end=' ', flush=True)
     custom = {}
 
-    custom.update(MCFOSTUtils.translate_amrvac_conf(sim_conf, conv2au=conv2au))
-    custom.update(config['mcfost_list'])
+    custom.update(MCFOSTUtils.translate_amrvac_conf(itf))
+    custom.update(itf.config['mcfost_list'])
     custom.update({'dust_mass': get_dust_mass(simdata)})
 
     mcfost_para_file = str(output_dir/'mcfost_conf.para')
@@ -381,19 +337,19 @@ def main(
     printer('interpolating to MCFOST grid ...', end=' ', flush=True)
     target_grid = MCFOSTUtils.get_mcfost_grid(
         mcfost_conf=mcfost_para_file,
-        mcfost_list=config['mcfost_list'],
+        mcfost_list=itf.config['mcfost_list'],
         output_dir=output_dir,
         silent=(not dbg)
     )
     rad_grid_new = target_grid[0,:,0,:].T
     phi_grid_new = target_grid[2,:,0,:].T
     n_rad_new, n_phi_new = rad_grid_new.shape
-    assert n_rad_new == config['mcfost_list']['nr']
-    assert n_phi_new == config['mcfost_list']['nphi']
+    assert n_rad_new == itf.config['mcfost_list']['nr']
+    assert n_phi_new == itf.config['mcfost_list']['nphi']
     rad_vect_new = rad_grid_new[:,0]
     phi_vect_new = phi_grid_new[0]
 
-    rad_vect_old  = simdata.get_ticks('r') * conv2au
+    rad_vect_old  = simdata.get_ticks('r') * itf.conv2au
     azim_vect_old = simdata.get_ticks('phi')
 
     density_keys = sorted(filter(lambda k: 'rho' in k, simdata.fields.keys())) #todo : update me
@@ -407,10 +363,10 @@ def main(
 
     # -------------------------------------------------------------
     printer('converting 2D arrays to 3D ...', end=' ', flush=True)
-    zmax = config['target_options']['zmax']
-    nz = config['mcfost_list']['nz']
+    zmax = itf.config['target_options']['zmax']
+    nz = itf.config['mcfost_list']['nz']
     z_vect = np.linspace(0, zmax, nz)
-    scale_height_grid = config['target_options']['aspect_ratio'] * rad_grid_new
+    scale_height_grid = itf.config['target_options']['aspect_ratio'] * rad_grid_new
     threeD_arrays = np.array([twoD2threeD(arr, scale_height_grid, z_vect) for arr in interpolated_arrays])
     printer('ok')
 
@@ -418,17 +374,9 @@ def main(
 
     # -------------------------------------------------------------
     printer('building the .fits file ...', end=' ', flush=True)
-    grain_sizes = get_grain_micron_sizes(sim_conf)
-    if small_grains_from_gas:
-        grain_sizes = np.insert(grain_sizes, 0, minsize_grain_µm)
-        argsort_offset = 0
-        assert len(grain_sizes) == len(threeD_arrays)
-    else:
-        argsort_offset = 1
-        assert len(grain_sizes) == len(threeD_arrays) - 1
 
     #the transposition is handling a weird behavior of fits files...
-    dust_densities_array = np.stack(threeD_arrays[argsort_offset + grain_sizes.argsort()], axis=3).transpose()
+    dust_densities_array = np.stack(threeD_arrays[itf.argsort_offset + itf.grain_micron_sizes.argsort()], axis=3).transpose()
     dust_densities_HDU = fits.PrimaryHDU(dust_densities_array)
 
     mcfost_keywords = {
@@ -442,29 +390,33 @@ def main(
     for it in mcfost_keywords.items():
         dust_densities_HDU.header.append(it)
 
-    grain_sizes_HDU = fits.ImageHDU(grain_sizes[grain_sizes.argsort()])
+    grain_sizes_HDU = fits.ImageHDU(itf.grain_micron_sizes[itf.grain_micron_sizes.argsort()])
 
     hdus = [
         dust_densities_HDU,
         grain_sizes_HDU,
         #fits.ImageHDU(gas_density)
     ]
-    fits_filename = output_dir / Path(vtu_filename).name.replace('.vtu', '.fits')
+    fits_filename = output_dir / Path(itf.files['input']).name.replace('.vtu', '.fits')
     with open(fits_filename, 'wb') as fo:
         hdul = fits.HDUList(hdus=hdus)
         hdul.writeto(fo)
     printer('ok')
     printer(f'Successfully wrote {fits_filename}')
     printer(' --------- End   vac2fost.main() ---------')
-    # .. finally, yield some info back (for testing) ..
 
+    printer('Messages collection:')
+    printer('\n    '.join(itf.messages))
+    printer()
+    printer('Warnings collection:')
+    printer('\n    '.join(itf.warnings))
+
+    # .. finally, yield some info back (for testing) ..
     return dict(
         finame = fits_filename,
         rads   = rad_grid_new.T,
         phis   = phi_grid_new.T,
     )
-
-
 
 def generate_conf_template():
     target = {
@@ -488,26 +440,81 @@ def generate_conf_template():
 #////////////////////////////////////////////////////////////
 # v2.0 dev zone
 class Interface:
-    '''a class to hold global variables as attributes and give 
+    '''a class to hold global variables as attributes and give
     better structure to the sequence'''
 
-    def __init__(self):
+    def __init__(self, config_file:str, num:int=None, output_dir:str='.', g2d_bin=False):
+        self._dim = 2 #no support for 3D input yet
         self.messages = []
         self.warnings = []
+        self.files = {'input': None, 'ouptut': None}
+        self.shapes = {'input': np.zeros(self._dim), 'ouptut': np.zeros(3)}
+
+        if isinstance(config_file, f90nml.Namelist):
+            self.config = config_file
+        else:
+            self.config = f90nml.read(config_file)
+
+        self.num = num
+        if num is None:
+            self.num = self.config['target_options']['offset']
+
+        to = self.config['target_options']
+        self.sim_conf = read_amrvac_conf(files=to['amrvac_conf'], origin=to['origin'])
+
+        self.small_grains_from_gas = True
+        
+        output_dir = Path(output_dir)
+        if not output_dir.exists():
+            subprocess.call(f'mkdir --parents {output_dir}', shell=True)
+            self.warnings.append(f'rep {output_dir} was created')
+
+
+        vtu_filename = self.sim_conf['filelist']['base_filename'] + str(self.num).zfill(4) + '.vtu'
+        self.files['input'] = interpret_shell_path(to['origin']) + '/' + vtu_filename
+        self.shapes['input'] = tuple(
+            [self.sim_conf['meshlist'][f'domain_nx{n}'] for n in range(1, self._dim+1)]
+        )
+        if not Path(self.files['input']).exists():
+            raise FileNotFoundError(self.files['input'])
+
+        #optional definition of the distance unit
+        self.conv2au = 1.0
+        try:
+            self.conv2au = self.config['target_options']['conv2au']
+        except KeyError:
+            self.warnings.append('parameter conv2au was not found. Distance unit in simulation is assumed to be 1au (astronomical unit).')
+
+    @property
+    def grain_micron_sizes(self) -> np.ndarray:
+        '''Read grain sizes (assumed in [cm]), from AMRVAC parameters and
+        convert to microns.'''
+        try:
+            cm_sizes = np.array(self.sim_conf['usr_dust_list']['grain_size_cm'])
+            µm_sizes = 1e4 * cm_sizes
+        except KeyError:
+            #no grain size detected, gas only
+            µm_sizes = []
+
+        # decide if an additional fake dust bin, based on gas density, is necessary
+        if µm_sizes != [] :
+            if (min(µm_sizes) > minsize_grain_µm or self.g2d_bin):
+                self.small_grains_from_gas = True
+        else:
+            self.small_grains_from_gas = True
+            self.warnings.append('no grain size detected, using gas as a proxy')
+
+        if self.small_grains_from_gas:
+            µm_sizes = np.insert(µm_sizes, 0, minsize_grain_µm)
+        #assert len(self.grain_micron_sizes) == len(self.threeD_arrays) - self.argsort_offset
+        return µm_sizes
+
+    @property
+    def argsort_offset(self):
+        return 1 - int(self.small_grains_from_gas)
 
     def run(self):
         pass
-
-def main2(**args):
-    itf = Interface(**args)
-    itf.run()
-
-    print('Messages collection:')
-    print('\n    '.join(itf.messages))
-    print()
-    print('Warnings collection:')
-    print('\n    '.join(itf.warnings))
-
 #////////////////////////////////////////////////////////////
 
 
