@@ -319,26 +319,21 @@ def main(
     # -------------------------------------------------------------
 
     printer('interpolating to MCFOST grid ...', end=' ', flush=True)
-    interpolated_arrays = itf.get_new_2D_arrays()
+    itf.new_2D_arrays
     printer('ok')
-
 
     # -------------------------------------------------------------
     printer('converting 2D arrays to 3D ...', end=' ', flush=True)
-    zmax = itf.config['target_options']['zmax']
-    nz = itf.config['mcfost_list']['nz']
-    z_vect = np.linspace(0, zmax, nz)
-    scale_height_grid = itf.config['target_options']['aspect_ratio'] * itf.output_grid['rg']
-    threeD_arrays = np.array([twoD2threeD(arr, scale_height_grid, z_vect) for arr in interpolated_arrays])
+    itf.new_3D_arrays
     printer('ok')
-
-
 
     # -------------------------------------------------------------
     printer('building the .fits file ...', end=' ', flush=True)
 
     #the transposition is handling a weird behavior of fits files...
-    dust_densities_array = np.stack(threeD_arrays[itf.argsort_offset + itf.grain_micron_sizes.argsort()], axis=3).transpose()
+    dust_densities_array = np.stack(
+        itf.new_3D_arrays[itf.argsort_offset + itf.grain_micron_sizes.argsort()],
+        axis=3).transpose()
     dust_densities_HDU = fits.PrimaryHDU(dust_densities_array)
 
     mcfost_keywords = {
@@ -433,6 +428,8 @@ class Interface:
         self.small_grains_from_gas = True
         self._input_data = None
         self._output_grid = None
+        self._new_2D_arrays = None
+        self._new_3D_arrays = None
 
         if not self.io['out'].directory.exists():
             subprocess.call(f"mkdir --parents self.io['out'].directory", shell=True)
@@ -549,24 +546,40 @@ class Interface:
             'phiv': self.input_data.get_ticks('phi')
         }
         return ig
-    def get_new_2D_arrays(self):
-        n_rad_new, n_phi_new = self.output_grid['rg'].shape
-        assert n_rad_new == self.config['mcfost_list']['nr']
-        assert n_phi_new == self.config['mcfost_list']['nphi']
 
-        density_keys = sorted(filter(lambda k: 'rho' in k, self.input_data.fields.keys()))
-        interpolated_arrays = []
-        for k in density_keys:
-            interpolator = interp2d(
-                self.input_grid['phiv'],
-                self.input_grid['rv'],
-                self.input_data[k], kind='cubic'
-            )
-            interpolated_arrays.append(
-                interpolator(self.output_grid['phiv'], self.output_grid['rv'])
-            )
-        assert interpolated_arrays[0].shape == (n_rad_new, n_phi_new)
-        return interpolated_arrays
+    @property
+    def new_2D_arrays(self):
+        if self._new_2D_arrays is None:
+            n_rad_new, n_phi_new = self.output_grid['rg'].shape
+            assert n_rad_new == self.config['mcfost_list']['nr']
+            assert n_phi_new == self.config['mcfost_list']['nphi']
+
+            density_keys = sorted(filter(lambda k: 'rho' in k, self.input_data.fields.keys()))
+            interpolated_arrays = []
+            for k in density_keys:
+                interpolator = interp2d(
+                    self.input_grid['phiv'],
+                    self.input_grid['rv'],
+                    self.input_data[k], kind='cubic'
+                )
+                interpolated_arrays.append(
+                    interpolator(self.output_grid['phiv'], self.output_grid['rv'])
+                )
+            assert interpolated_arrays[0].shape == (n_rad_new, n_phi_new)
+            self._new_2D_arrays = interpolated_arrays
+        return self._new_2D_arrays
+
+    @property
+    def new_3D_arrays(self):
+        if self._new_3D_arrays is None:
+            zmax = self.config['target_options']['zmax']
+            nz = self.config['mcfost_list']['nz']
+            z_vect = np.linspace(0, zmax, nz)
+            scale_height_grid = self.config['target_options']['aspect_ratio'] * self.output_grid['rg']
+            self._new_3D_arrays = np.array([
+                twoD2threeD(arr, scale_height_grid, z_vect) for arr in self.new_2D_arrays
+            ])
+        return self._new_3D_arrays
 
 #////////////////////////////////////////////////////////////
 
