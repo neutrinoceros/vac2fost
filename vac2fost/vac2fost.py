@@ -288,66 +288,6 @@ def get_dust_mass(data: VacDataSorter) -> float:
         mass += np.sum([cell_surfaces * field[:,i] for i in range(field.shape[1])])
     return mass
 
-def main(
-        config_file:str,
-        offset:int=None,
-        output_dir:str='.',
-        g2d_bin=False,
-        read_gas=False,
-        verbose=False,
-        dbg=False
-):
-    printer = {
-        True: print,
-        False: lambda *args, **kwargs: None,
-    }[verbose]
-
-
-    printer(' --------- Start vac2fost.main() ---------')
-    printer('reading input ...', end=' ', flush=True)
-    itf = Interface(config_file, num=offset, output_dir=output_dir, g2d_bin=g2d_bin)
-    printer('ok')
-
-    printer(f"loading data from {itf.io['in'].filename}", end=' ', flush=True)
-    simdata = itf.input_data
-    printer('ok')
-
-    printer('writting the mcfost configuration file ...', end=' ', flush=True)
-    itf.write_mcfost_conf_file()
-    printer('ok')
-
-    # -------------------------------------------------------------
-
-    printer('interpolating to MCFOST grid ...', end=' ', flush=True)
-    itf.new_2D_arrays
-    printer('ok')
-
-    # -------------------------------------------------------------
-    printer('converting 2D arrays to 3D ...', end=' ', flush=True)
-    itf.new_3D_arrays
-    printer('ok')
-
-    # -------------------------------------------------------------
-    printer('building the .fits file ...', end=' ', flush=True)
-    itf.write_output()
-    printer('ok')
-
-    printer(f"Successfully wrote {itf.io['out'].filename}")
-    printer(' --------- End   vac2fost.main() ---------')
-
-    printer('Messages collection:')
-    printer('\n    '.join(itf.messages))
-    printer()
-    printer('Warnings collection:')
-    printer('\n    '.join(itf.warnings))
-
-    # .. finally, yield some info back (for testing) ..
-    return dict(
-        finame = itf.io['out'].filename,
-        rads   = itf.output_grid['rg'].T,
-        phis   = itf.output_grid['phig'].T,
-    )
-
 def generate_conf_template():
     target = {
         'origin': '<path to the simulation repository, where datafiles are located>',
@@ -588,6 +528,59 @@ class Interface:
 
 #////////////////////////////////////////////////////////////
 
+def main(
+        config_file:str,
+        offset:int=None,
+        output_dir:str='.',
+        g2d_bin=False,
+        read_gas=False,
+        verbose=False,
+        dbg=False
+):
+    printer = {
+        True: print,
+        False: lambda *args, **kwargs: None,
+    }[verbose]
+
+
+    printer(' --------- Start vac2fost.main() ---------')
+    printer('reading input ...', end=' ', flush=True)
+    itf = Interface(config_file, num=offset, output_dir=output_dir, g2d_bin=g2d_bin)
+    printer('ok')
+
+    printer(f"loading data from {itf.io['in'].filename}", end=' ', flush=True)
+    simdata = itf.input_data
+    printer('ok')
+
+    printer('writting the mcfost configuration file ...', end=' ', flush=True)
+    itf.write_mcfost_conf_file()
+    printer('ok')
+
+    printer('interpolating to MCFOST grid ...', end=' ', flush=True)
+    itf.new_2D_arrays
+    printer('ok')
+
+    printer('converting 2D arrays to 3D ...', end=' ', flush=True)
+    itf.new_3D_arrays
+    printer('ok')
+
+    printer('building the .fits file ...', end=' ', flush=True)
+    itf.write_output()
+    printer('ok')
+
+    printer(f"Successfully wrote {itf.io['out'].filename}")
+    printer(' --------- End   vac2fost.main() ---------')
+
+    if len(itf.messages) > 0:
+        printer('Messages collection:')
+        printer('\n    '.join(itf.messages))
+        printer()
+    if len(itf.warnings) > 0:
+        printer('Warnings collection:')
+        printer('\n    '.join(itf.warnings))
+
+    # return the Interface object for inspection (tests)
+    return itf
 
 if __name__=='__main__':
     # Parse the script arguments
