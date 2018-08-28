@@ -316,7 +316,7 @@ class Interface:
     better structure to the sequence'''
 
     def __init__(self, config_file:str, num:int=None, output_dir:str='.',
-                 g2d_bin=False, dbg=False):
+                 g2d_bin=False, dbg=False, binmode='dust-only'):
         self._base_args = {
             'config_file': config_file,
             'output_dir': output_dir,
@@ -325,6 +325,7 @@ class Interface:
             'dbg': dbg,
         }
         self._dim = 2 #no support for 3D input yet
+        self.binmode = binmode
         self.messages = []
         self.warnings = []
 
