@@ -426,6 +426,7 @@ class Interface:
         self.sim_conf = read_amrvac_conf(files=to['amrvac_conf'], origin=to['origin'])
 
         self.small_grains_from_gas = True
+        self._iodat = None
         self._input_data = None
         self._output_grid = None
         self._new_2D_arrays = None
@@ -475,25 +476,26 @@ class Interface:
 
     @property
     def io(self) -> dict:
-        vtu_filename = self.sim_conf['filelist']['base_filename'] + str(self.num).zfill(4) + '.vtu'
-        res = {}
-        res.update({
-            'in': DataInfo(
-                directory=Path(interpret_shell_path(self.config['target_options']['origin'])),
-                filename=vtu_filename,
-                shape=tuple(
-                    [self.sim_conf['meshlist'][f'domain_nx{n}'] for n in range(1, self._dim+1)]
+        if self._iodat is None:
+            vtu_filename = self.sim_conf['filelist']['base_filename'] + str(self.num).zfill(4) + '.vtu'
+            self._iodat = {}
+            self._iodat.update({
+                'in': DataInfo(
+                    directory=Path(interpret_shell_path(self.config['target_options']['origin'])),
+                    filename=vtu_filename,
+                    shape=tuple(
+                        [self.sim_conf['meshlist'][f'domain_nx{n}'] for n in range(1, self._dim+1)]
+                    )
                 )
-            )
-        })
-        res.update({
-            'out': DataInfo(
-                directory=Path(self._base_args['output_dir']),
-                filename=res['in'].filename.replace('.vtu', '.fits'),
-                shape='' #TODO : fill me
-            )
-        })
-        return res
+            })
+            self._iodat.update({
+                'out': DataInfo(
+                    directory=Path(self._base_args['output_dir']),
+                    filename=self._iodat['in'].filename.replace('.vtu', '.fits'),
+                    shape=None #not used: don't write bugs when you don't need to
+                )
+            })
+        return self._iodat
 
     @property
     def mcfost_para_file(self):
