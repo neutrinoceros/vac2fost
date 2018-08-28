@@ -319,29 +319,7 @@ def main(
     # -------------------------------------------------------------
 
     printer('interpolating to MCFOST grid ...', end=' ', flush=True)
-    target_grid = MCFOSTUtils.get_mcfost_grid(
-        mcfost_conf=itf.mcfost_para_file,
-        mcfost_list=itf.config['mcfost_list'],
-        output_dir=itf.io['out'].directory,
-        silent=(not dbg)
-    )
-    rad_grid_new = target_grid[0,:,0,:].T
-    phi_grid_new = target_grid[2,:,0,:].T
-    n_rad_new, n_phi_new = rad_grid_new.shape
-    assert n_rad_new == itf.config['mcfost_list']['nr']
-    assert n_phi_new == itf.config['mcfost_list']['nphi']
-    rad_vect_new = rad_grid_new[:,0]
-    phi_vect_new = phi_grid_new[0]
-
-    rad_vect_old  = simdata.get_ticks('r') * itf.conv2au
-    azim_vect_old = simdata.get_ticks('phi')
-
-    density_keys = sorted(filter(lambda k: 'rho' in k, simdata.fields.keys())) #todo : update me
-    interpolated_arrays = []
-    for k in density_keys:
-        interpolator = interp2d(azim_vect_old, rad_vect_old, simdata[k], kind='cubic')
-        interpolated_arrays.append(interpolator(phi_vect_new, rad_vect_new))
-    assert interpolated_arrays[0].shape == (n_rad_new, n_phi_new)
+    interpolated_arrays = itf.get_new_2D_arrays()
     printer('ok')
 
 
@@ -350,7 +328,7 @@ def main(
     zmax = itf.config['target_options']['zmax']
     nz = itf.config['mcfost_list']['nz']
     z_vect = np.linspace(0, zmax, nz)
-    scale_height_grid = itf.config['target_options']['aspect_ratio'] * rad_grid_new
+    scale_height_grid = itf.config['target_options']['aspect_ratio'] * itf.output_grid['rg']
     threeD_arrays = np.array([twoD2threeD(arr, scale_height_grid, z_vect) for arr in interpolated_arrays])
     printer('ok')
 
@@ -398,8 +376,8 @@ def main(
     # .. finally, yield some info back (for testing) ..
     return dict(
         finame = itf.io['out'].filename,
-        rads   = rad_grid_new.T,
-        phis   = phi_grid_new.T,
+        rads   = itf.output_grid['rg'].T,
+        phis   = itf.output_grid['phig'].T,
     )
 
 def generate_conf_template():
@@ -454,6 +432,7 @@ class Interface:
 
         self.small_grains_from_gas = True
         self._input_data = None
+        self._output_grid = None
 
         if not self.io['out'].directory.exists():
             subprocess.call(f"mkdir --parents self.io['out'].directory", shell=True)
@@ -532,6 +511,26 @@ class Interface:
             )
         return self._input_data
 
+    @property
+    def output_grid(self):
+        if self._output_grid is None:
+            target_grid = MCFOSTUtils.get_mcfost_grid(
+                mcfost_conf=self.mcfost_para_file,
+                mcfost_list=self.config['mcfost_list'],
+                output_dir=self.io['out'].directory,
+                silent=(not self._base_args['dbg'])
+            )
+            self._output_grid = {
+                'array': target_grid,
+                #2D grids
+                'rg': target_grid[0,:,0,:].T,
+                'phig': target_grid[2,:,0,:].T,
+                #vectors
+                'rv': target_grid[0,:,0,:].T[:,0],
+                'phiv': target_grid[2,:,0,:].T[0],
+            }
+        return self._output_grid
+
     def write_mcfost_conf_file(self):
         custom = {}
         custom.update(MCFOSTUtils.translate_amrvac_conf(self))
@@ -543,8 +542,32 @@ class Interface:
             silent=(not self._base_args['dbg'])
         )
 
-    def run(self):
-        pass
+    @property
+    def input_grid(self):
+        ig = {
+            'rv': self.input_data.get_ticks('r') * self.conv2au,
+            'phiv': self.input_data.get_ticks('phi')
+        }
+        return ig
+    def get_new_2D_arrays(self):
+        n_rad_new, n_phi_new = self.output_grid['rg'].shape
+        assert n_rad_new == self.config['mcfost_list']['nr']
+        assert n_phi_new == self.config['mcfost_list']['nphi']
+
+        density_keys = sorted(filter(lambda k: 'rho' in k, self.input_data.fields.keys()))
+        interpolated_arrays = []
+        for k in density_keys:
+            interpolator = interp2d(
+                self.input_grid['phiv'],
+                self.input_grid['rv'],
+                self.input_data[k], kind='cubic'
+            )
+            interpolated_arrays.append(
+                interpolator(self.output_grid['phiv'], self.output_grid['rv'])
+            )
+        assert interpolated_arrays[0].shape == (n_rad_new, n_phi_new)
+        return interpolated_arrays
+
 #////////////////////////////////////////////////////////////
 
 
