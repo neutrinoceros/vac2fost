@@ -329,36 +329,9 @@ def main(
 
     # -------------------------------------------------------------
     printer('building the .fits file ...', end=' ', flush=True)
-
-    #the transposition is handling a weird behavior of fits files...
-    dust_densities_array = np.stack(
-        itf.new_3D_arrays[itf.argsort_offset + itf.grain_micron_sizes.argsort()],
-        axis=3).transpose()
-    dust_densities_HDU = fits.PrimaryHDU(dust_densities_array)
-
-    mcfost_keywords = {
-        'read_n_a': 0, #automatic normalization of size-bins from mcfost param file.
-        # following keywords are too long according to fits standards  !
-        # --------------------------------------------------------------
-        #'read_gas_density': 0, #set to 1 to add gas density
-        #'gas_to_dust': sim.conf['usr_dust_list']['gas2dust_ratio'], #required when reading gas
-    }
-
-    for it in mcfost_keywords.items():
-        dust_densities_HDU.header.append(it)
-
-    grain_sizes_HDU = fits.ImageHDU(itf.grain_micron_sizes[itf.grain_micron_sizes.argsort()])
-
-    hdus = [
-        dust_densities_HDU,
-        grain_sizes_HDU,
-        #fits.ImageHDU(gas_density)
-    ]
-
-    with open(itf.io['out'].filename, 'wb') as fo:
-        hdul = fits.HDUList(hdus=hdus)
-        hdul.writeto(fo)
+    itf.write_output()
     printer('ok')
+
     printer(f"Successfully wrote {itf.io['out'].filename}")
     printer(' --------- End   vac2fost.main() ---------')
 
@@ -540,6 +513,36 @@ class Interface:
             custom=custom,
             silent=(not self._base_args['dbg'])
         )
+
+    def write_output(self):
+        #the transposition is handling a weird behavior of fits files...
+        dust_densities_array = np.stack(
+            self.new_3D_arrays[self.argsort_offset + self.grain_micron_sizes.argsort()],
+            axis=3).transpose()
+        dust_densities_HDU = fits.PrimaryHDU(dust_densities_array)
+
+        mcfost_keywords = {
+            'read_n_a': 0, #automatic normalization of size-bins from mcfost param file.
+            # following keywords are too long according to fits standards  !
+            # --------------------------------------------------------------
+            #'read_gas_density': 0, #set to 1 to add gas density
+            #'gas_to_dust': sim.conf['usr_dust_list']['gas2dust_ratio'], #required when reading gas
+        }
+
+        for it in mcfost_keywords.items():
+            dust_densities_HDU.header.append(it)
+
+        grain_sizes_HDU = fits.ImageHDU(
+                self.grain_micron_sizes[self.grain_micron_sizes.argsort()]
+        )
+        hdus = [
+            dust_densities_HDU,
+            grain_sizes_HDU,
+            #fits.ImageHDU(gas_density)
+        ]
+        with open(self.io['out'].filename, 'wb') as fo:
+            hdul = fits.HDUList(hdus=hdus)
+            hdul.writeto(fo)
 
     @property
     def input_grid(self):
