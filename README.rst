@@ -1,7 +1,7 @@
 VAC2FOST
 ========
 
-`vac2mcfost.py` is a `python3` interface script that translates a `.vtu`
+`vac2mcfost.py` is a `python3.6` interface script that translates a `.vtu`
 amrvac output file into a `.fits` that can be fed to mcfost through
 the option `-density_file`.
 
@@ -13,23 +13,19 @@ the option `-density_file`.
    * add more tests
         a) handle lists of conf (already supported but currently not being tested)
         b) call mcfost
-   * consider adding switch for cylindrical/spherial griding
-        a) handle at least one case correctly (with zmax and scale_height issues)
    * add option for dust settling method (Gauss vs Fromang, cf McFost options)
 
 
+Python uncommon dependencies
+----------------------------
 
-Dependencies
-------------
-
-This package relies on `amrvac_pywrap` and `vtk_vacreader` packages (developed
+This package relies on `amrvac_pywrap` and `vtk_vacreader` python packages (developed
 by Clément Robert).
 
 
 
 Content
 -------
-
 
 
 `tests/sample/` contains sample configuration files used by `tests/test_app.py`
@@ -41,6 +37,11 @@ app is called, where certain parameters can be overwritten with value found in
 `api_script.nml:&mcfost_list`
 
 
+Installation
+------------
+
+The latest stable version can be install via pip. However, in order to be able to use the programm from command line, the file should be findable through the $PATH env variable.
+A relatively clean way to do this is by linking a dummy file to the installation directory.
 
 Usage
 -----
@@ -50,6 +51,7 @@ environment, then `./gen_image.sh` to generate an actual image with mcfost.
 
 The minimal requirement is a `configuration.nml` (name does not have
 to match this example) file formated as follow
+(such a file can be generated from command line with `vac2fost.py --genconf`)
 
  .. code:: fortran
 

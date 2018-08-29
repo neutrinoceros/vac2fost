@@ -1,24 +1,21 @@
 #!/usr/bin/env python3
-'''A conversion tool from AMRVAC (.vtu) to MCFOST (.fits)
+'''A conversion tool from AMRVAC output (.vtu) to MCFOST input (.fits)
 
 Run `vac2fost.py --help` for documentation on command line usage
 
 Steps
     a) load AMRVAC data with vtk_vacreader.VacDataSorter(), sort it as 2D arrays
     b) dry-run MCFOST to get the exact target grid
-    c) interpolate data to the target grid (log-spacing)
+    c) interpolate data to the target grid
     d) convert to 3D (gaussian redistribution of density)
+    e) collect, sort and write output data to a fits file
 
 Known limitations
    1) amr is not supported by reader
    2) portability is not guaranted
    3) interpolation does not account for the curvature of polar cells
-   4) a cylindrical grid is currently used for 3D,
-      we may later implement the spherical option
-   5) input simulation is assumed to be 2D (r,phi)
-   6) gas density not being read yet
-   7) when dust density is available, gas density is being ignored.
-      That needs fixing if we wish to generate molecular lines synthetic observations.
+   4) only r-phi input grids are currently supported
+   5) gas density is never passed to MCFOST as is but only as a tracer for smallest dust grains
 '''
 
 from collections import OrderedDict as od, namedtuple
@@ -45,6 +42,7 @@ except AssertionError:
 
 
 MINGRAINSIZE_µ = 0.1 #one global to rule them all...
+DataInfo = namedtuple('DataInfo', ['shape', 'directory', 'filename'])
 
 class MCFOSTUtils:
     '''Utility functions to call MCFOST in vac2fost.main() to define the final grid.'''
@@ -250,6 +248,7 @@ class MCFOSTUtils:
 def gauss(z, sigma):
     return 1./(np.sqrt(2*np.pi) * sigma) * np.exp(-z**2/(2*sigma**2))
 
+
 def twoD2threeD(arr2d:np.ndarray, scale_height:np.ndarray, zvect:np.ndarray) -> np.ndarray:
     '''Convert surface density 2d array into volumic density 3d
     cylindrical array assuming a gaussian vertical distribution.
@@ -289,6 +288,7 @@ def get_dust_mass(data: VacDataSorter) -> float:
         mass += np.sum([cell_surfaces * field[:,i] for i in range(field.shape[1])])
     return mass
 
+
 def generate_conf_template():
     target = {
         'origin': '<path to the simulation repository, where datafiles are located>',
@@ -308,9 +308,6 @@ def generate_conf_template():
     })
     return template
 
-#////////////////////////////////////////////////////////////
-# v2.0 dev zone
-DataInfo = namedtuple('DataInfo', ['shape', 'directory', 'filename'])
 
 class Interface:
     '''A class to hold global variables as attributes and give
@@ -325,10 +322,10 @@ class Interface:
             'output_dir': output_dir,
             'num': num,
             'dust_bin_mode': dust_bin_mode,
-            'dbg': dbg,
         }
 
         self._dim = 2 #no support for 3D input yet
+        self.dbg = dbg
         self.messages = []
         self.warnings = []
 
@@ -440,7 +437,7 @@ class Interface:
                 mcfost_conf=self.mcfost_para_file,
                 mcfost_list=self.config['mcfost_list'],
                 output_dir=self.io['out'].directory,
-                silent=(not self._base_args['dbg'])
+                silent=(not self.dbg)
             )
             self._output_grid = {
                 'array': target_grid,
@@ -462,7 +459,7 @@ class Interface:
         MCFOSTUtils.write_mcfost_conf(
             output_file=self.mcfost_para_file,
             custom=custom,
-            silent=(not self._base_args['dbg'])
+            silent=(not self.dbg)
         )
 
     def write_output(self) -> None:
@@ -542,7 +539,7 @@ class Interface:
             ])
         return self._new_3D_arrays
 
-#////////////////////////////////////////////////////////////
+# =======================================================================================
 
 def main(
         config_file:str,
@@ -597,6 +594,8 @@ def main(
 
     # return the Interface object for inspection (tests)
     return itf
+
+# =======================================================================================
 
 if __name__=='__main__':
     # Parse the script arguments
