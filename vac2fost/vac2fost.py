@@ -380,7 +380,7 @@ class Interface:
             except KeyError:
                 self._dbm = 'gas-only'
                 self.warnings.append('no grain size found, dust_bin_mode was auto-switched to "gas-only"')
-        elif self._dbm == 'dust-only' and min(µm_sizes) > MINGRAINSIZE_µ:
+        if self._dbm == 'dust-only' and min(µm_sizes) > MINGRAINSIZE_µ:
             # decide if an additional fake dust bin, based on gas density, is necessary
             self._dbm = 'mixed'
             self.warnings.append('smallest grain size found is above threshold, dust_bin_mode was auto-switched to "mixed"')
