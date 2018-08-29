@@ -14,13 +14,14 @@ from vac2fost import main as app
 here = pathlib.Path(__file__).absolute().parent
 
 if __name__=='__main__':
-    out = app(str(here/'sample/vac2fost_conf.nml'))
+    itf = app(str(here/'sample/vac2fost_conf.nml'))
 
     # get the Primary (only image available),
     # and exctract its first 3d array (density field)
-    data = pyfits.open(out['finame'])[0].data[0]
-    X = out['rads']*np.cos(out['phis'])
-    Y = out['rads']*np.sin(out['phis'])
+    filepath = itf.io['out'].directory / itf.io['out'].filename
+    data = pyfits.open(filepath)[0].data[0]
+    X = (itf.output_grid['rg'] * np.cos(itf.output_grid['phig'])).T
+    Y = (itf.output_grid['rg'] * np.sin(itf.output_grid['phig'])).T
     fig, axes = plt.subplots(nrows=3, figsize=(10,15))
 
     nr, nz, nphi = data.shape
