@@ -348,6 +348,7 @@ class Interface:
         self._iodat = None
         self._input_data = None
         self._output_grid = None
+        self._µsizes = None
         self._new_2D_arrays = None
         self._new_3D_arrays = None
 
@@ -370,22 +371,24 @@ class Interface:
         '''Read grain sizes (assumed in [cm]), from AMRVAC parameters and
         convert to microns.'''
         µm_sizes = np.empty(0)
-        if self._dbm != 'gas-only':
-            try:
-                cm_sizes = np.array(self.sim_conf['usr_dust_list']['grain_size_cm'])
-                µm_sizes = 1e4 * cm_sizes
-            except KeyError:
-                self._dbm = 'gas-only'
-                self.warnings.append('no grain size found, dust_bin_mode was auto-switched to "gas-only"')
-        if self._dbm == 'dust-only' and min(µm_sizes) > MINGRAINSIZE_µ:
-            # decide if an additional fake dust bin, based on gas density, is necessary
-            self._dbm = 'mixed'
-            self.warnings.append('smallest grain size found is above threshold, dust_bin_mode was auto-switched to "mixed"')
+        if self._µsizes is None:
+            if self._dbm != 'gas-only':
+                try:
+                    cm_sizes = np.array(self.sim_conf['usr_dust_list']['grain_size_cm'])
+                    µm_sizes = 1e4 * cm_sizes
+                except KeyError:
+                    self._dbm = 'gas-only'
+                    self.warnings.append('no grain size found, dust_bin_mode was auto-switched to "gas-only"')
+            if self._dbm == 'dust-only' and min(µm_sizes) > MINGRAINSIZE_µ:
+                # decide if an additional fake dust bin, based on gas density, is necessary
+                self._dbm = 'mixed'
+                self.warnings.append('smallest grain size found is above threshold, dust_bin_mode was auto-switched to "mixed"')
 
-        if self._dbm in {'gas-only', 'mixed'}:
-            µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
-        self.messages.append(f'Dust binning mode used: {self._dbm}')
-        return µm_sizes
+            if self._dbm in {'gas-only', 'mixed'}:
+                µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
+            self.messages.append(f'Dust binning mode used: {self._dbm}')
+            self._µsizes = µm_sizes
+        return self._µsizes
 
     @property
     def argsort_offset(self):
