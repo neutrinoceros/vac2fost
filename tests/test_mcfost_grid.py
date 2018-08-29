@@ -5,17 +5,19 @@ from pathlib import Path
 import f90nml
 
 from amrvac_pywrap import read_amrvac_conf
-from vac2fost.vac2fost import MCFOSTUtils
+from vac2fost.vac2fost import MCFOSTUtils, Interface
 
 here = Path(__file__).absolute().parent
 
 
-config = f90nml.read(here / 'sample/vac2fost_conf.nml')
+config_file = here / 'sample/vac2fost_conf.nml'
+config = f90nml.read(config_file)
 options = config['target_options']
 sim_conf = read_amrvac_conf(files=options['amrvac_conf'], origin=options['origin'])
 
 custom = {}
-custom.update(MCFOSTUtils.translate_amrvac_conf(sim_conf))
+itf = Interface(str(config_file))
+custom.update(MCFOSTUtils.translate_amrvac_conf(itf))
 
 def test_get_grid():
     output_dir = here / 'output/test_get_grid/'
