@@ -395,6 +395,7 @@ class Interface:
 
     @property
     def io(self) -> dict:
+        '''Store general info on input/output file locations and data array shapes.'''
         if self._iodat is None:
             vtu_filename = self.sim_conf['filelist']['base_filename'] + str(self.num).zfill(4) + '.vtu'
             self._iodat = {}
@@ -418,10 +419,12 @@ class Interface:
 
     @property
     def mcfost_para_file(self):
+        '''Locate output configuration file for mcfost'''
         return str(self.io['out'].directory/'mcfost_conf.para')
 
     @property
     def input_data(self):
+        '''Load input simulation data'''
         if self._input_data is None:
             self._input_data = VacDataSorter(
                 file_name=str(self.io['in'].directory/self.io['in'].filename),
@@ -430,7 +433,8 @@ class Interface:
         return self._input_data
 
     @property
-    def output_grid(self):
+    def output_grid(self) -> dict:
+        '''Store info on 3D output grid specifications (as vectors 'v', and (r-phi)grids 'g')'''
         if self._output_grid is None:
             target_grid = MCFOSTUtils.get_mcfost_grid(
                 mcfost_conf=self.mcfost_para_file,
@@ -449,7 +453,8 @@ class Interface:
             }
         return self._output_grid
 
-    def write_mcfost_conf_file(self):
+    def write_mcfost_conf_file(self) -> None:
+        '''Customize defaults with user specifications'''
         custom = {}
         custom.update(MCFOSTUtils.translate_amrvac_conf(self))
         custom.update(self.config['mcfost_list'])
@@ -460,7 +465,8 @@ class Interface:
             silent=(not self._base_args['dbg'])
         )
 
-    def write_output(self):
+    def write_output(self) -> None:
+        '''Main method. Write a .fits file suited for MCFOST input.'''
         #the transposition is handling a weird behavior of fits files...
         dust_densities_array = np.stack(
             self.new_3D_arrays[self.argsort_offset + self.grain_micron_sizes.argsort()],
@@ -492,7 +498,8 @@ class Interface:
             hdul.writeto(fo)
 
     @property
-    def input_grid(self):
+    def input_grid(self) -> dict:
+        '''Store physical coordinates (vectors) about the input grid specifications.'''
         ig = {
             'rv': self.input_data.get_ticks('r') * self.conv2au,
             'phiv': self.input_data.get_ticks('phi')
@@ -500,7 +507,8 @@ class Interface:
         return ig
 
     @property
-    def new_2D_arrays(self):
+    def new_2D_arrays(self) -> list:
+        '''Interpolate input data onto r-phi grid with output grid specifications'''
         if self._new_2D_arrays is None:
             n_rad_new, n_phi_new = self.output_grid['rg'].shape
             assert n_rad_new == self.config['mcfost_list']['nr']
@@ -522,7 +530,8 @@ class Interface:
         return self._new_2D_arrays
 
     @property
-    def new_3D_arrays(self):
+    def new_3D_arrays(self) -> list:
+        '''Interpolate input data onto full 3D output grid'''
         if self._new_3D_arrays is None:
             zmax = self.config['target_options']['zmax']
             nz = self.config['mcfost_list']['nz']
@@ -556,7 +565,7 @@ def main(
     printer('ok')
 
     printer(f"loading data from {itf.io['in'].filename}", end=' ', flush=True)
-    simdata = itf.input_data
+    itf.input_data
     printer('ok')
 
     printer('writting the mcfost configuration file ...', end=' ', flush=True)
