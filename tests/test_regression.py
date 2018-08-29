@@ -3,7 +3,6 @@ import pathlib
 import os
 import numpy as np
 from astropy.io import fits as pyfits
-import pytest
 
 from vac2fost import main as app
 
