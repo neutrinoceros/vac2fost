@@ -35,7 +35,7 @@ class TestRegression:
         # get the Primary (only image available),
         # and exctract its first 3d array (density field)
         itf.write_output()
-        fipath = itf.io['out'].directory / itf.io['out'].filename
+        fipath = itf.io['out'].filepath
         data = pyfits.open(fipath)[0].data[0]
 
         ref = pyfits.open(here/'ref/hd142527_dusty0000.fits')[0].data[0]
