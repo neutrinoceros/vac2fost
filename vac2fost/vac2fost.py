@@ -355,8 +355,8 @@ class Interface:
             subprocess.call(f"mkdir --parents self.io['out'].directory", shell=True)
             self.warnings.append(f"rep {self.io['out'].directory} was created")
 
-        if not (self.io['in'].directory/self.io['in'].filename).exists():
-            raise FileNotFoundError(self.io['in'].directory/self.io['in'].filename)
+        if not (self.io['in'].filepath).exists():
+            raise FileNotFoundError(self.io['in'].filepath)
 
         #optional definition of the distance unit
         self.conv2au = 1.0
@@ -424,7 +424,7 @@ class Interface:
         '''Load input simulation data'''
         if self._input_data is None:
             self._input_data = VacDataSorter(
-                file_name=str(self.io['in'].directory/self.io['in'].filename),
+                file_name=str(self.io['in'].filepath),
                 shape=self.io['in'].shape
             )
         return self._input_data
@@ -489,7 +489,7 @@ class Interface:
             grain_sizes_HDU,
             #fits.ImageHDU(gas_density)
         ]
-        fopath = self.io['out'].directory/self.io['out'].filename
+        fopath = self.io['out'].filepath
         with open(fopath, 'wb') as fo:
             hdul = fits.HDUList(hdus=hdus)
             hdul.writeto(fo)
