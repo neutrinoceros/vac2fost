@@ -42,7 +42,7 @@ except AssertionError:
 
 
 MINGRAINSIZE_µ = 0.1 #one global to rule them all...
-DataInfo = namedtuple('DataInfo', ['shape', 'directory', 'filename'])
+DataInfo = namedtuple('DataInfo', ['shape', 'directory', 'filename', 'filepath'])
 
 class MCFOSTUtils:
     '''Utility functions to call MCFOST in vac2fost.main() to define the final grid.'''
@@ -397,22 +397,21 @@ class Interface:
         if self._iodat is None:
             vtu_filename = self.sim_conf['filelist']['base_filename'] + str(self.num).zfill(4) + '.vtu'
             self._iodat = {}
-            self._iodat.update({
-                'in': DataInfo(
-                    directory=Path(interpret_shell_path(self.config['target_options']['origin'])),
-                    filename=vtu_filename,
-                    shape=tuple(
-                        [self.sim_conf['meshlist'][f'domain_nx{n}'] for n in range(1, self._dim+1)]
-                    )
+            basein = dict(
+                directory=Path(interpret_shell_path(self.config['target_options']['origin'])),
+                filename=vtu_filename,
+                shape=tuple(
+                    [self.sim_conf['meshlist'][f'domain_nx{n}'] for n in range(1, self._dim+1)]
                 )
-            })
-            self._iodat.update({
-                'out': DataInfo(
-                    directory=Path(self._base_args['output_dir']),
-                    filename=self._iodat['in'].filename.replace('.vtu', '.fits'),
-                    shape=None #not used: don't write bugs when you don't need to
-                )
-            })
+            )
+            baseout = dict(
+                directory=Path(self._base_args['output_dir']),
+                filename=basein['filename'].replace('.vtu', '.fits'),
+                shape=None #not used: don't write bugs when you don't need to
+            )
+            for d,k in zip([basein, baseout], ['in', 'out']):
+                d.update({'filepath': d['directory'] / d['filename']})
+                self._iodat.update({k: DataInfo(**d)})
         return self._iodat
 
     @property
