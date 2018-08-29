@@ -43,7 +43,8 @@ try:
 except AssertionError:
     raise EnvironmentError('Installation of MCFOST not found.')
 
-minsize_grain_µm = 0.1
+
+MINGRAINSIZE_µ = 0.1 #one global to rule them all...
 
 class MCFOSTUtils:
     '''Utility functions to call MCFOST in vac2fost.main() to define the final grid.'''
@@ -106,7 +107,7 @@ class MCFOSTUtils:
                 od([('grain_type', 'Mie'), ('n_components', 1), ('mixing_rule', 2), ('porosity', 0.), ('mass_fraction', 0.75), ('vmax_dhs', 0.9)]),
                 od([('optical_indices_file', 'Draine_Si_sUV.dat'), ('volume_fraction', 1.0)]),
                 od([('heating_method', 1)]),
-                od([('sp_min', minsize_grain_µm), ('sp_max', 1000), ('sexp', 3.5), ('n_grains', 100)])
+                od([('sp_min', MINGRAINSIZE_µ), ('sp_max', 1000), ('sexp', 3.5), ('n_grains', 100)])
             )),
             ('Molecular RT', (
                 od([('lpop', True), ('laccurate_pop', True), ('LTE', True), ('profile_width', 15.)]),
@@ -312,21 +313,29 @@ def generate_conf_template():
 DataInfo = namedtuple('DataInfo', ['shape', 'directory', 'filename'])
 
 class Interface:
-    '''a class to hold global variables as attributes and give
-    better structure to the sequence'''
+    '''A class to hold global variables as attributes and give
+    clear and concise structure to the main() function.'''
+
+    known_dbms = {'dust-only', 'gas-only', 'mixed'}
 
     def __init__(self, config_file:str, num:int=None, output_dir:str='.',
-                 g2d_bin=False, dbg=False):
+                 dust_bin_mode:str='dust-only', dbg=False):
         self._base_args = {
             'config_file': config_file,
             'output_dir': output_dir,
             'num': num,
-            'g2d_bin': g2d_bin,
+            'dust_bin_mode': dust_bin_mode,
             'dbg': dbg,
         }
+
         self._dim = 2 #no support for 3D input yet
         self.messages = []
         self.warnings = []
+
+        if dust_bin_mode not in __class__.known_dbms:
+            raise KeyError(dust_bin_mode)
+        else:
+            self._dbm = dust_bin_mode
 
         if isinstance(config_file, f90nml.Namelist):
             self.config = config_file
@@ -363,24 +372,21 @@ class Interface:
     def grain_micron_sizes(self) -> np.ndarray:
         '''Read grain sizes (assumed in [cm]), from AMRVAC parameters and
         convert to microns.'''
-        try:
-            cm_sizes = np.array(self.sim_conf['usr_dust_list']['grain_size_cm'])
-            µm_sizes = 1e4 * cm_sizes
-        except KeyError:
-            #no grain size detected, gas only
-            µm_sizes = []
+        µm_sizes = np.empty(0)
+        if self._dbm != 'gas-only':
+            try:
+                cm_sizes = np.array(self.sim_conf['usr_dust_list']['grain_size_cm'])
+                µm_sizes = 1e4 * cm_sizes
+            except KeyError:
+                self._dbm = 'gas-only'
+                self.warnings.append('no grain size found, dust_bin_mode was auto-switched to "gas-only"')
+        if self._dbm == 'dust-only' and min(µm_sizes) > MINGRAINSIZE_µ:
+            # decide if an additional fake dust bin, based on gas density, is necessary
+            self._dbm = 'mixed'
+            self.warnings.append('smallest grain size found is above threshold, dust_bin_mode was auto-switched to "mixed"')
 
-        # decide if an additional fake dust bin, based on gas density, is necessary
-        if µm_sizes != [] :
-            if (min(µm_sizes) > minsize_grain_µm or self.g2d_bin):
-                self.small_grains_from_gas = True
-        else:
-            self.small_grains_from_gas = True
-            self.warnings.append('no grain size detected, using gas as a proxy')
-
-        if self.small_grains_from_gas:
-            µm_sizes = np.insert(µm_sizes, 0, minsize_grain_µm)
-        #assert len(self.grain_micron_sizes) == len(self.threeD_arrays) - self.argsort_offset
+        if self._dbm in {'gas-only', 'mixed'}:
+            µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
         return µm_sizes
 
     @property
@@ -533,8 +539,7 @@ def main(
         config_file:str,
         offset:int=None,
         output_dir:str='.',
-        g2d_bin=False,
-        read_gas=False,
+        dust_bin_mode:str='dust-only',
         verbose=False,
         dbg=False
 ):
@@ -546,7 +551,8 @@ def main(
 
     printer(' --------- Start vac2fost.main() ---------')
     printer('reading input ...', end=' ', flush=True)
-    itf = Interface(config_file, num=offset, output_dir=output_dir, g2d_bin=g2d_bin)
+    itf = Interface(config_file, num=offset, output_dir=output_dir,
+                    dust_bin_mode=dust_bin_mode)
     printer('ok')
 
     printer(f"loading data from {itf.io['in'].filename}", end=' ', flush=True)
@@ -605,14 +611,10 @@ if __name__=='__main__':
         help='select output directory for generated files'
     )
     p.add_argument(
-        '--g2d',
-        action='store_true',
-        help='activate gas-to-dust mode'
-    )
-    p.add_argument(
-        '--gas',
-        action='store_true',
-        help='pass information on gas component to mcfost (not implemented !)'
+        '-dbm', '--dustbinmode', dest= 'dbm', type=str,
+        required=False,
+        default='dust-only',
+        help='prefered bin selection mode (accepted values "dust-only", "gas-only", "mixed")'
     )
     p.add_argument(
         '-v', '--verbose',
@@ -650,8 +652,7 @@ if __name__=='__main__':
         config_file=args.configuration,
         offset=args.num,
         output_dir=args.output,
-        g2d_bin=args.g2d,
-        read_gas=args.gas,
+        dust_bin_mode=args.dbm,
         verbose=args.verbose,
         dbg=args.dbg
     )

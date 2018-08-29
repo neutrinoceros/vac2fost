@@ -44,12 +44,34 @@ class TestRegression:
 
     def test_out(self):
         out_ref = pickle.load(open(here/'ref/main_out.p', 'rb'))
-        save_keys = ['sim_conf', 'input_grid', 'output_grid', 'new_2D_arrays', 'new_3D_arrays']
+        save_keys = ['sim_conf',
+                     'input_grid', 'output_grid',
+                     'new_2D_arrays', 'new_3D_arrays',
+                     '_dbm'
+        ]
         out = {k: itf.__getattribute__(k) for k in save_keys}
         # use this to regold the reference file
-        # with open(here/'ref/main_out2.p', 'wb') as fo:
-        #     pickle.dump(out, fo)
-        for k,v in out.items():
-            if isinstance(v, np.ndarray):
-                assert (v == out_ref[k]).all()
+        #with open(here/'ref/main_out2.p', 'wb') as fo:
+        #    pickle.dump(out, fo)
+        assert deep_equality(out, out_ref)
+
+def deep_equality(a, b) -> bool:
+    res = False
+    if isinstance(a, dict):
+        for k in a.keys():
+            if not deep_equality(a[k], b[k]): break
+        else: res = True
+    elif isinstance(a, list):
+        for a1,b1 in zip(a,b):
+            if not deep_equality(a1, b1): break
+        else: res = True
+    elif isinstance(a, np.ndarray):
+        res = (a == b).all()
+    else:
+        try:
+            res = (a == b)
+        except ValueError:
+            raise ValueError(f'raised for object type {type(a)}')
+
+    return res
 
