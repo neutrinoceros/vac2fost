@@ -410,7 +410,7 @@ class Interface:
                 shape=None #not used: don't write bugs when you don't need to
             )
             for d,k in zip([basein, baseout], ['in', 'out']):
-                d.update({'filepath': d['directory'] / d['filename']})
+                d.update({'filepath': (d['directory'] / d['filename']).resolve()})
                 self._iodat.update({k: DataInfo(**d)})
         return self._iodat
 
