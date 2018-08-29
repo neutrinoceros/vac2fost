@@ -314,9 +314,9 @@ DataInfo = namedtuple('DataInfo', ['shape', 'directory', 'filename'])
 class Interface:
     '''a class to hold global variables as attributes and give
     better structure to the sequence'''
-
+    known_dbms = {'dust-only', 'gas-only', 'mixed'}
     def __init__(self, config_file:str, num:int=None, output_dir:str='.',
-                 g2d_bin=False, dbg=False, binmode='dust-only'):
+                 g2d_bin=False, dbg=False, dust_bin_mode='dust-only'):
         self._base_args = {
             'config_file': config_file,
             'output_dir': output_dir,
@@ -324,10 +324,15 @@ class Interface:
             'g2d_bin': g2d_bin,
             'dbg': dbg,
         }
+
         self._dim = 2 #no support for 3D input yet
-        self.binmode = binmode
         self.messages = []
         self.warnings = []
+
+        if dust_bin_mode not in __class__.known_dbms:
+            raise KeyError(dust_bin_mode)
+        else:
+            self._dbm = dust_bin_mode
 
         if isinstance(config_file, f90nml.Namelist):
             self.config = config_file
