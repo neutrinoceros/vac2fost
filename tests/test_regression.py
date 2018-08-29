@@ -32,19 +32,25 @@ class TestRegression:
         new = pyfits.open(outdir/'mcfost_grid.fits.gz')[0].data
         assert (ref == new).all()
 
-    @pytest.mark.skip(reason='probably just need a regold')
     def test_image(self):
         # get the Primary (only image available),
         # and exctract its first 3d array (density field)
-        data = pyfits.open(itf.io['out'].filename)[0].data[0]
+        itf.write_output()
+        fipath = itf.io['out'].directory / itf.io['out'].filename
+        data = pyfits.open(fipath)[0].data[0]
 
         ref = pyfits.open(here/'ref/hd142527_dusty0000.fits')[0].data[0]
         diff = data - ref
         assert np.abs(diff).max() < 1e-15
 
-    @pytest.mark.skip(reason='I do not know how to rewrite this atm')
     def test_out(self):
         out_ref = pickle.load(open(here/'ref/main_out.p', 'rb'))
+        save_keys = ['sim_conf', 'input_grid', 'output_grid', 'new_2D_arrays', 'new_3D_arrays']
+        out = {k: itf.__getattribute__(k) for k in save_keys}
+        # use this to regold the reference file
+        # with open(here/'ref/main_out2.p', 'wb') as fo:
+        #     pickle.dump(out, fo)
         for k,v in out.items():
             if isinstance(v, np.ndarray):
                 assert (v == out_ref[k]).all()
+

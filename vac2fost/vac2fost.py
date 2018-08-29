@@ -480,7 +480,8 @@ class Interface:
             grain_sizes_HDU,
             #fits.ImageHDU(gas_density)
         ]
-        with open(self.io['out'].filename, 'wb') as fo:
+        fopath = self.io['out'].directory/self.io['out'].filename
+        with open(fopath, 'wb') as fo:
             hdul = fits.HDUList(hdus=hdus)
             hdul.writeto(fo)
 
