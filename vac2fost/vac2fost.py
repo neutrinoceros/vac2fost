@@ -384,6 +384,7 @@ class Interface:
 
         if self._dbm in {'gas-only', 'mixed'}:
             µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
+        self.messages.append(f'Dust binning mode used: {self._dbm}')
         return µm_sizes
 
     @property
