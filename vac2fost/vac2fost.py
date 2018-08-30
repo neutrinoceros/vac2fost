@@ -368,6 +368,16 @@ class Interface:
         except KeyError:
             self.warnings.append('parameter conv2au was not found. Distance unit in simulation is assumed to be 1au (astronomical unit).')
 
+    def print_all(self):
+        if len(self.messages) > 0:
+            print('Messages collection:')
+            print('    ', '\n    '.join(self.messages))
+            print()
+        if len(self.warnings) > 0:
+            print('Warnings collection:')
+            print('    ', '\n    '.join(self.warnings))
+            print()
+
     @property
     def grain_micron_sizes(self) -> np.ndarray:
         '''Read grain sizes (assumed in [cm]), from AMRVAC parameters and
@@ -560,48 +570,45 @@ def main(
         verbose=False,
         dbg=False
 ):
-    printer = {
-        True: print,
-        False: lambda *args, **kwargs: None,
-    }[verbose]
+    def tell(message:str='ok', end=False):
+        if verbose:
+            if end:
+                print(message)
+            else:
+                print(message.ljust(70), '...'.ljust(1), end=' ', flush=True)
 
-
-    printer(' --------- Start vac2fost.main() ---------')
-    printer('reading input ...', end=' ', flush=True)
+    tell(' --------- Start vac2fost.main() ---------', end=True)
+    tell('reading input')
     itf = Interface(config_file, num=offset, output_dir=output_dir,
                     dust_bin_mode=dust_bin_mode)
-    printer('ok')
+    tell(end=True)
 
-    printer(f"loading data from {itf.io['in'].filename}", end=' ', flush=True)
+    tell(f"loading data from {itf.io['in'].filename}")
     itf.input_data
-    printer('ok')
+    tell(end=True)
 
-    printer('writting the mcfost configuration file ...', end=' ', flush=True)
+    tell('writting the mcfost configuration file')
     itf.write_mcfost_conf_file()
-    printer('ok')
+    tell(end=True)
 
-    printer('interpolating to MCFOST grid ...', end=' ', flush=True)
+    tell('interpolating to MCFOST grid')
     itf.new_2D_arrays
-    printer('ok')
+    tell(end=True)
 
-    printer('converting 2D arrays to 3D ...', end=' ', flush=True)
+    tell('converting 2D arrays to 3D')
     itf.new_3D_arrays
-    printer('ok')
+    tell(end=True)
 
-    printer('building the .fits file ...', end=' ', flush=True)
+    tell('building the .fits file')
     itf.write_output()
-    printer('ok')
+    tell(end=True)
 
-    printer(f"Successfully wrote {itf.io['out'].filename}")
+    tell(f"Successfully wrote {itf.io['out'].filename}", end=True)
 
-    if len(itf.messages) > 0:
-        printer('Messages collection:\n    ')
-        printer('\n    '.join(itf.messages))
-        printer()
-    if len(itf.warnings) > 0:
-        printer('Warnings collection:\n    ')
-        printer('\n    '.join(itf.warnings))
-    printer(' --------- End   vac2fost.main() ---------')
+    if verbose:
+        itf.print_all()
+
+    tell(' --------- End   vac2fost.main() ---------', end=True)
 
     # return the Interface object for inspection (tests)
     return itf
