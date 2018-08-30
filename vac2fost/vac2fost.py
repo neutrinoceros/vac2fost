@@ -386,7 +386,7 @@ class Interface:
                         raise KeyError('dust binning mode "{self._dbm}" requested but no grain size was found.')
 
             if min(µm_sizes) > MINGRAINSIZE_µ:
-                self.warnings.append('smallest grain size found is above threshold {MINGRAINSIZE_µ} µm')
+                self.warnings.append(f'smallest grain size found is above threshold {MINGRAINSIZE_µ} µm')
                 if self._dbm == 'auto':
                     # decide if an additional fake dust bin, based on gas density, is necessary
                     self._dbm = 'mixed'
