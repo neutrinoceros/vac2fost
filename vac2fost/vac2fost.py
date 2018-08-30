@@ -26,6 +26,7 @@ import subprocess
 from argparse import ArgumentParser
 from pathlib import Path
 
+import colorama
 import numpy as np
 from astropy.io import fits
 from scipy.interpolate import interp2d
@@ -369,14 +370,17 @@ class Interface:
             self.warnings.append('parameter conv2au was not found. Distance unit in simulation is assumed to be 1au (astronomical unit).')
 
     def print_all(self):
+        colorama.init()
         if len(self.messages) > 0:
-            print('Messages collection:')
-            print('    ', '\n    '.join(self.messages))
+            print(colorama.Fore.BLUE + 'Messages collection:')
+            print('   ', '\n    '.join(self.messages))
             print()
         if len(self.warnings) > 0:
-            print('Warnings collection:')
-            print('    ', '\n    '.join(self.warnings))
+            print(colorama.Fore.RED + 'Warnings collection:')
+            print('   ', '\n    '.join(self.warnings))
             print()
+        print(colorama.Style.RESET_ALL)
+        colorama.deinit()
 
     @property
     def grain_micron_sizes(self) -> np.ndarray:
