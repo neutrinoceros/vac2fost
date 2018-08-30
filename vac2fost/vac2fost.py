@@ -40,9 +40,11 @@ try:
 except AssertionError:
     raise EnvironmentError('Installation of MCFOST not found.')
 
-
-MINGRAINSIZE_µ = 0.1 #one global to rule them all...
+#globals
+MINGRAINSIZE_µ = 0.1
+DEFAULTS = {'DBM': 'auto'}
 DataInfo = namedtuple('DataInfo', ['shape', 'directory', 'filename', 'filepath'])
+
 
 class MCFOSTUtils:
     '''Utility functions to call MCFOST in vac2fost.main() to define the final grid.'''
@@ -313,10 +315,10 @@ class Interface:
     '''A class to hold global variables as attributes and give
     clear and concise structure to the main() function.'''
 
-    known_dbms = {'dust-only', 'gas-only', 'mixed'}
+    known_dbms = {'dust-only', 'gas-only', 'mixed', 'auto'}
 
     def __init__(self, config_file:str, num:int=None, output_dir:str='.',
-                 dust_bin_mode:str='dust-only', dbg=False):
+                 dust_bin_mode:str=DEFAULTS['DBM'], dbg=False):
         self._base_args = {
             'config_file': config_file,
             'output_dir': output_dir,
@@ -330,7 +332,7 @@ class Interface:
         self.warnings = []
 
         if dust_bin_mode not in __class__.known_dbms:
-            raise KeyError(dust_bin_mode)
+            raise KeyError(f'Unknown dust binning mode "{dust_bin_mode}"')
         else:
             self._dbm = dust_bin_mode
 
@@ -377,16 +379,24 @@ class Interface:
                     cm_sizes = np.array(self.sim_conf['usr_dust_list']['grain_size_cm'])
                     µm_sizes = 1e4 * cm_sizes
                 except KeyError:
-                    self._dbm = 'gas-only'
-                    self.warnings.append('no grain size found, dust_bin_mode was auto-switched to "gas-only"')
-            if self._dbm == 'dust-only' and min(µm_sizes) > MINGRAINSIZE_µ:
-                # decide if an additional fake dust bin, based on gas density, is necessary
-                self._dbm = 'mixed'
-                self.warnings.append('smallest grain size found is above threshold, dust_bin_mode was auto-switched to "mixed"')
+                    if self._dbm == 'auto':
+                        self._dbm = 'gas-only'
+                        self.warnings.append('no grain size found, dust_bin_mode was auto-switched to "gas-only"')
+                    else:
+                        raise KeyError('dust binning mode "{self._dbm}" requested but no grain size was found.')
+
+            if min(µm_sizes) > MINGRAINSIZE_µ:
+                self.warnings.append('smallest grain size found is above threshold {MINGRAINSIZE_µ} µm')
+                if self._dbm == 'auto':
+                    # decide if an additional fake dust bin, based on gas density, is necessary
+                    self._dbm = 'mixed'
+                    self.warnings.append('dust_bin_mode was auto-switched to "mixed"')
 
             if self._dbm in {'gas-only', 'mixed'}:
                 µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
-            self.messages.append(f'Dust binning mode used: {self._dbm}')
+            self.messages.append(f'Dust binning mode finally used: {self._dbm}')
+            self.messages.append(f"original dbm: {self._base_args['dust_bin_mode']}")
+            print(self.messages)#; raise SystemExit
             self._µsizes = µm_sizes
         return self._µsizes
 
@@ -548,7 +558,7 @@ def main(
         config_file:str,
         offset:int=None,
         output_dir:str='.',
-        dust_bin_mode:str='dust-only',
+        dust_bin_mode:str=DEFAULTS['DBM'],
         verbose=False,
         dbg=False
 ):
@@ -624,8 +634,8 @@ if __name__=='__main__':
     p.add_argument(
         '-dbm', '--dustbinmode', dest= 'dbm', type=str,
         required=False,
-        default='dust-only',
-        help='prefered bin selection mode (accepted values "dust-only", "gas-only", "mixed")'
+        default=DEFAULTS['DBM'],
+        help='prefered bin selection mode (accepted values "dust-only", "gas-only", "mixed", "auto")'
     )
     p.add_argument(
         '-v', '--verbose',

@@ -53,6 +53,8 @@ class TestRegression:
         # use this to regold the reference file
         #with open(here/'ref/main_out2.p', 'wb') as fo:
         #    pickle.dump(out, fo)
+
+        print(f"\n\nDBM, new vs ref: {out['_dbm']}, {out_ref['_dbm']}")
         assert deep_equality(out, out_ref)
 
 def deep_equality(a, b) -> bool:
