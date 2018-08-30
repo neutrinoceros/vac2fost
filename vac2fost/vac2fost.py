@@ -595,15 +595,15 @@ def main(
     printer('ok')
 
     printer(f"Successfully wrote {itf.io['out'].filename}")
-    printer(' --------- End   vac2fost.main() ---------')
 
     if len(itf.messages) > 0:
-        printer('Messages collection:')
+        printer('Messages collection:\n    ')
         printer('\n    '.join(itf.messages))
         printer()
     if len(itf.warnings) > 0:
-        printer('Warnings collection:')
+        printer('Warnings collection:\n    ')
         printer('\n    '.join(itf.warnings))
+    printer(' --------- End   vac2fost.main() ---------')
 
     # return the Interface object for inspection (tests)
     return itf
