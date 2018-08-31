@@ -356,7 +356,7 @@ class Interface:
         self._new_3D_arrays = None
 
         if not self.io['out'].directory.exists():
-            subprocess.call(f"mkdir --parents self.io['out'].directory", shell=True)
+            subprocess.call(f"mkdir --parents {self.io['out'].directory}", shell=True)
             self.warnings.append(f"rep {self.io['out'].directory} was created")
 
         if not (self.io['in'].filepath).exists():
