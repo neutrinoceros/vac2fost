@@ -58,7 +58,6 @@ class MCFOSTUtils:
                 od([('nphot_sed', '1.28e3')]),
                 od([('nphot_img', '1.28e5')])
             )),
-
             ('Wavelengts', (
                 od([('n_lambda', 50), ('lambda_min', 0.1), ('lambda_max', 3e3)]),
                 od([('compute_temp', True), ('compute_sed', True), ('use_default_wl', True)]),
@@ -128,6 +127,11 @@ class MCFOSTUtils:
             ))
         ])
 
+    known_args = []
+    for descriptor in blocks_descriptors.items():
+        for di in descriptor[1]:
+            known_args += list(di.keys())
+
     def write_mcfost_conf(output_file:str, custom:dict={}, silent=True):
         '''Write a configuration file for mcfost using values from <custom>,
         and falling back to defaults found in block_descriptor defined above
@@ -154,7 +158,7 @@ class MCFOSTUtils:
             print(f'wrote {output_file}')
 
     def translate_amrvac_conf(itf) -> dict:
-        #itf must be of type Interface (can't be parsed properly before python 3.7
+        #itf must be of type Interface (can't be parsed properly before python 3.7)
         '''pass amrvac parameters to mcfost'''
         parameters = {}
 
@@ -479,13 +483,24 @@ class Interface:
         '''Customize defaults with user specifications'''
         custom = {}
         custom.update(MCFOSTUtils.translate_amrvac_conf(self))
+        unknown_args = self.scan_for_unknown_arguments()
+        if len(unknown_args) > 0:
+            raise KeyError(f'Unrecognized MCFOST argument(s): {unknown_args}')
         custom.update(self.config['mcfost_list'])
+
         custom.update({'dust_mass': get_dust_mass(self.input_data)})
         MCFOSTUtils.write_mcfost_conf(
             output_file=self.mcfost_para_file,
             custom=custom,
             silent=(not self.dbg)
         )
+
+    def scan_for_unknown_arguments(self) -> list:
+        unknowns = []
+        for arg in self.config['mcfost_list'].keys():
+            if not arg.lower() in MCFOSTUtils.known_args:
+                unknowns.append(arg)
+        return unknowns
 
     def write_output(self) -> None:
         '''Main method. Write a .fits file suited for MCFOST input.'''
