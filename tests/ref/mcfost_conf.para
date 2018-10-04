@@ -19,7 +19,7 @@
   501  501  900.0                       nx, ny, maps_size
   0  0  1  False                        imin, imax, n_incl, centered
   0  240  1                             az_min, az_max, n_az_angles
-  140                                   distance_pc
+  157                                   distance_pc
   0                                     disk_position_angle
 
 # Scattering
