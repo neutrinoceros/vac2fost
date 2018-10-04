@@ -180,7 +180,7 @@ class MCFOSTUtils:
                 'scale_height': itf.sim_conf['disk_list']['aspect_ratio'] #at ref radius
             })
         except KeyError:
-            pass
+            itf.warnings.append("Could not find 'aspect_ratio' in the hydro sim conf")
 
         try:
             dl2 = itf.sim_conf['usr_dust_list']
