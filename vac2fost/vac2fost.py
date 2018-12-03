@@ -26,11 +26,15 @@ import subprocess
 from argparse import ArgumentParser
 from pathlib import Path
 
-import colorama
 import numpy as np
 from astropy.io import fits
 from scipy.interpolate import interp2d
 import f90nml
+try:
+    import colorama
+    COLORAMA=True
+except ImportError:
+    COLORAMA=False
 
 from amrvac_pywrap import interpret_shell_path, read_amrvac_conf
 from vtk_vacreader import VacDataSorter
@@ -374,17 +378,19 @@ class Interface:
             self.warnings.append('parameter conv2au was not found. Distance unit in simulation is assumed to be 1au (astronomical unit).')
 
     def print_all(self):
-        colorama.init()
+        if COLORAMA:
+            colorama.init()
         if len(self.messages) > 0:
-            print(colorama.Fore.BLUE + 'Messages collection:')
+            print(colorama.Fore.BLUE*COLORAMA + 'Messages collection:')
             print('   ', '\n    '.join(self.messages))
             print()
         if len(self.warnings) > 0:
-            print(colorama.Fore.RED + 'Warnings collection:')
+            print(colorama.Fore.RED*COLORAMA + 'Warnings collection:')
             print('   ', '\n    '.join(self.warnings))
             print()
-        print(colorama.Style.RESET_ALL)
-        colorama.deinit()
+        if COLORAMA:
+            print(colorama.Style.RESET_ALL)
+            colorama.deinit()
 
     @property
     def grain_micron_sizes(self) -> np.ndarray:
