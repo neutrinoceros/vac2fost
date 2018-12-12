@@ -17,7 +17,6 @@ Known limitations
    4) only r-phi input grids are currently supported
    5) gas density is never passed to MCFOST as is but only as a tracer for smallest dust grains
 '''
-
 from collections import OrderedDict as od, namedtuple
 import os
 import sys
@@ -348,12 +347,36 @@ class Interface:
         if isinstance(config_file, f90nml.Namelist):
             self.config = config_file
         else:
+            # other correct types would be str and pathlib.Path
             self.config = f90nml.read(config_file)
 
         self.num = num or self.config['target_options']['offset']
 
-        to = self.config['target_options'] # alias
-        self.sim_conf = read_amrvac_conf(files=to['amrvac_conf'], origin=to['origin'])
+
+        origin = Path(self.config['target_options']['origin'])
+        if not origin.is_absolute():
+            to = self.config['target_options']
+            p1 = Path(".").resolve()
+            p2 = Path(config_file).resolve().parent
+
+            if isinstance(to['amrvac_conf'], (list, tuple)):
+                fi = to['amrvac_conf'][0]
+            else:
+                fi = to['amrvac_conf']
+
+            found = [(p/fi).is_file() for p in (p1,p2)]
+            if all(found):
+                raise RunTimeError("Error: can not guess if 'origin' is relative to the current dir or the dir containing the configuration file")
+            elif not any(found):
+                raise FileNotFoundError
+            else:
+                p = (p1, p2)[found.index(True)]
+            self.config['target_options'].update({'origin': p/to['origin']})
+
+        self.sim_conf = read_amrvac_conf(
+            files=self.config['target_options']['amrvac_conf'],
+            origin=self.config['target_options']['origin']
+        )
 
         self.small_grains_from_gas = True
         self._iodat = None

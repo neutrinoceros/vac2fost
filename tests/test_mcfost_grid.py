@@ -9,11 +9,11 @@ from vac2fost.vac2fost import MCFOSTUtils, Interface
 
 here = Path(__file__).absolute().parent
 
-
-config_file = here / 'sample/vac2fost_conf.nml'
+sampledir = here / 'sample'
+config_file = sampledir / 'vac2fost_conf.nml'
 config = f90nml.read(config_file)
 options = config['target_options']
-sim_conf = read_amrvac_conf(files=options['amrvac_conf'], origin=options['origin'])
+sim_conf = read_amrvac_conf(files=options['amrvac_conf'], origin=sampledir/options['origin'])
 
 custom = {}
 itf = Interface(str(config_file))

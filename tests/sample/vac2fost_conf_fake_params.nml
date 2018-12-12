@@ -11,7 +11,7 @@
 /
 
 &target_options
-    origin = 'tests/sample/'
+    origin = '.'
     amrvac_conf = 'hd142527.nml', 'add_multidust.nml'
     offset = 0
     zmax = 5         ! use same distance unit in the original simulation
