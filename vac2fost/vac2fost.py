@@ -17,7 +17,6 @@ Known limitations
    4) only r-phi input grids are currently supported
    5) gas density is never passed to MCFOST as is but only as a tracer for smallest dust grains
 '''
-import pdb
 from collections import OrderedDict as od, namedtuple
 import os
 import sys
