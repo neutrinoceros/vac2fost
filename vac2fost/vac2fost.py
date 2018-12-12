@@ -675,7 +675,7 @@ if __name__=='__main__':
     p.add_argument(
         '--dbg', '--debug', dest='dbg',
         action='store_true',
-        help='activate debug mode (verbose for MCSOST)'
+        help='activate debug mode (verbose for MCFOST)'
     )
     p.add_argument(
         '--genconf', action='store_true',
