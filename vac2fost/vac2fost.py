@@ -353,25 +353,31 @@ class Interface:
 
         self.num = num or self.config['target_options']['offset']
 
-        to = self.config['target_options'] # alias
 
-        origin = Path(to['origin'])
-        p1 = Path(".").resolve()
-        p2 = Path(config_file).resolve().parent
+        origin = Path(self.config['target_options']['origin'])
+        if not origin.is_absolute():
+            to = self.config['target_options']
+            p1 = Path(".").resolve()
+            p2 = Path(config_file).resolve().parent
 
-        if isinstance(to['amrvac_conf'], (list, tuple)):
-            fi = to['amrvac_conf'][0]
-        else:
-            fi = to['amrvac_conf']
+            if isinstance(to['amrvac_conf'], (list, tuple)):
+                fi = to['amrvac_conf'][0]
+            else:
+                fi = to['amrvac_conf']
 
-        found = [(p/fi).is_file() for p in (p1,p2)]
-        if all(found):
-            raise RunTimeError("Error: can not guess if 'origin' is relative to the current dir or the dir containing the configuration file")
-        elif not any(found):
-            raise FileNotFoundError
-        else:
-            p = (p1, p2)[found.index(True)]
-            self.sim_conf = read_amrvac_conf(files=to['amrvac_conf'], origin=p/to['origin'])
+            found = [(p/fi).is_file() for p in (p1,p2)]
+            if all(found):
+                raise RunTimeError("Error: can not guess if 'origin' is relative to the current dir or the dir containing the configuration file")
+            elif not any(found):
+                raise FileNotFoundError
+            else:
+                p = (p1, p2)[found.index(True)]
+            self.config['target_options'].update({'origin': p/to['origin']})
+
+        self.sim_conf = read_amrvac_conf(
+            files=self.config['target_options']['amrvac_conf'],
+            origin=self.config['target_options']['origin']
+        )
 
         self.small_grains_from_gas = True
         self._iodat = None
