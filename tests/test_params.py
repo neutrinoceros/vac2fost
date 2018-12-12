@@ -5,7 +5,6 @@ from numpy import pi
 import pytest
 import f90nml
 
-from amrvac_pywrap import read_amrvac_conf
 from vtk_vacreader import VacDataSorter as VDS
 from vac2fost.vac2fost import get_dust_mass
 from vac2fost import main as app
