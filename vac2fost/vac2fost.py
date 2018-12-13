@@ -366,9 +366,9 @@ class Interface:
 
             found = [(p/fi).is_file() for p in (p1,p2)]
             if all(found) and p1.resolve() != p2.resolve():
-                raise RuntimeError(f"""Error: can not guess if <origin> "{origin}" is relative to the current dir or the dir containing the configuration file""")
+                raise FileNotFoundError(f"""can not guess if <origin> "{origin}" is relative to the current dir or the dir containing the configuration file""")
             elif not any(found):
-                raise FileNotFoundError
+                raise FileNotFoundError(f"""<origin> "{origin}" """)
             else:
                 p = (p1, p2)[found.index(True)]
             self.config['target_options'].update({'origin': p/to['origin']})
@@ -389,9 +389,6 @@ class Interface:
         if not self.io['out'].directory.exists():
             subprocess.call(f"mkdir --parents {self.io['out'].directory}", shell=True)
             self.warnings.append(f"rep {self.io['out'].directory} was created")
-
-        if not (self.io['in'].filepath).exists():
-            raise FileNotFoundError(self.io['in'].filepath)
 
         #optional definition of the distance unit
         self.conv2au = 1.0
