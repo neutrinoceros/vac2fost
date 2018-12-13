@@ -1,5 +1,7 @@
+from pathlib import Path
 from vac2fost.vac2fost import MCFOSTUtils
 
+here = Path(__file__).parent.absolute()
 
 def test_unicity():
     found = []
@@ -14,11 +16,11 @@ def test_unicity():
     assert len(set(found)) == len(found)
 
 def test_writter_null():
-    MCFOSTUtils.write_mcfost_conf('tests/output/writter_out.para')
+    MCFOSTUtils.write_mcfost_conf(here/'output/writter_out.para')
 
 def test_writter_args():
     MCFOSTUtils.write_mcfost_conf(
-        'tests/output/writter_out_2.para',
+        here/'output/writter_out_2.para',
         custom={'nphot_sed': 2}
     )
 
