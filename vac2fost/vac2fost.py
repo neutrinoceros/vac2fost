@@ -325,11 +325,23 @@ class Interface:
 
     known_dbms = {'dust-only', 'gas-only', 'mixed', 'auto'}
 
-    def __init__(self, config_file:str, num:int=None, output_dir:str='.',
+    def __init__(self, config_file, num:int=None, output_dir:Path=Path('.'),
                  dust_bin_mode:str=DEFAULTS['DBM'], dbg=False):
+
+        # input checking
+        if not isinstance(config_file, (str, Path)):
+            raise TypeError(config_file)
+        if not isinstance(output_dir, (str, Path)):
+            raise TypeError(output_dir)
+        if dust_bin_mode not in __class__.known_dbms:
+            raise KeyError(f'Unknown dust binning mode "{dust_bin_mode}"')
+        else:
+            self._dbm = dust_bin_mode
+
+        # attribute storage
         self._base_args = {
-            'config_file': config_file,
-            'output_dir': output_dir,
+            'config_file': Path(config_file),
+            'output_dir': Path(output_dir),
             'num': num,
             'dust_bin_mode': dust_bin_mode,
         }
@@ -339,19 +351,9 @@ class Interface:
         self.messages = []
         self.warnings = []
 
-        if dust_bin_mode not in __class__.known_dbms:
-            raise KeyError(f'Unknown dust binning mode "{dust_bin_mode}"')
-        else:
-            self._dbm = dust_bin_mode
-
-        if isinstance(config_file, f90nml.Namelist):
-            self.config = config_file
-        else:
-            # other correct types would be str and pathlib.Path
-            self.config = f90nml.read(config_file)
-
+        # parse configuration file
+        self.config = f90nml.read(config_file)
         self.num = num or self.config['target_options']['offset']
-
 
         origin = Path(self.config['target_options']['origin'])
         if not origin.is_absolute():
