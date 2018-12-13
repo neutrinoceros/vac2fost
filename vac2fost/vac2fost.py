@@ -366,7 +366,7 @@ class Interface:
 
             found = [(p/fi).is_file() for p in (p1,p2)]
             if all(found):
-                raise RuntimeError("Error: can not guess if 'origin' is relative to the current dir or the dir containing the configuration file")
+                raise RuntimeError(f"""Error: can not guess if <origin> "{origin}" is relative to the current dir or the dir containing the configuration file""")
             elif not any(found):
                 raise FileNotFoundError
             else:
