@@ -1,0 +1,9 @@
+# conda create --file environment.yml --name <vac2fost>
+
+python=3.6.*
+scipy=1.1
+numpy=1.15.4
+f90nml=1.0.2
+astropy=3.0.4
+https://conda.anaconda.org/conda-forge/linux-64/vtk-8.1.1-py36h8649a91_204.tar.bz2
+pytest
