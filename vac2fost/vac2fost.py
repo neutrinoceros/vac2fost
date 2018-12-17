@@ -703,6 +703,11 @@ if __name__=='__main__':
         '--genconf', action='store_true',
         help='generate configuration file template for this script in the current dir'
     )
+    p.add_argument(
+        '--profile',
+        action='store_true',
+        help='activate profiling mode'
+    )
 
     args = p.parse_args()
 
@@ -721,6 +726,11 @@ if __name__=='__main__':
     elif not args.configuration:
         sys.exit('Error: a configuration file is required as first argument. You can generate a template with --genconf')
 
+    if args.profile:
+        import cProfile, pstats, io
+        pr = cProfile.Profile()
+        pr.enable()
+    # -------------------------------------------
     main(
         config_file=args.configuration,
         offset=args.num,
@@ -729,3 +739,10 @@ if __name__=='__main__':
         verbose=args.verbose,
         dbg=args.dbg
     )
+    # -------------------------------------------
+    if args.profile:
+        pr.disable()
+        s = io.StringIO()
+        ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')
+        ps.print_stats()
+        print(s.getvalue())
