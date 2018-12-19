@@ -722,9 +722,10 @@ if __name__=='__main__':
             with open(finame, 'w') as fi:
                 template.write(fi)
                 print(f'Generated {finame}')
-        sys.exit()
-    elif not args.configuration:
-        sys.exit('Error: a configuration file is required as first argument. You can generate a template with --genconf')
+        sys.exit(1)
+    elif len(sys.argv) == 1:
+        p.print_help(sys.stderr)
+        sys.exit(2)
 
     if args.profile:
         import cProfile, pstats, io
