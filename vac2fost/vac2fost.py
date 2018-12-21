@@ -473,8 +473,8 @@ class Interface:
             self.conv2au = self.config['target_options']['conv2au']
         except KeyError:
             self.warnings.append(
-                """parameter conv2au was not found.
-                Distance unit in simulation is assumed to be 1au.""")
+                "parameter conv2au was not found. "
+              + "Distance unit in simulation is assumed to be 1au.")
 
     def print_all(self):
         '''Print messages and warnings if any.'''
