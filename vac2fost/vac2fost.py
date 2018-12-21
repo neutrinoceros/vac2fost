@@ -321,6 +321,7 @@ class MCFOSTUtils:
 
 
 def gauss(z, sigma):
+    '''Gaussian function for vertical extrapolation'''
     return 1./(np.sqrt(2*np.pi) * sigma) * np.exp(-z**2/(2*sigma**2))
 
 
@@ -368,7 +369,8 @@ def get_dust_mass(data: VacDataSorter) -> float:
     return mass
 
 
-def generate_conf_template():
+def generate_conf_template() -> f90nml.Namelist:
+    '''Generate a template namelist object with comments instead of default values'''
     target = {
         'origin': '!path to the simulation repository, where datafiles are located',
         'amrvac_conf': '!one or multiple file path relative to origin, ","separeated',
@@ -474,6 +476,7 @@ class Interface:
                 Distance unit in simulation is assumed to be 1au.""")
 
     def print_all(self):
+        '''Print messages and warnings if any.'''
         if COLORAMA:
             colorama.init()
         if len(self.messages) > 0:
@@ -524,6 +527,7 @@ class Interface:
 
     @property
     def argsort_offset(self):
+        '''Get the slice starting index when selecting arrays to be transformed'''
         return 1 - int(self.small_grains_from_gas)
 
     @property
@@ -608,6 +612,7 @@ class Interface:
         )
 
     def scan_for_unknown_arguments(self) -> list:
+        '''Get unrecognized arguments found in mcfost_list'''
         unknowns = []
         for arg in self.config['mcfost_list'].keys():
             if not arg.lower() in MCFOSTUtils.known_args:
@@ -703,15 +708,16 @@ class Interface:
 
 
 # =======================================================================================
-def main(
-        config_file: str,
-        offset: int = None,
-        output_dir: str = '.',
-        dust_bin_mode: str = DEFAULTS['DBM'],
-        verbose=False,
-        dbg=False
-):
+def main(config_file: str,
+         offset: int = None,
+         output_dir: str = '.',
+         dust_bin_mode: str = DEFAULTS['DBM'],
+         verbose=False,
+         dbg=False):
+    '''Try to transform a .vtu file into a .fits'''
+
     def tell(message: str = 'ok', end=False):
+        '''print wrapper'''
         if verbose:
             if end:
                 print(message)
