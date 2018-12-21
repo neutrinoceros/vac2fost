@@ -80,11 +80,11 @@ class MCFOSTUtils:
                     ('stokes_parameters', False)])
             )),
             ('Grid', (
-                 od([('geometry', '1')]),
-                 od([('nr', 100),
-                     ('nz', 10),
-                     ('nphi', 100),
-                     ('nr_in', 30)])
+                od([('geometry', '1')]),
+                od([('nr', 100),
+                    ('nz', 10),
+                    ('nphi', 100),
+                    ('nr_in', 30)])
             )),
             ('Maps', (
                 od([('nx', 501),
@@ -118,7 +118,7 @@ class MCFOSTUtils:
                 od([('hydrostatic_eq', False)]),
                 od([('viscous_heating', False),
                     ('alpha_viscosity', '1e-3')]),
-             )),
+            )),
             ('Number of zones', (
                 od([('n_zones', '1')]),
             )),
@@ -192,10 +192,12 @@ class MCFOSTUtils:
         for di in descriptor[1]:
             known_args += list(di.keys())
 
-    def write_mcfost_conf(output_file: str, custom: dict = {}, silent=True):
+    def write_mcfost_conf(output_file: str, custom: dict = None, silent=True):
         '''Write a configuration file for mcfost using values from <custom>,
         and falling back to defaults found in block_descriptor defined above
         '''
+        if custom is None:
+            custom = {}
         if Path(output_file).exists() and not silent:
             print(f'Warning: {output_file} already exists, and will be overwritten.')
         with open(output_file, "w") as fi:
@@ -253,17 +255,16 @@ class MCFOSTUtils:
             parameters.update({
                 # min/max grain sizes in microns
                 'sp_min': min(1e-1, min(sizes_µm)),
-                'sp_max': max(1e3,  max(sizes_µm)),
+                'sp_max': max(1e3, max(sizes_µm)),
             })
         except KeyError:
             itf.warnings.append("Could not find 'usr_dust_list' parameter, using default values")
-            pass
 
         return parameters
 
     def get_mcfost_grid(
             mcfost_conf: str,
-            mcfost_list: dict = {},
+            mcfost_list: dict = None,
             output_dir: str = '.',
             silent=True) -> np.ndarray:
         '''Pre-run MCFOST with -disk_struct flag to get the exact grid used.'''
@@ -563,14 +564,18 @@ class Interface:
         '''Locate output configuration file for mcfost'''
         return str(self.io['out'].directory/'mcfost_conf.para')
 
+    def load_input_data(self) -> None:
+        '''Use vtkvacreader.VacDataSorter to load AMRVAC data'''
+        self._input_data = VacDataSorter(
+            file_name=str(self.io['in'].filepath),
+            shape=self.io['in'].shape
+        )
+
     @property
     def input_data(self):
         '''Load input simulation data'''
         if self._input_data is None:
-            self._input_data = VacDataSorter(
-                file_name=str(self.io['in'].filepath),
-                shape=self.io['in'].shape
-            )
+            self.load_input_data()
         return self._input_data
 
     @property
@@ -643,7 +648,7 @@ class Interface:
             dust_densities_HDU.header.append(it)
 
         grain_sizes_HDU = fits.ImageHDU(
-                self.grain_micron_sizes[self.grain_micron_sizes.argsort()]
+            self.grain_micron_sizes[self.grain_micron_sizes.argsort()]
         )
         hdus = [
             dust_densities_HDU,
@@ -665,45 +670,53 @@ class Interface:
         }
         return ig
 
-    @property
-    def new_2D_arrays(self) -> list:
+    def gen_2D_arrays(self):
         '''Interpolate input data onto r-phi grid
         with output grid specifications'''
-        if self._new_2D_arrays is None:
-            n_rad_new, n_phi_new = self.output_grid['rg'].shape
-            assert n_rad_new == self.config['mcfost_list']['nr']
-            assert n_phi_new == self.config['mcfost_list']['nphi']
+        n_rad_new, n_phi_new = self.output_grid['rg'].shape
+        assert n_rad_new == self.config['mcfost_list']['nr']
+        assert n_phi_new == self.config['mcfost_list']['nphi']
 
-            density_keys = sorted(filter(
-                lambda k: 'rho' in k, self.input_data.fields.keys()))
-            interpolated_arrays = []
-            for k in density_keys:
-                interpolator = interp2d(
-                    self.input_grid['phiv'],
-                    self.input_grid['rv'],
-                    self.input_data[k], kind='cubic'
-                )
-                interpolated_arrays.append(
-                    interpolator(self.output_grid['phiv'],
-                                 self.output_grid['rv'])
-                )
-            assert interpolated_arrays[0].shape == (n_rad_new, n_phi_new)
-            self._new_2D_arrays = interpolated_arrays
+        density_keys = sorted(filter(
+            lambda k: 'rho' in k, self.input_data.fields.keys()))
+        interpolated_arrays = []
+        for k in density_keys:
+            interpolator = interp2d(
+                self.input_grid['phiv'],
+                self.input_grid['rv'],
+                self.input_data[k], kind='cubic'
+            )
+            interpolated_arrays.append(
+                interpolator(self.output_grid['phiv'],
+                             self.output_grid['rv'])
+            )
+        assert interpolated_arrays[0].shape == (n_rad_new, n_phi_new)
+        self._new_2D_arrays = interpolated_arrays
+
+    def gen_3D_arrays(self):
+        '''Interpolate input data onto full 3D output grid'''
+        zmax = self.config['target_options']['zmax']
+        nz = self.config['mcfost_list']['nz']
+        z_vect = np.linspace(0, zmax, nz)
+        scale_height_grid = self.config['target_options']['aspect_ratio'] \
+                            * self.output_grid['rg']
+        self._new_3D_arrays = np.array([
+            twoD2threeD(arr, scale_height_grid, z_vect)
+            for arr in self.new_2D_arrays
+        ])
+
+    @property
+    def new_2D_arrays(self) -> list:
+        '''Last minute generation is used if required'''
+        if self._new_2D_arrays is None:
+            self.gen_2D_arrays()
         return self._new_2D_arrays
 
     @property
     def new_3D_arrays(self) -> list:
-        '''Interpolate input data onto full 3D output grid'''
+        '''Last minute generation is used if required'''
         if self._new_3D_arrays is None:
-            zmax = self.config['target_options']['zmax']
-            nz = self.config['mcfost_list']['nz']
-            z_vect = np.linspace(0, zmax, nz)
-            scale_height_grid = self.config['target_options']['aspect_ratio'] \
-                * self.output_grid['rg']
-            self._new_3D_arrays = np.array([
-                twoD2threeD(arr, scale_height_grid, z_vect)
-                for arr in self.new_2D_arrays
-            ])
+            self.gen_3D_arrays()
         return self._new_3D_arrays
 
 
@@ -727,11 +740,11 @@ def main(config_file: str,
     tell(' --------- Start vac2fost.main() ---------', end=True)
     tell('reading input')
     itf = Interface(config_file, num=offset, output_dir=output_dir,
-                    dust_bin_mode=dust_bin_mode)
+                    dust_bin_mode=dust_bin_mode, dbg=dbg)
     tell(end=True)
 
     tell(f"loading data from {itf.io['in'].filename}")
-    itf.input_data
+    itf.load_input_data()
     tell(end=True)
 
     tell('writting the mcfost configuration file')
@@ -739,11 +752,11 @@ def main(config_file: str,
     tell(end=True)
 
     tell('interpolating to MCFOST grid')
-    itf.new_2D_arrays
+    itf.gen_2D_arrays()
     tell(end=True)
 
     tell('converting 2D arrays to 3D')
-    itf.new_3D_arrays
+    itf.gen_3D_arrays()
     tell(end=True)
 
     tell('building the .fits file')
@@ -764,67 +777,67 @@ def main(config_file: str,
 # =======================================================================================
 if __name__ == '__main__':
     # Parse the script arguments
-    p = ArgumentParser(description='Parse arguments for main app')
-    p.add_argument(
+    parser = ArgumentParser(description='Parse arguments for main app')
+    parser.add_argument(
         dest='configuration', type=str,
         nargs='?',
         default=None,
         help='configuration file (namelist) for this script'
     )
-    p.add_argument(
+    parser.add_argument(
         '-n', dest='num', type=int,
         required=False,
         default=None,
         help='output number of the target .vtu VAC output file to be converted'
     )
-    p.add_argument(
+    parser.add_argument(
         '-o', '--output', dest='output', type=str,
         required=False,
         default='.',
         help='select output directory for generated files'
     )
-    p.add_argument(
+    parser.add_argument(
         '-dbm', '--dustbinmode', dest='dbm', type=str,
         required=False,
         default=DEFAULTS['DBM'],
         help='prefered bin selection mode (accepted values "dust-only", "gas-only", "mixed", "auto")'
     )
-    p.add_argument(
+    parser.add_argument(
         '-v', '--verbose',
         action='store_true',
         help='activate verbose mode'
     )
-    p.add_argument(
+    parser.add_argument(
         '--dbg', '--debug', dest='dbg',
         action='store_true',
         help='activate debug mode (verbose for MCFOST)'
     )
-    p.add_argument(
+    parser.add_argument(
         '--genconf', action='store_true',
         help='generate configuration file template for this script in the current dir'
     )
-    p.add_argument(
+    parser.add_argument(
         '--profile',
         action='store_true',
         help='activate profiling mode'
     )
 
-    args = p.parse_args()
+    args = parser.parse_args()
 
     if args.genconf:
-        template = generate_conf_template()
+        template_nml = generate_conf_template()
         finame = args.output + '/template_vac2fost.nml'
         if not Path(args.output).exists():
             subprocess.call(f'mkdir --parents {args.output}', shell=True)
         if Path(finame).exists():
             sys.exit(f'Error: {finame} already exists, exiting vac2fost.py')
         else:
-            with open(finame, 'w') as fi:
-                template.write(fi)
+            with open(finame, 'w') as wfile:
+                template_nml.write(wfile)
                 print(f'Generated {finame}')
         sys.exit(1)
     elif len(sys.argv) == 1:
-        p.print_help(sys.stderr)
+        parser.print_help(sys.stderr)
         sys.exit(2)
 
     if args.profile:
