@@ -479,11 +479,11 @@ class Interface:
         '''Print messages and warnings if any.'''
         if COLORAMA:
             colorama.init()
-        if len(self.messages) > 0:
+        if self.messages:
             print(colorama.Fore.BLUE*COLORAMA + 'Messages collection:')
             print('   ', '\n    '.join(self.messages))
             print()
-        if len(self.warnings) > 0:
+        if self.warnings:
             print(colorama.Fore.RED*COLORAMA + 'Warnings collection:')
             print('   ', '\n    '.join(self.warnings))
             print()
@@ -600,7 +600,7 @@ class Interface:
         custom = {}
         custom.update(MCFOSTUtils.translate_amrvac_conf(self))
         unknown_args = self.scan_for_unknown_arguments()
-        if len(unknown_args) > 0:
+        if unknown_args:
             raise KeyError(f'Unrecognized MCFOST argument(s): {unknown_args}')
         custom.update(self.config['mcfost_list'])
 
