@@ -5,7 +5,7 @@ testloc = pathlib.Path(__file__).parent.resolve()
 output_file = testloc/"output/pylint.log" 
 mainfile = (testloc/'../vac2fost/vac2fost.py').resolve()
 
-subprocess.call_check(f"pylint {mainfile} > {output_file}", shell=True)
+subprocess.check_call(f"pylint {mainfile} > {output_file}", shell=True)
 
 MINIMAL_MARK = 9.70
 def test_style_standard():
