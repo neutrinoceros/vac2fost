@@ -6,16 +6,6 @@ amrvac output file into a `.fits` that can be fed to mcfost through
 the option `-density_file`.
 
 
-.. note::
-
-   What I still need to do here:
-
-   * add more tests
-        a) handle lists of conf (already supported but currently not being tested)
-        b) call mcfost
-   * add option for dust settling method (Gauss vs Fromang, cf McFost options)
-
-
 Python uncommon dependencies
 ----------------------------
 
