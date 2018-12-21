@@ -32,9 +32,9 @@ from scipy.interpolate import interp2d
 import f90nml
 try:
     import colorama
-    COLORAMA = True
+    COLORAMA_AVAIL = True
 except ImportError:
-    COLORAMA = False
+    COLORAMA_AVAIL = False
 
 from amrvac_pywrap import interpret_shell_path, read_amrvac_conf
 from vtk_vacreader import VacDataSorter
@@ -478,17 +478,23 @@ class Interface:
 
     def print_all(self):
         '''Print messages and warnings if any.'''
-        if COLORAMA:
+        if COLORAMA_AVAIL:
             colorama.init()
         if self.messages:
-            print(colorama.Fore.BLUE*COLORAMA + 'Messages collection:')
+            if COLORAMA_AVAIL:
+                print(colorama.Fore.BLUE*COLORAMA_AVAIL + 'Messages collection:')
+            else:
+                print('Messages collection:')
             print('   ', '\n    '.join(self.messages))
             print()
         if self.warnings:
-            print(colorama.Fore.RED*COLORAMA + 'Warnings collection:')
+            if COLORAMA_AVAIL:
+                print(colorama.Fore.RED*COLORAMA_AVAIL + 'Warnings collection:')
+            else:
+                print('Warnings collection:')
             print('   ', '\n    '.join(self.warnings))
             print()
-        if COLORAMA:
+        if COLORAMA_AVAIL:
             print(colorama.Style.RESET_ALL)
             colorama.deinit()
 
