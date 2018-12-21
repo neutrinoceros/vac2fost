@@ -8,7 +8,7 @@ mainfile = (testloc/'../vac2fost/vac2fost.py').resolve()
 subprocess.call(f"pylint {mainfile} > {output_file}", shell=True)
 
 
-MINIMAL_MARK = 9.0
+MINIMAL_MARK = 9.70
 def test_style_standard():
     with open(output_file, mode='r') as log:
         lines = log.readlines()
