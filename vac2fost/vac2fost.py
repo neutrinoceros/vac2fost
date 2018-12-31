@@ -199,7 +199,7 @@ class MCFOSTUtils:
             custom = {}
         if Path(output_file).exists() and not silent:
             print(f'Warning: {output_file} already exists, and will be overwritten.')
-        with open(output_file, "w") as fi:
+        with open(output_file, 'wt') as fi:
             fi.write('3.0'.ljust(10) + 'mcfost minimal version\n\n')
             for block, lines in __class__.blocks_descriptors.items():
                 fi.write(f'# {block}\n')
@@ -834,7 +834,7 @@ if __name__ == '__main__':
         if Path(finame).exists():
             sys.exit(f'Error: {finame} already exists, exiting vac2fost.py')
         else:
-            with open(finame, 'w') as wfile:
+            with open(finame, 'wt') as wfile:
                 template_nml.write(wfile)
                 print(f'Generated {finame}')
         sys.exit(1)
