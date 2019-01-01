@@ -1,9 +1,25 @@
 # conda create --file environment.yml --name <vac2fost>
 
+# I'm using ``with open(path)`` (where ``type(path)==pathlib.Path``)
+# which is only compatible with python >= 3.6
+# but I'm also dependent on vtk, which doesn't officially support python 3.7 yet
 python=3.6.*
+
+# these two could probably work with latest versions, to be checked
 scipy=1.1
 numpy=1.15.4
-f90nml=1.0.2
-astropy=3.0.4
+
+# previous versions of f90nml had a bug affecting reading of files lacking EOL
+# https://github.com/marshallward/f90nml/issues/64
+f90nml>=1.0.2
+
+# previous versions of astropy had an app-breaking bug in some cases, see PR:
+# https://github.com/astropy/astropy/pull/8282
+astropy>=3.1.1
+
+# vtk in a pain in the butt...
 https://conda.anaconda.org/conda-forge/linux-64/vtk-8.1.1-py36h8649a91_204.tar.bz2
+
+# so that your env doesn't rely on an existing pytest
+# that doesn't know about our dependencies
 pytest
