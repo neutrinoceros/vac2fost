@@ -52,8 +52,8 @@ class TestRegression:
         assert np.all(itf.output_grid['phiv'] == out_ref['output_grid']['phiv'])
         assert np.all(itf.output_grid['rg'] == out_ref['output_grid']['rg'])
         assert np.all(itf.output_grid['phig'] == out_ref['output_grid']['phig'])
-        assert np.all(itf.new_2D_arrays == out_ref['new_2D_arrays'])
-        assert np.all(itf.new_3D_arrays == out_ref['new_3D_arrays'])
+        np.testing.assert_allclose(itf.new_2D_arrays, out_ref['new_2D_arrays'], rtol=1e-25)
+        np.testing.assert_allclose(itf.new_3D_arrays, out_ref['new_3D_arrays'], rtol=1e-15)
 
         ##use this to regold the reference file
         # with open(here/'ref/main_out2.p', 'wb') as file:
@@ -64,5 +64,3 @@ class TestRegression:
         #     ]
         #    out = {k: itf.__getattribute__(k) for k in save_keys}
         #    pickle.dump(out, file)
-
-        #print(f"\n\nDBM, new vs ref: {out['_dbm']}, {out_ref['_dbm']}")
