@@ -693,7 +693,7 @@ class Interface:
                              self.output_grid['rv'])
             )
         assert interpolated_arrays[0].shape == (n_rad_new, n_phi_new)
-        self._new_2D_arrays = interpolated_arrays
+        self._new_2D_arrays = np.array(interpolated_arrays)
 
     def gen_3D_arrays(self):
         '''Interpolate input data onto full 3D output grid'''

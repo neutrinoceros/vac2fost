@@ -57,7 +57,7 @@ class TestRegression:
         assert np.all(itf.output_grid['phiv'] == out_ref['output_grid']['phiv'])
         assert np.all(itf.output_grid['rg'] == out_ref['output_grid']['rg'])
         assert np.all(itf.output_grid['phig'] == out_ref['output_grid']['phig'])
-        assert all([np.all(a == b) for a, b in zip(itf.new_2D_arrays, out_ref['new_2D_arrays'])])
+        assert np.all(itf.new_2D_arrays == out_ref['new_2D_arrays'])
         assert np.all(itf.new_3D_arrays == out_ref['new_3D_arrays'])
 
         ##use this to regold the reference file
