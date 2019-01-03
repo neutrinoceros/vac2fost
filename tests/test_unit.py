@@ -49,3 +49,11 @@ def test_3D_conversion_large_grid():
     ##regold with
     #with open(test_dir/"ref/2D-3D_large.p", mode="wb") as file:
     #    pickle.dump(output_data, file)
+
+def test_3D_conversion_real_usecase():
+    ref = pickle.load(open(test_dir/"ref/main_out.p", mode="rb"))
+    h = 0.01 * ref['output_grid']['rg']
+    zvect = np.linspace(0, 5, 25)
+    for a2D, a3D in zip(ref["new_2D_arrays"], ref["new_3D_arrays"]):
+        new_3D_arr = twoD2threeD(arr2d=a2D, scale_height=h, zvect=zvect)
+        np.testing.assert_array_equal(new_3D_arr, a3D)
