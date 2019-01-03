@@ -39,7 +39,7 @@ class TestRegression:
         data = pyfits.open(fipath)[0].data[0]
 
         ref = pyfits.open(here/'ref/hd142527_dusty0000.fits')[0].data[0]
-        np.testing.assert_allclose(data, ref, rtol=1e-30)
+        np.testing.assert_allclose(data, ref, rtol=1e-15)
 
     def test_out(self):
         out_ref = pickle.load(open(here/'ref/main_out.p', 'rb'))
