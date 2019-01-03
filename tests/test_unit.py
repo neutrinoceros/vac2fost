@@ -18,7 +18,7 @@ def test_3D_conversion_cst_scale_height():
     
     output_data = twoD2threeD(arr2d=input_data, scale_height=0.05, zvect=zvect)
     ref = pickle.load(open(test_dir/"ref/2D-3D.p", mode="rb"))
-    assert np.all(output_data == ref)
+    np.testing.assert_array_equal(output_data, ref)
     ##regold with
     #with open(test_dir/"ref/2D-3D.p", mode="wb") as file:
     #    pickle.dump(output_data, file)
@@ -29,7 +29,7 @@ def test_3D_conversion_var_scale_height():
     h = 0.05 * rgrid
     output_data = twoD2threeD(arr2d=input_data, scale_height=h, zvect=zvect)
     ref = pickle.load(open(test_dir/"ref/2D-3D_h.p", mode="rb"))
-    assert np.all(output_data == ref)
+    np.testing.assert_array_equal(output_data, ref)
     #regold with
     #with open(test_dir/"ref/2D-3D_h.p", mode="wb") as file:
     #    pickle.dump(output_data, file)
@@ -45,7 +45,7 @@ def test_3D_conversion_large_grid():
     input_data = rgrid**-0.5
     output_data = twoD2threeD(arr2d=input_data, scale_height=0.01, zvect=zvect)
     ref = pickle.load(open(test_dir/"ref/2D-3D_large.p", mode="rb"))
-    assert np.all(output_data == ref)
+    np.testing.assert_array_equal(output_data, ref)
     ##regold with
     #with open(test_dir/"ref/2D-3D_large.p", mode="wb") as file:
     #    pickle.dump(output_data, file)
