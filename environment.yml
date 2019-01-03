@@ -1,0 +1,52 @@
+# use the following conda command to create a suitable environment for this package to work
+# conda create --file environment.yml --name $MYENVNAME
+#
+# I recommend that $MYENVNAME be "vac2fost"
+
+
+# Python version: 3.6
+# -------------------
+# I'm using ``with open(path)`` (where ``type(path)==pathlib.Path``)
+# which is only compatible with python >= 3.6
+# but I'm also dependent on vtk, which doesn't officially support python 3.7 yet
+python=3.6.*
+
+
+# Non standard dependencies
+# -------------------------
+scipy=1.1.*
+numpy=1.15.*
+astropy>=3.1.1
+f90nml>=1.0.2
+vtk>=8.1.1
+matplotlib=3.0.2
+
+
+# Env validation
+# --------------
+pytest>=4.0.2
+
+
+# Why those constrains ?
+# ----------------------
+
+# ASTROPY
+# version 3.1.0 (and all versions from 2.0) had an app-breaking bug in some cases, see PR:
+# https://github.com/astropy/astropy/pull/8282
+
+# F90NML
+# versions<1.0.2 had a bug affecting reading of files lacking EOL
+# https://github.com/marshallward/f90nml/issues/64
+
+# VTK
+# vtk requires channel conda-forge (I think)
+# and if you can't add it for whatever reason, you can replace
+# the vtk requirement by an enxplicit url such as this one
+# https://conda.anaconda.org/conda-forge/linux-64/vtk-8.1.1-py36h8649a91_204.tar.bz2
+
+# MATPLOTLIB
+# Although matplotlib is only used to run tests/diagnostic.py
+# I found that relaxing this constraint lead to bugs caught by regression tests
+# because the very latest build for scipy and numpy are a bit broken, and mpl 3.0.2 downgrades them :)
+
+
