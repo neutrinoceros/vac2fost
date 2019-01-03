@@ -24,12 +24,12 @@ class TestRegression:
         with open(outdir/'mcfost_conf.para') as fi:
             new_lines = fi.readlines()
         for n, r in zip(new_lines[:-2], ref_lines):
-            assert n==r
+            assert n == r
 
     def test_target_grid(self):
         ref = pyfits.open(here/'ref/mcfost_grid.fits.gz')[0].data
         new = pyfits.open(outdir/'mcfost_grid.fits.gz')[0].data
-        assert (ref == new).all()
+        np.testing.assert_array_equal(ref, new)
 
     def test_image(self):
         # get the Primary (only image available),
@@ -39,19 +39,18 @@ class TestRegression:
         data = pyfits.open(fipath)[0].data[0]
 
         ref = pyfits.open(here/'ref/hd142527_dusty0000.fits')[0].data[0]
-        diff = data - ref
-        assert np.abs(diff).max() < 1e-15
+        np.testing.assert_allclose(data, ref, rtol=1e-30)
 
     def test_out(self):
         out_ref = pickle.load(open(here/'ref/main_out.p', 'rb'))
         assert itf._dbm == out_ref['_dbm']
         assert itf.sim_conf == out_ref['sim_conf']
-        assert np.all(itf.input_grid['rv'] == out_ref['input_grid']['rv'])
-        assert np.all(itf.input_grid['phiv'] == out_ref['input_grid']['phiv'])
-        assert np.all(itf.output_grid['rv'] == out_ref['output_grid']['rv'])
-        assert np.all(itf.output_grid['phiv'] == out_ref['output_grid']['phiv'])
-        assert np.all(itf.output_grid['rg'] == out_ref['output_grid']['rg'])
-        assert np.all(itf.output_grid['phig'] == out_ref['output_grid']['phig'])
+        np.testing.assert_array_equal(itf.input_grid['rv'], out_ref['input_grid']['rv'])
+        np.testing.assert_array_equal(itf.input_grid['phiv'], out_ref['input_grid']['phiv'])
+        np.testing.assert_array_equal(itf.output_grid['rv'], out_ref['output_grid']['rv'])
+        np.testing.assert_array_equal(itf.output_grid['phiv'], out_ref['output_grid']['phiv'])
+        np.testing.assert_array_equal(itf.output_grid['rg'], out_ref['output_grid']['rg'])
+        np.testing.assert_array_equal(itf.output_grid['phig'], out_ref['output_grid']['phig'])
         np.testing.assert_allclose(itf.new_2D_arrays, out_ref['new_2D_arrays'], rtol=1e-25)
         np.testing.assert_allclose(itf.new_3D_arrays, out_ref['new_3D_arrays'], rtol=1e-15)
 
