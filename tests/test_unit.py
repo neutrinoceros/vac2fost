@@ -56,4 +56,4 @@ def test_3D_conversion_real_usecase():
     zvect = np.linspace(0, 5, 25)
     for a2D, a3D in zip(ref["new_2D_arrays"], ref["new_3D_arrays"]):
         new_3D_arr = twoD2threeD(arr2d=a2D, scale_height=h, zvect=zvect)
-        np.testing.assert_array_equal(new_3D_arr, a3D)
+        np.testing.assert_almost_equal(new_3D_arr, a3D, decimal=23)
