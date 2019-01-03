@@ -44,11 +44,6 @@ class TestRegression:
 
     def test_out(self):
         out_ref = pickle.load(open(here/'ref/main_out.p', 'rb'))
-        save_keys = ['sim_conf',
-                     'input_grid', 'output_grid',
-                     'new_2D_arrays', 'new_3D_arrays',
-                     '_dbm'
-        ]
         assert itf._dbm == out_ref['_dbm']
         assert itf.sim_conf == out_ref['sim_conf']
         assert np.all(itf.input_grid['rv'] == out_ref['input_grid']['rv'])
@@ -61,7 +56,12 @@ class TestRegression:
         assert np.all(itf.new_3D_arrays == out_ref['new_3D_arrays'])
 
         ##use this to regold the reference file
-        #with open(here/'ref/main_out2.p', 'wb') as file:
+        # with open(here/'ref/main_out2.p', 'wb') as file:
+        #     save_keys = ['sim_conf',
+        #                  'input_grid', 'output_grid',
+        #                  'new_2D_arrays', 'new_3D_arrays',
+        #                  '_dbm'
+        #     ]
         #    out = {k: itf.__getattribute__(k) for k in save_keys}
         #    pickle.dump(out, file)
 
