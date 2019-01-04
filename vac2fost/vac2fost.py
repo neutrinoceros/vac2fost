@@ -25,6 +25,7 @@ import shutil
 import subprocess
 from argparse import ArgumentParser
 from pathlib import Path
+import uuid
 
 import numpy as np
 from astropy.io import fits
@@ -290,7 +291,7 @@ class MCFOSTUtils:
                 pass
 
             # generate a grid data file with mcfost itself and extract it
-            tmp_fost_dir = Path('TMP_VAC2FOST_MCFOST_GRID')
+            tmp_fost_dir = Path(f'TMP_VAC2FOST_MCFOST_GRID_{uuid.uuid4()}')
             try:
                 os.environ['OMP_NUM_THREADS'] = '1'
                 subprocess.check_call(
