@@ -72,7 +72,7 @@ def gen_mcfost_grid(output_dir):
     """
     itf = Interface(config_file=test_dir/'sample/vac2fost_conf.nml', output_dir=output_dir, dbg=True)
     itf.output_grid()
-    return 1
+    return 1 #itf.mcfost_para_file
 
 
 @pytest.mark.skipif(mp.cpu_count()==1, reason="parallel computation only with Ncpus>=2")
