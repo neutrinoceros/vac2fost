@@ -25,6 +25,7 @@ import shutil
 import subprocess
 from argparse import ArgumentParser
 from pathlib import Path
+import uuid
 
 import numpy as np
 from astropy.io import fits
@@ -262,16 +263,17 @@ class MCFOSTUtils:
         return parameters
 
     def get_mcfost_grid(
-            mcfost_conf: str,
+            mcfost_conf_file: str,
             mcfost_list: dict = None,
             output_dir: str = '.',
             silent=True) -> np.ndarray:
         '''Pre-run MCFOST with -disk_struct flag to get the exact grid used.'''
-        output_dir = Path(output_dir)
+        output_dir = Path(output_dir).resolve()
+        mcfost_conf_path = Path(mcfost_conf_file)
         if not output_dir.exists():
             subprocess.call(f'mkdir --parents {output_dir}', shell=True)
 
-        grid_file_name = Path(output_dir) / 'mcfost_grid.fits.gz'
+        grid_file_name = output_dir / 'mcfost_grid.fits.gz'
 
         gen_needed = True
         if grid_file_name.exists():
@@ -282,39 +284,38 @@ class MCFOSTUtils:
             gen_needed = found[1:] != hoped
 
         if gen_needed:
-            assert Path(mcfost_conf).exists()
+            assert mcfost_conf_path.exists()
+            # generate a grid data file with mcfost itself and extract it
+            tmp_mcfost_dir = Path(f'TMP_VAC2FOST_MCFOST_GRID_{uuid.uuid4()}')
+            os.mkdir(tmp_mcfost_dir)
             try:
-                shutil.copyfile(output_dir/'mcfost_conf.para',
-                                './mcfost_conf.para')
+                shutil.copyfile(mcfost_conf_path.resolve(),
+                                tmp_mcfost_dir/mcfost_conf_path.name)
             except shutil.SameFileError:
                 pass
 
-            # generate a grid data file with mcfost itself and extract it
-            tmp_fost_dir = Path('TMP_VAC2FOST_MCFOST_GRID')
+            pile = Path.cwd()
+            os.chdir(tmp_mcfost_dir)
             try:
                 os.environ['OMP_NUM_THREADS'] = '1'
                 subprocess.check_call(
-                    f'mcfost mcfost_conf.para -disk_struct -root_dir {tmp_fost_dir}',
+                    f"mcfost mcfost_conf.para -disk_struct",
                     shell=True,
                     stdout={True: subprocess.PIPE, False: None}[silent]
                 )
-                if tmp_fost_dir.exists():
-                    shutil.move(tmp_fost_dir/'data_disk/grid.fits.gz',
-                                grid_file_name)
+                shutil.move("data_disk/grid.fits.gz", grid_file_name)
             except subprocess.CalledProcessError as exc:
-                errtip = f'\nError in mcfost, exited with exitcode {exc.returncode}'
+                errtip = f'\nError in MCFOST, exited with exitcode {exc.returncode}'
                 if exc.returncode == 174:
                     errtip += (
                         '\nThis is probably a memory issue. '
                         'Try reducing the target resolution or,'
                         ' alternatively, give more cpu memory to this task.'
                     )
-                raise RuntimeError(errtip)
+                    raise RuntimeError(errtip)
             finally:
-                if output_dir != Path('.'):
-                    os.remove('./mcfost_conf.para')
-                if tmp_fost_dir.exists():
-                    shutil.rmtree(tmp_fost_dir)
+                os.chdir(pile)
+                shutil.rmtree(tmp_mcfost_dir)
             with fits.open(grid_file_name, mode='readonly') as fi:
                 target_grid = fi[0].data
         return target_grid
@@ -439,7 +440,7 @@ class Interface:
         if not origin.is_absolute():
             to = self.config['target_options']
             p1 = Path(".").resolve()
-            p2 = Path(config_file).resolve().parent
+            p2 = (Path(config_file).parent/origin).resolve()
 
             if isinstance(to['amrvac_conf'], (list, tuple)):
                 fi = to['amrvac_conf'][0]
@@ -454,13 +455,11 @@ class Interface:
                 raise FileNotFoundError(f"""<origin> "{origin}" """)
             else:
                 p = (p1, p2)[found.index(True)]
-            self.config['target_options'].update({'origin': p/to['origin']})
-
+            self.config['target_options'].update({'origin': p.resolve()})
         self.sim_conf = read_amrvac_conf(
             files=self.config['target_options']['amrvac_conf'],
             origin=self.config['target_options']['origin']
         )
-
         self.small_grains_from_gas = True
         self._iodat = None
         self._input_data = None
@@ -572,7 +571,8 @@ class Interface:
     @property
     def mcfost_para_file(self):
         '''Locate output configuration file for mcfost'''
-        return str(self.io['out'].directory/'mcfost_conf.para')
+        file = self.io['out'].directory/'mcfost_conf.para'
+        return str(file)
 
     def load_input_data(self) -> None:
         '''Use vtkvacreader.VacDataSorter to load AMRVAC data'''
@@ -593,8 +593,10 @@ class Interface:
         '''Store info on 3D output grid specifications
         as vectors "v", and (r-phi)grids "g"'''
         if self._output_grid is None:
+            if not Path(self.mcfost_para_file).is_file():
+                self.write_mcfost_conf_file()
             target_grid = MCFOSTUtils.get_mcfost_grid(
-                mcfost_conf=self.mcfost_para_file,
+                mcfost_conf_file=self.mcfost_para_file,
                 mcfost_list=self.config['mcfost_list'],
                 output_dir=self.io['out'].directory,
                 silent=(not self.dbg)

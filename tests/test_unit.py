@@ -1,9 +1,10 @@
 import pathlib
 import pickle
+import pytest
 import numpy as np
 from astropy.io import fits as pyfits
 
-from vac2fost.vac2fost import twoD2threeD
+from vac2fost.vac2fost import twoD2threeD, Interface, MCFOSTUtils
 test_dir = pathlib.Path(__file__).resolve().parent
 
 NR, NPHI, NZ = 3, 5, 7
@@ -57,3 +58,7 @@ def test_3D_conversion_real_usecase():
     for a2D, a3D in zip(ref["new_2D_arrays"], ref["new_3D_arrays"]):
         new_3D_arr = twoD2threeD(arr2d=a2D, scale_height=h, zvect=zvect)
         np.testing.assert_allclose(new_3D_arr, a3D, rtol=1e-15)
+
+def test_path_reading():
+   """Check that AMRVAC config file can be correctly assessed with a relative "origin" argument"""
+   Interface(config_file=test_dir/'sample/vac2fost_conf_nonaxisym.nml', dbg=True)
