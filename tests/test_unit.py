@@ -60,4 +60,5 @@ def test_3D_conversion_real_usecase():
 
 
 def test_path_reading():
+    """Check that AMRVAC config file can be correctly assessed with a relative "origin" argument"""
     itf = Interface(config_file=test_dir/'sample/vac2fost_conf_nonaxisym.nml', dbg=True)
