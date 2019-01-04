@@ -571,7 +571,8 @@ class Interface:
     @property
     def mcfost_para_file(self):
         '''Locate output configuration file for mcfost'''
-        return str(self.io['out'].directory/'mcfost_conf.para')
+        file = self.io['out'].directory/'mcfost_conf.para'
+        return str(file)
 
     def load_input_data(self) -> None:
         '''Use vtkvacreader.VacDataSorter to load AMRVAC data'''
@@ -592,6 +593,8 @@ class Interface:
         '''Store info on 3D output grid specifications
         as vectors "v", and (r-phi)grids "g"'''
         if self._output_grid is None:
+            if not Path(self.mcfost_para_file).is_file():
+                self.write_mcfost_conf_file()
             target_grid = MCFOSTUtils.get_mcfost_grid(
                 mcfost_conf_file=self.mcfost_para_file,
                 mcfost_list=self.config['mcfost_list'],
