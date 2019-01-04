@@ -70,13 +70,8 @@ def gen_mcfost_grid(output_dir):
     """Create an Interface only to create an mcfost grid from it,
     this is intented to be called in parallel
     """
-    itf = Interface(config_file=test_dir/'sample/vac2fost_conf.nml', output_dir=output_dir)
-    MCFOSTUtils.get_mcfost_grid(
-        mcfost_conf=itf.mcfost_para_file,
-        mcfost_list=itf.config['mcfost_list'],
-        output_dir=itf.io['out'].directory,
-        silent=(not itf.dbg)
-    )
+    itf = Interface(config_file=test_dir/'sample/vac2fost_conf.nml', output_dir=output_dir, dbg=True)
+    itf.output_grid()
     return index
 
 @pytest.mark.skipif(mp.cpu_count()==1, reason="parallel computation only with Ncpus>=2")
