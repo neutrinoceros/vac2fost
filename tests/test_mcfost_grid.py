@@ -33,7 +33,7 @@ def test_get_grid():
     success = False
     try:
         target_grid = MCFOSTUtils.get_mcfost_grid(
-            mcfost_conf=mcfost_para_file,
+            mcfost_conf_file=mcfost_para_file,
             mcfost_list=config['mcfost_list'],
             output_dir=output_dir,
             silent=False
@@ -61,7 +61,7 @@ def test_get_large_grid():
     success = False
     try:
         target_grid = MCFOSTUtils.get_mcfost_grid(
-            mcfost_conf=mcfost_para_file,
+            mcfost_conf_file=mcfost_para_file,
             mcfost_list=config['mcfost_list'],
             output_dir=output_dir,
             silent=False

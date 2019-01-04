@@ -263,12 +263,13 @@ class MCFOSTUtils:
         return parameters
 
     def get_mcfost_grid(
-            mcfost_conf: str,
+            mcfost_conf_file: str,
             mcfost_list: dict = None,
             output_dir: str = '.',
             silent=True) -> np.ndarray:
         '''Pre-run MCFOST with -disk_struct flag to get the exact grid used.'''
         output_dir = Path(output_dir)
+        mcfost_conf_path = Path(mcfost_conf_file)
         if not output_dir.exists():
             subprocess.call(f'mkdir --parents {output_dir}', shell=True)
 
@@ -283,10 +284,10 @@ class MCFOSTUtils:
             gen_needed = found[1:] != hoped
 
         if gen_needed:
-            assert Path(mcfost_conf).exists()
+            assert mcfost_conf_path.exists()
             try:
-                shutil.copyfile(output_dir/'mcfost_conf.para',
-                                './mcfost_conf.para')
+                shutil.copyfile(mcfost_conf_path,
+                                Path.cwd()/mcfost_conf_path.name)
             except shutil.SameFileError:
                 pass
 
@@ -593,7 +594,7 @@ class Interface:
         as vectors "v", and (r-phi)grids "g"'''
         if self._output_grid is None:
             target_grid = MCFOSTUtils.get_mcfost_grid(
-                mcfost_conf=self.mcfost_para_file,
+                mcfost_conf_file=self.mcfost_para_file,
                 mcfost_list=self.config['mcfost_list'],
                 output_dir=self.io['out'].directory,
                 silent=(not self.dbg)
