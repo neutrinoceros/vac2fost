@@ -439,7 +439,7 @@ class Interface:
         if not origin.is_absolute():
             to = self.config['target_options']
             p1 = Path(".").resolve()
-            p2 = Path(config_file).resolve().parent
+            p2 = (Path(config_file).parent/origin).resolve()
 
             if isinstance(to['amrvac_conf'], (list, tuple)):
                 fi = to['amrvac_conf'][0]
@@ -454,13 +454,11 @@ class Interface:
                 raise FileNotFoundError(f"""<origin> "{origin}" """)
             else:
                 p = (p1, p2)[found.index(True)]
-            self.config['target_options'].update({'origin': p/to['origin']})
-
+            self.config['target_options'].update({'origin': p.resolve()})
         self.sim_conf = read_amrvac_conf(
             files=self.config['target_options']['amrvac_conf'],
             origin=self.config['target_options']['origin']
         )
-
         self.small_grains_from_gas = True
         self._iodat = None
         self._input_data = None
