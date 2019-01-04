@@ -132,7 +132,8 @@ disable=print-statement,
 	too-many-instance-attributes,
 	no-member,
 	no-self-argument,
-	consider-using-ternary
+	consider-using-ternary,
+	too-many-locals
 
 
 
