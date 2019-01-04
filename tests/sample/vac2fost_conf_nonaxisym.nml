@@ -1,0 +1,17 @@
+&mcfost_list
+    nr   = 150
+    nphi = 100
+    nz   = 25
+    nr_in = 30
+    star_mass    = 1.8  ! [M_sun] (Casassus et al 2015)
+    star_temp    = 6550 ! [K]     (Mendiguita et al 2014)
+    distance_pc  = 157  ! [pc]    (Gaia consortium 2016)
+/
+
+&target_options
+    origin = 'nonaxisym' ! relative to the present configuration file
+    amrvac_conf = 'hd142527_rphi.nml', 'dust_rphi.par'
+    offset = 20
+    zmax = 5         ! use same distance unit in the original simulation
+    aspect_ratio = 0.01
+/
