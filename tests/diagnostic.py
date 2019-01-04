@@ -14,7 +14,7 @@ from vac2fost import main as app
 here = pathlib.Path(__file__).absolute().parent
 
 if __name__=='__main__':
-    itf = app(str(here/'sample/vac2fost_conf_nonaxisym.nml'), dbg=True)
+    itf = app(str(here/'sample/vac2fost_conf.nml'))
 
     # get the Primary (only image available),
     # and exctract its first 3d array (density field)
