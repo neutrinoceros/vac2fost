@@ -1,9 +1,10 @@
 import pathlib
 import pickle
+import pytest
 import numpy as np
 from astropy.io import fits as pyfits
 
-from vac2fost.vac2fost import twoD2threeD, Interface
+from vac2fost.vac2fost import twoD2threeD, Interface, MCFOSTUtils
 test_dir = pathlib.Path(__file__).resolve().parent
 
 NR, NPHI, NZ = 3, 5, 7
@@ -58,7 +59,31 @@ def test_3D_conversion_real_usecase():
         new_3D_arr = twoD2threeD(arr2d=a2D, scale_height=h, zvect=zvect)
         np.testing.assert_allclose(new_3D_arr, a3D, rtol=1e-15)
 
-
+@pytest.mark.skip(reason="not now")
 def test_path_reading():
-    """Check that AMRVAC config file can be correctly assessed with a relative "origin" argument"""
-    itf = Interface(config_file=test_dir/'sample/vac2fost_conf_nonaxisym.nml', dbg=True)
+   """Check that AMRVAC config file can be correctly assessed with a relative "origin" argument"""
+   Interface(config_file=test_dir/'sample/vac2fost_conf_nonaxisym.nml', dbg=True)
+
+
+import multiprocessing as mp
+def gen_mcfost_grid(output_dir):
+    """Create an Interface only to create an mcfost grid from it,
+    this is intented to be called in parallel
+    """
+    itf = Interface(config_file=test_dir/'sample/vac2fost_conf.nml', output_dir=output_dir)
+    MCFOSTUtils.get_mcfost_grid(
+        mcfost_conf=itf.mcfost_para_file,
+        mcfost_list=itf.config['mcfost_list'],
+        output_dir=itf.io['out'].directory,
+        silent=(not itf.dbg)
+    )
+    return index
+
+@pytest.mark.skipif(mp.cpu_count()==1, reason="parallel computation only with Ncpus>=2")
+def test_parallel_instanciation():
+    """Check that instanciating multiple Interface class object at same
+    time and location doesn't create collisions"""
+    output_dir = test_dir/"output/test_parallel_instancitaion/"
+    ncpu = min(mp.cpu_count(), 4)
+    with mp.Pool(ncpu) as pool:
+        pool.map(gen_mcfost_grid, [output_dir/str(i) for i in range(ncpu)])
