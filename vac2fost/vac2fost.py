@@ -329,12 +329,15 @@ def twoD2threeD(
         arr2d: np.ndarray,
         scale_height: np.ndarray,
         zvect: np.ndarray) -> np.ndarray:
-    '''Convert surface density 2d array into volumic density 3d
+    '''Convert surface density 2D array into volumic density 3D
     cylindrical array assuming a gaussian vertical distribution.
 
-    formats
-    arr2d : (nr, nphi)
-    arr3d : (nr, nz, nphi) (suited for mcfost)
+    array shapes
+    ------------
+    arr2d : (nrad, nphi)
+    scale_height (2D) : (nrad, nphi)
+    zvect : (nz,)
+    arr3d : (nrad, nz, nphi) (suited for mcfost)
 
     note
     MCFOST offers the possibility to use a spherical grid instead.
@@ -345,6 +348,11 @@ def twoD2threeD(
 
     nrad, nphi = arr2d.shape
     nz = len(zvect)
+    assert arr2d.shape == (nrad, nphi)
+    if isinstance(scale_height, float):
+        scale_height = scale_height * np.ones((nrad, nphi))
+    else:
+        assert scale_height.shape == (nrad, nphi)
     arr3d = np.ones((nrad, nz, nphi))
 
     for k, z in enumerate(zvect):
@@ -693,7 +701,7 @@ class Interface:
                              self.output_grid['rv'])
             )
         assert interpolated_arrays[0].shape == (n_rad_new, n_phi_new)
-        self._new_2D_arrays = interpolated_arrays
+        self._new_2D_arrays = np.array(interpolated_arrays)
 
     def gen_3D_arrays(self):
         '''Interpolate input data onto full 3D output grid'''

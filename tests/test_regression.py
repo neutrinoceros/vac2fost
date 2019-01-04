@@ -24,12 +24,12 @@ class TestRegression:
         with open(outdir/'mcfost_conf.para') as fi:
             new_lines = fi.readlines()
         for n, r in zip(new_lines[:-2], ref_lines):
-            assert n==r
+            assert n == r
 
     def test_target_grid(self):
         ref = pyfits.open(here/'ref/mcfost_grid.fits.gz')[0].data
         new = pyfits.open(outdir/'mcfost_grid.fits.gz')[0].data
-        assert (ref == new).all()
+        np.testing.assert_array_equal(ref, new)
 
     def test_image(self):
         # get the Primary (only image available),
@@ -39,41 +39,27 @@ class TestRegression:
         data = pyfits.open(fipath)[0].data[0]
 
         ref = pyfits.open(here/'ref/hd142527_dusty0000.fits')[0].data[0]
-        diff = data - ref
-        assert np.abs(diff).max() < 1e-15
+        np.testing.assert_allclose(data, ref, rtol=1e-15)
 
     def test_out(self):
         out_ref = pickle.load(open(here/'ref/main_out.p', 'rb'))
-        save_keys = ['sim_conf',
-                     'input_grid', 'output_grid',
-                     'new_2D_arrays', 'new_3D_arrays',
-                     '_dbm'
-        ]
-        out = {k: itf.__getattribute__(k) for k in save_keys}
-        # use this to regold the reference file
-        #with open(here/'ref/main_out2.p', 'wb') as fo:
-        #    pickle.dump(out, fo)
+        assert itf._dbm == out_ref['_dbm']
+        assert itf.sim_conf == out_ref['sim_conf']
+        np.testing.assert_array_equal(itf.input_grid['rv'], out_ref['input_grid']['rv'])
+        np.testing.assert_array_equal(itf.input_grid['phiv'], out_ref['input_grid']['phiv'])
+        np.testing.assert_array_equal(itf.output_grid['rv'], out_ref['output_grid']['rv'])
+        np.testing.assert_array_equal(itf.output_grid['phiv'], out_ref['output_grid']['phiv'])
+        np.testing.assert_array_equal(itf.output_grid['rg'], out_ref['output_grid']['rg'])
+        np.testing.assert_array_equal(itf.output_grid['phig'], out_ref['output_grid']['phig'])
+        np.testing.assert_allclose(itf.new_2D_arrays, out_ref['new_2D_arrays'], rtol=1e-25)
+        np.testing.assert_allclose(itf.new_3D_arrays, out_ref['new_3D_arrays'], rtol=1e-15)
 
-        print(f"\n\nDBM, new vs ref: {out['_dbm']}, {out_ref['_dbm']}")
-        assert deep_equality(out, out_ref)
-
-def deep_equality(a, b) -> bool:
-    res = False
-    if isinstance(a, dict):
-        for k in a.keys():
-            if not deep_equality(a[k], b[k]): break
-        else: res = True
-    elif isinstance(a, list):
-        for a1,b1 in zip(a,b):
-            if not deep_equality(a1, b1): break
-        else: res = True
-    elif isinstance(a, np.ndarray):
-        res = (a == b).all()
-    else:
-        try:
-            res = (a == b)
-        except ValueError:
-            raise ValueError(f'raised for object type {type(a)}')
-
-    return res
-
+        ##use this to regold the reference file
+        # with open(here/'ref/main_out2.p', 'wb') as file:
+        #     save_keys = ['sim_conf',
+        #                  'input_grid', 'output_grid',
+        #                  'new_2D_arrays', 'new_3D_arrays',
+        #                  '_dbm'
+        #     ]
+        #    out = {k: itf.__getattribute__(k) for k in save_keys}
+        #    pickle.dump(out, file)

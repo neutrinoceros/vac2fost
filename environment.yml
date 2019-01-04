@@ -14,8 +14,8 @@ python=3.6.*
 
 # Non standard dependencies
 # -------------------------
-scipy=1.1.*
-numpy=1.15.*
+scipy>=1.1
+numpy>=1.15
 astropy>=3.1.1
 f90nml>=1.0.2
 vtk>=8.1.1
@@ -24,9 +24,9 @@ matplotlib=3.0.2
 
 # Env validation
 # --------------
-colorama>=0.4.*
+colorama>=0.4
 pytest>=4.0.2
-
+pylint>=1.8.4
 
 # Why those constrains ?
 # ----------------------
