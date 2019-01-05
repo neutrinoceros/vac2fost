@@ -3,11 +3,13 @@ import pathlib
 
 test_dir = pathlib.Path(__file__).parent.resolve()
 output_file = test_dir/"output/pylint.log"
-mainfile = (test_dir/'../vac2fost/vac2fost.py').resolve()
+mainfile = (test_dir.parent/"vac2fost/vac2fost.py").resolve()
+rcfile = test_dir.parent/".pylintrc"
 MINIMAL_MARK = 9.81
 
+
 def test_style_standard():
-    subprocess.call(f"pylint {mainfile} > {output_file}", shell=True)
+    subprocess.call(f"pylint {mainfile} --rcfile {rcfile} > {output_file}", shell=True)
     with open(output_file, mode='r') as log:
         lines = log.readlines()
     sumup_line = lines[-2]
