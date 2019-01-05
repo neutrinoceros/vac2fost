@@ -1,6 +1,7 @@
 '''test the shell interface'''
 
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import pytest
@@ -19,6 +20,8 @@ class TestShellCalling():
 
     def test_command_line_call(self):
         output_dir = test_dir / 'output/test_command_line_call/'
+        if output_dir.is_dir():
+            shutil.rmtree(output_dir)
         comm = ' '.join([
             str(root / 'vac2fost.py'),
             str(test_dir / 'sample/vac2fost_conf.nml'),
@@ -29,6 +32,9 @@ class TestShellCalling():
 
     def test_command_line_call_w_number(self):
         output_dir = test_dir / 'output/test_command_line_call_w_number_1/'
+        if output_dir.is_dir():
+            shutil.rmtree(output_dir)
+
         comm = ' '.join([
             str(root / 'vac2fost.py'),
             str(test_dir / 'sample/vac2fost_conf_quick.nml'),
@@ -41,6 +47,8 @@ class TestShellCalling():
 
     def test_command_line_call_w_number_argonly(self):
         output_dir = test_dir / 'output/test_command_line_call_w_number_2/'
+        if output_dir.is_dir():
+            shutil.rmtree(output_dir)
         comm = ' '.join([
             str(root / 'vac2fost.py'),
             str(test_dir / 'sample/vac2fost_conf_quick_no_number.nml'),
@@ -52,6 +60,8 @@ class TestShellCalling():
 
     def test_command_line_call_w_number_argonly_zero(self):
         output_dir = test_dir / 'output/test_command_line_call_w_number_3/'
+        if output_dir.is_dir():
+            shutil.rmtree(output_dir)
         comm = ' '.join([
             str(root / 'vac2fost.py'),
             str(test_dir / 'sample/vac2fost_conf_quick_no_number.nml'),
@@ -63,6 +73,8 @@ class TestShellCalling():
 
     def test_command_line_call_wo_number_at_all(self):
         output_dir = test_dir / 'output/test_command_line_call_wo_number/'
+        if output_dir.is_dir():
+            shutil.rmtree(output_dir)
         comm = ' '.join([
             str(root / 'vac2fost.py'),
             str(test_dir / 'sample/vac2fost_conf_quick_no_number.nml'),
@@ -75,6 +87,8 @@ class TestShellCalling():
 class TestNarrowCases:
     def test_genconf(self):
         output_dir = test_dir / 'output/test_genconf/'
+        if output_dir.is_dir():
+            shutil.rmtree(output_dir)
         comm = ' '.join([
             str(root / 'vac2fost.py'),
             '--genconf',

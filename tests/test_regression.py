@@ -1,6 +1,7 @@
 import pickle
 import pathlib
 import os
+import shutil
 import numpy as np
 from astropy.io import fits as pyfits
 
@@ -9,8 +10,8 @@ from vac2fost import main as app
 test_dir = pathlib.Path(__file__).absolute().parent
 outdir = test_dir / 'output/test_regression'
 gridfile = outdir / 'mcfost_grid.fits.gz'
-if gridfile.exists():
-    os.remove(gridfile)
+if outdir.is_dir():
+    shutil.rmtree(outdir)
 
 itf = app(test_dir/'sample/vac2fost_conf.nml', output_dir=outdir)
 
@@ -63,6 +64,8 @@ class TestRegression:
 
     def test_out_non_axisym(self):
         outdir = test_dir / 'output/test_regression_non_axisym'
+        if outdir.is_dir():
+            shutil.rmtree(outdir)
         itf = app(test_dir/'sample/vac2fost_conf.nml', output_dir=outdir)
         out_ref = pickle.load(open(test_dir/'ref/main_out_non_axisym.p', 'rb'))
         assert itf._dbm == out_ref['_dbm']
