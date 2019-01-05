@@ -19,13 +19,15 @@ setup(
     ],
     keywords = 'interface data-analysis',
     install_requires = [
-        'numpy>=1.13.3',
-        'astropy>=3.0.4'
+        'scipy>=1.1',
+        'numpy>=1.15',
+        'astropy>=3.1.1'
+        'vtk>=8.1',
         'f90nml>=1.0.2',
-        'amrvac-pywrap>=0.0.6',
-        'vtk_vacreader>=1.0.0'
+        #'amrvac-pywrap>=0.0.6',
+        #'vtk_vacreader>=1.0.0'
     ],
-    python_requires = '>=3.6',
+    python_requires = '=3.6',
     packages = find_packages(),
     package_data = {'vac2fost': ['data/default_mcfost_conf.para']},
 )
