@@ -279,9 +279,12 @@ class MCFOSTUtils:
         if grid_file_name.exists():
             with fits.open(grid_file_name, mode='readonly') as fi:
                 target_grid = fi[0].data
-            found = target_grid.shape
-            hoped = mcfost_list['nphi'], mcfost_list['nz'], mcfost_list['nr']
-            gen_needed = found[1:] != hoped
+            shape_found = target_grid.shape[1:]
+            correct_shapes = (
+                (mcfost_list['nphi'], mcfost_list['nz'], mcfost_list['nr']),
+                (mcfost_list['nphi'], mcfost_list['nz']*2+1, mcfost_list['nr'])
+            )
+            gen_needed = shape_found not in correct_shapes
 
         if gen_needed:
             assert mcfost_conf_path.exists()
