@@ -6,9 +6,9 @@ from pathlib import Path
 from amrvac_pywrap import secure_chdir
 from vac2fost.vac2fost import Interface
 
-here = Path(__file__).absolute().parent
+test_dir = Path(__file__).absolute().parent
 
-sampledir = here / 'sample'
+sampledir = test_dir / 'sample'
 
 import pdb
 class Test_IO:
@@ -31,3 +31,7 @@ class Test_IO:
         with secure_chdir(sampledir):
             itf = Interface('vac2fost_conf.nml')
         print( itf.io['out'].directory )
+
+    def test_path_reading(self):
+        """Check that AMRVAC config file can be correctly assessed with a relative "origin" argument"""
+        Interface(config_file=test_dir/'sample/vac2fost_conf_nonaxisym.nml', dbg=True)
