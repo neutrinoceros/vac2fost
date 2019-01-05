@@ -437,11 +437,7 @@ class Interface:
         if num is not None:
             self.num = num
         else:
-            try:
-                self.num = self.config['target_options']['num']
-            except KeyError:
-                print("vac2fost could not find 'num' parameter, exiting program")
-                exit(1)
+            self.num = self.config['target_options']['num']
 
         origin = Path(self.config['target_options']['origin'])
         if not origin.is_absolute():
