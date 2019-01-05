@@ -1,9 +1,9 @@
 import subprocess
 import pathlib
 
-testloc = pathlib.Path(__file__).parent.resolve()
-output_file = testloc/"output/pylint.log" 
-mainfile = (testloc/'../vac2fost/vac2fost.py').resolve()
+test_dir = pathlib.Path(__file__).parent.resolve()
+output_file = test_dir/"output/pylint.log"
+mainfile = (test_dir/'../vac2fost/vac2fost.py').resolve()
 MINIMAL_MARK = 9.81
 
 def test_style_standard():
