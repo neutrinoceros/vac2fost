@@ -46,9 +46,9 @@ Other parts of the program are ``amrvac_pywrap`` and ``vtk_vacreader``.
 They can be installed with
 
     .. code-block:: bash
-    
-        bash install_deps.sh
-        # this script will ask for user confirmation
+
+        conda activate vac2fost
+        bash install_deps.sh # this script will ask for user confirmation
 
 
 Then, if you wish to use ``vac2fost`` as a Python package, install it as

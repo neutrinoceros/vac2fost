@@ -7,10 +7,9 @@ if [ -d deps ] ; then
 	[nN]*)
 	    echo "exiting install script !"
 	    exit 1
-	    break ;;
+	    ;;
 	*)
 	    rm -fr deps
-	    break ;;
     esac
 fi
 
@@ -25,8 +24,7 @@ case $choice in
     [yY]*) 
 	conda develop amrvac-pywrap-project
 	conda develop vtk_vacreader-project
-	break ;;
+	;;
     *)
 	echo "\ndeps were downloaded but not installed !"
-	break ;;
 esac
