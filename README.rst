@@ -10,21 +10,6 @@ VAC2FOST
 fonction, or from command line.
 
 
-Other dependencies
-------------------
-
-Python:
-
-    - astropy 3.1.1 (to come)
-    - vtk 8 (only compatible with python 3.6, will be dropped at some point)
-    - f90nml
-
-Misc:
-
-    - ``MCFOST 3`` is used soly to compute the target grid. Hopefully we
-      can drop that dependency in the future
-
-
 Content
 -------
 
@@ -35,15 +20,16 @@ scripts located in ``tests/``
 configuration from which ``mcfost_conf.para`` is generated in the output
 directory when ``vac2fost.main()`` is called.
 
-Any ``MCFOST`` parameter
-can be overwritten by those found in ``&mcfost_list``, using names
-defined in ``vac2fost.py``.
+Any ``MCFOST`` parameter can be overwritten by those found in ``&mcfost_list``,
+using names defined in ``vac2fost.py``.
 
 
 Installation
 ------------
 It is currently required to build a very specific Python environment in order to
 run the program.
+
+It is also assumed that you have ``mcfost (>=3.0)`` properly install
 
 The recommended method relies on ``conda``.
 
