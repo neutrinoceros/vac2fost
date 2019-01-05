@@ -71,8 +71,5 @@ class TestNarrowCases:
         subprocess.call(comm, shell=True)
         outfile = output_dir / 'template_vac2fost.nml'
         success = False
-        try:
-            success = Path(outfile).exists()
-            os.remove(outfile)
-        finally:
-            assert success
+        assert Path(outfile).exists()
+        os.remove(outfile)
