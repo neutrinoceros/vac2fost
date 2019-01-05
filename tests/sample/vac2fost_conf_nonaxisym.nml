@@ -11,7 +11,7 @@
 &target_options
     origin = 'nonaxisym' ! relative to the present configuration file
     amrvac_conf = 'hd142527_rphi.nml', 'dust_rphi.par'
-    offset = 20
+    num = 20
     zmax = 5         ! use same distance unit in the original simulation
     aspect_ratio = 0.01
 /
