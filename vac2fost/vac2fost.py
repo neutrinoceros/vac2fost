@@ -432,7 +432,6 @@ class Interface:
 
         self._dim = 2  # no support for 3D input yet
         self.dbg = dbg
-        self.messages = []
         self.warnings = []
 
         # parse configuration file
@@ -486,28 +485,19 @@ class Interface:
         except KeyError:
             self.warnings.append("could not find conv2au, distance unit assumed 1au")
 
-    def print_all(self):
-        '''Print messages and warnings if any.'''
-        if colorama is not None:
-            colorama.init()
-            blue =  colorama.Fore.BLUE + colorama.Style.BRIGHT
-            red = colorama.Fore.RED + colorama.Style.BRIGHT
-        else: blue = red = ""
-        if self.messages:
-            print()
-            print("MESSAGES")
-            print("--------")
-            print(blue+'\n'.join([f"    - {m}" for m in self.messages]))
-            if colorama is not None:
-                print(colorama.Style.RESET_ALL)
+    def print_warnings(self):
+        '''Print warnings if any.'''
         if self.warnings:
-            print("WARNINGS")
-            print("--------")
-            print(red+'\n'.join([f"    - {w}" for w in self.warnings]))
+            if colorama is not None:
+                colorama.init()
+                red = colorama.Fore.RED + colorama.Style.BRIGHT
+            else: red = ""
+            print()
+            print(" WARNINGS:")
+            print(red+'\n'.join([f" - {w}" for w in self.warnings]))
             if colorama is not None:
                 print(colorama.Style.RESET_ALL)
             else: print()
-
 
     @property
     def grain_micron_sizes(self) -> np.ndarray:
@@ -539,7 +529,7 @@ class Interface:
 
             if self._dbm in {'gas-only', 'mixed'}:
                 µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
-            self.messages.append(f'dust-binning-mode used: {self._dbm}')
+            self.warnings.append(f'dust-binning-mode used: {self._dbm}')
             self._µsizes = µm_sizes
         return self._µsizes
 
@@ -786,7 +776,7 @@ def main(config_file: str,
     tell(f"\nsuccess ! output wrote:\n{itf.io['out'].filepath}", end=True)
 
     if verbose:
-        itf.print_all()
+        itf.print_warnings()
 
     tell('=========================== end program ============================', end=True)
 
