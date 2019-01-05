@@ -242,7 +242,7 @@ class MCFOSTUtils:
                 'scale_height': itf.sim_conf['disk_list']['aspect_ratio']
             })
         except KeyError:
-            itf.warnings.append("Could not find 'aspect_ratio' in the hydro sim conf")
+            itf.warnings.append("could not find aspect_ratio in hydro sim conf")
 
         try:
             dl2 = itf.sim_conf['usr_dust_list']
@@ -484,28 +484,30 @@ class Interface:
         try:
             self.conv2au = self.config['target_options']['conv2au']
         except KeyError:
-            self.warnings.append(
-                "parameter conv2au was not found. "
-              + "Distance unit in simulation is assumed to be 1au.")
+            self.warnings.append("could not find conv2au, distance unit assumed 1au")
 
     def print_all(self):
         '''Print messages and warnings if any.'''
         if colorama is not None:
             colorama.init()
-            blue = colorama.Fore.BLUE
-            red = colorama.Fore.RED
+            blue =  colorama.Fore.BLUE + colorama.Style.BRIGHT
+            red = colorama.Fore.RED + colorama.Style.BRIGHT
         else: blue = red = ""
         if self.messages:
-            print(blue + 'Messages collection:')
-            print('   ', '\n    '.join(self.messages))
             print()
+            print("MESSAGES")
+            print("--------")
+            print(blue+'\n'.join([f"    - {m}" for m in self.messages]))
+            if colorama is not None:
+                print(colorama.Style.RESET_ALL)
         if self.warnings:
-            print(red + 'Warnings collection:')
-            print('   ', '\n    '.join(self.warnings))
-            print()
-        if colorama is not None:
-            print(colorama.Style.RESET_ALL)
-            colorama.deinit()
+            print("WARNINGS")
+            print("--------")
+            print(red+'\n'.join([f"    - {w}" for w in self.warnings]))
+            if colorama is not None:
+                print(colorama.Style.RESET_ALL)
+            else: print()
+
 
     @property
     def grain_micron_sizes(self) -> np.ndarray:
@@ -522,22 +524,22 @@ class Interface:
                     if self._dbm == 'auto':
                         self._dbm = 'gas-only'
                         self.warnings.append(
-                            'no grain size found. dust_bin_mode was auto-switched to "gas-only"')
+                            'no grain size found. dust-binning-mode was auto-switched to "gas-only"')
                     else:
-                        raise KeyError('dust binning mode "{self._dbm}" requested but no grain size was found.')
+                        raise KeyError('dust-binning-mode "{self._dbm}" requested but no grain size was found.')
 
             if min(µm_sizes) > MINGRAINSIZE_µ:
-                self.warnings.append(f'smallest grain size found is above threshold {MINGRAINSIZE_µ} µm')
+                self.warnings.append(f'smallest grain size found is above threshold {MINGRAINSIZE_µ}µm')
                 if self._dbm == 'auto':
                     # decide if an additional fake dust bin is necessary
                     # based on gas density
                     self._dbm = 'mixed'
                     self.warnings.append(
-                        'dust_bin_mode was auto-switched to "mixed"')
+                        'dust-binning-mode was auto-switched to "mixed"')
 
             if self._dbm in {'gas-only', 'mixed'}:
                 µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
-            self.messages.append(f'Dust binning mode used: {self._dbm}')
+            self.messages.append(f'dust-binning-mode used: {self._dbm}')
             self._µsizes = µm_sizes
         return self._µsizes
 
@@ -753,9 +755,9 @@ def main(config_file: str,
             if end:
                 print(message)
             else:
-                print(message.ljust(70), '...'.ljust(1), end=' ', flush=True)
+                print(message.ljust(61), '...'.ljust(1), end=' ', flush=True)
 
-    tell(' --------- Start vac2fost.main() ---------', end=True)
+    tell('=========================== vac2fost.py ============================', end=True)
     tell('reading input')
     itf = Interface(config_file, num=num, output_dir=output_dir,
                     dust_bin_mode=dust_bin_mode, dbg=dbg)
@@ -781,12 +783,12 @@ def main(config_file: str,
     itf.write_output()
     tell(end=True)
 
-    tell(f"Successfully wrote {itf.io['out'].filename}", end=True)
+    tell(f"\nsuccess ! output wrote:\n{itf.io['out'].filepath}", end=True)
 
     if verbose:
         itf.print_all()
 
-    tell(' --------- End   vac2fost.main() ---------', end=True)
+    tell('=========================== end program ============================', end=True)
 
     # return the Interface object for inspection (tests)
     return itf
