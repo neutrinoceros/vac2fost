@@ -38,6 +38,7 @@ class TestShellCalling():
         exitcode = subprocess.call(comm, shell=True)
         assert exitcode == 0
 
+
     def test_command_line_call_w_number_argonly(self):
         output_dir = test_dir / 'output/test_command_line_call_w_number_2/'
         comm = ' '.join([
@@ -59,6 +60,17 @@ class TestShellCalling():
         ])
         exitcode = subprocess.call(comm, shell=True)
         assert exitcode == 0
+
+    def test_command_line_call_wo_number_at_all(self):
+        output_dir = test_dir / 'output/test_command_line_call_wo_number/'
+        comm = ' '.join([
+            str(root / 'vac2fost.py'),
+            str(test_dir / 'sample/vac2fost_conf_quick_no_number.nml'),
+            f'-o {output_dir}',
+        ])
+        exitcode = subprocess.call(comm, shell=True)
+        assert exitcode != 0 # Excepted to fail
+
 
 class TestNarrowCases:
     def test_genconf(self):
