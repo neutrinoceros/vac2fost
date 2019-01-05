@@ -434,12 +434,15 @@ class Interface:
 
         # parse configuration file
         self.config = f90nml.read(config_file)
-        self.num = num or self.config['target_options']['offset']
+        if num is not None:
+            self.num = num
+        else:
+            self.num = self.config['target_options']['num']
 
         origin = Path(self.config['target_options']['origin'])
         if not origin.is_absolute():
             to = self.config['target_options']
-            p1 = Path(".").resolve()
+            p1 = Path.cwd()
             p2 = (Path(config_file).parent/origin).resolve()
 
             if isinstance(to['amrvac_conf'], (list, tuple)):
@@ -448,11 +451,11 @@ class Interface:
                 fi = to['amrvac_conf']
 
             found = [(p/fi).is_file() for p in (p1, p2)]
-            if all(found) and p1.resolve() != p2.resolve():
+            if all(found) and p1 != p2:
                 raise FileNotFoundError(
-                    f"""can not guess if <origin> "{origin}" is relative to the cwd or to the location of configuration file""")
+                    f"""can not guess if path "{origin}" is relative to cwd or configuration file""")
             elif not any(found):
-                raise FileNotFoundError(f"""<origin> "{origin}" """)
+                raise FileNotFoundError(origin)
             else:
                 p = (p1, p2)[found.index(True)]
             self.config['target_options'].update({'origin': p.resolve()})
@@ -734,7 +737,7 @@ class Interface:
 
 # =======================================================================================
 def main(config_file: str,
-         offset: int = None,
+         num: int = None,
          output_dir: str = '.',
          dust_bin_mode: str = DEFAULTS['DBM'],
          verbose=False,
@@ -751,7 +754,7 @@ def main(config_file: str,
 
     tell(' --------- Start vac2fost.main() ---------', end=True)
     tell('reading input')
-    itf = Interface(config_file, num=offset, output_dir=output_dir,
+    itf = Interface(config_file, num=num, output_dir=output_dir,
                     dust_bin_mode=dust_bin_mode, dbg=dbg)
     tell(end=True)
 
@@ -861,7 +864,7 @@ if __name__ == '__main__':
     # -------------------------------------------
     main(
         config_file=args.configuration,
-        offset=args.num,
+        num=args.num,
         output_dir=args.output,
         dust_bin_mode=args.dbm,
         verbose=args.verbose,
