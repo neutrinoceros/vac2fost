@@ -3,6 +3,7 @@
 import os
 import pathlib
 import subprocess
+import shutil
 import pytest
 
 import f90nml
@@ -15,6 +16,8 @@ here = pathlib.Path(__file__).absolute().parent
 @pytest.mark.incremental #each test is run only if the previous one passed
 class TestPyScripting():
     output_dir = here/'output/TestPyScripting'
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
     def test_python_call(self):
         app(
             str(here/'sample/vac2fost_conf.nml'),

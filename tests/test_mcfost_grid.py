@@ -34,6 +34,8 @@ def gen_mcfost_grid(output_dir):
 def test_dry_grid_gen():
     """Check that the output grid can be retrieved simply by calling it at the interface level."""
     output_dir = test_dir/"output/test_parallel_instanciation/"
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
     gen_mcfost_grid(output_dir/"dry_grid")
 
 @pytest.mark.skipif(mp.cpu_count()==1, reason="parallel computation only with Ncpus>=2")
@@ -41,14 +43,17 @@ def test_parallel_instanciation():
     """Check that instanciating multiple Interface class object at same
     time and location doesn't create collisions"""
     output_dir = test_dir/"output/test_parallel_instanciation/"
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
     ncpu = min(mp.cpu_count(), 4)
     with mp.Pool(ncpu) as pool:
         pool.map(gen_mcfost_grid, [output_dir/str(i) for i in range(ncpu)])
 
 def test_get_grid():
     output_dir = test_dir / 'output/test_get_grid/'
-    if not output_dir.is_dir():
-        mkdir(output_dir)
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
+    mkdir(output_dir)
     custom.update(config['mcfost_list'])
     mcfost_para_file = str(output_dir/'mcfost_conf.para')
     MCFOSTUtils.write_mcfost_conf(
@@ -70,8 +75,9 @@ def test_get_grid():
 
 def test_get_large_grid():
     output_dir = test_dir / 'output/test_get_large_grid/'
-    if not output_dir.is_dir():
-        mkdir(output_dir)
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
+    mkdir(output_dir)
 
     custom.update(config['mcfost_list'])
     mcfost_para_file = str(output_dir/'mcfost_conf.para')
