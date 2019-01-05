@@ -271,7 +271,7 @@ class MCFOSTUtils:
         output_dir = Path(output_dir).resolve()
         mcfost_conf_path = Path(mcfost_conf_file)
         if not output_dir.exists():
-            subprocess.call(f'mkdir --parents {output_dir}', shell=True)
+            subprocess.call(f'mkdir -p {output_dir}', shell=True)
 
         grid_file_name = output_dir / 'mcfost_grid.fits.gz'
 
@@ -484,7 +484,7 @@ class Interface:
         self._new_3D_arrays = None
 
         if not self.io['out'].directory.exists():
-            subprocess.call(f"mkdir --parents {self.io['out'].directory}",
+            subprocess.call(f"mkdir -p {self.io['out'].directory}",
                             shell=True)
             self.warnings.append(f"rep {self.io['out'].directory} was created")
 
@@ -843,7 +843,7 @@ if __name__ == '__main__':
         template_nml = generate_conf_template()
         finame = args.output + '/template_vac2fost.nml'
         if not Path(args.output).exists():
-            subprocess.call(f'mkdir --parents {args.output}', shell=True)
+            subprocess.call(f'mkdir -p {args.output}', shell=True)
         if Path(finame).exists():
             sys.exit(f'Error: {finame} already exists, exiting vac2fost.py')
         else:
