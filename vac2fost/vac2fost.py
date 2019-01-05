@@ -288,13 +288,14 @@ class MCFOSTUtils:
                 itf.sim_conf["meshlist"]["xprobmin1"],
                 itf.sim_conf["meshlist"]["xprobmax1"]
             ])
-            radial_range_found = np.array([target_grid[0,0,0,:].min(), target_grid[0,0,0,:].max()])
-            zmax_found = target_grid[1,0,:,:].max()
+            radial_range_found = np.array([target_grid[0, 0, 0, :].min(),
+                                           target_grid[0, 0, 0, :].max()])
+            zmax_found = target_grid[1, 0, :, :].max()
             zmax_correct = itf.config["target_options"]["zmax"] * itf.conv2au
             gen_needed = shape_found not in correct_shapes \
                          or not np.all(radial_range_found == radial_range_correct) \
                          or zmax_found != zmax_correct
-            #import pdb; pdb.set_trace()
+
         if gen_needed:
             assert mcfost_conf_path.exists()
             # generate a grid data file with mcfost itself and extract it
