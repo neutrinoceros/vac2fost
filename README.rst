@@ -1,16 +1,13 @@
 VAC2FOST
 ========
 
-``vac2mcfost.py`` is a ``Python 3`` interface script that translates a
+``vac2fost.py`` is a ``Python 3`` interface script that translates a
 ``.vtu`` ``MPI-AMRVAC`` output file into a ``.fits`` that can be fed to
 ``MCFOST`` through the option ``-density_file``.
 
 
-Python uncommon dependencies
-----------------------------
-
-This package relies on ``amrvac_pywrap`` and ``vtk_vacreader`` Python 3
-packages (developed by Clément Robert).
+``vac2fost.py`` can be used either as a Python package with a ``main()``
+fonction, or from command line.
 
 
 Other dependencies
@@ -36,23 +33,60 @@ scripts located in ``tests/``
 
 ``vac2fost/data/default_mcfost_conf.para`` contains a basic mcfost
 configuration from which ``mcfost_conf.para`` is generated in the output
-directory when ``vac2fost.main()`` is called.  Any ``MCFOST`` parameter
+directory when ``vac2fost.main()`` is called.
+
+Any ``MCFOST`` parameter
 can be overwritten by those found in ``&mcfost_list``, using names
 defined in ``vac2fost.py``.
 
 
 Installation
 ------------
+It is currently required to build a very specific Python environment in order to
+run the program.
 
-The program can be used either as a Python package with a ``main()``
-fonction, or from command line.
+The recommended method relies on ``conda``.
 
-To install it as a package within anaconda, use ``conda develop
-<path/to/vac2fost-project/>``.
+The following assumes ``cwd == vac2fost-project``.
 
-To use the program as a script from command line, the main file should
-be accessible through $PATH.  A relatively clean way to do this is by
-linking a dummy file to the installation directory.
+Most of the non-standard Python dependencies can be installed with
+
+    .. code-block:: bash
+    
+        conda create --name vac2fost --file environment.ylm
+
+Other parts of the program are ``amrvac_pywrap`` and ``vtk_vacreader``.
+
+They can be installed with
+
+    .. code-block:: bash
+    
+        bash install_deps.sh
+        # this script will ask for user confirmation
+
+
+Then, if you wish to use ``vac2fost`` as a Python package, install it as
+
+    .. code-block:: bash
+
+        conda activate vac2fost
+        conda install .
+        #or
+        conda develop . # if you wish to actively modify the package as you use it
+
+
+Finally, if you wish to use ``vac2fost.py`` from command line, the recommended
+fashion is to create a symbolic link to the main file, as part of your ``$PATH``
+and treat it as an executable.
+
+For instance: 
+
+    .. code-block:: bash
+        
+        chmod +x vac2fost/vac2fost.py
+        ln -s vac2fost/vac2fost.py ~/local/bin/vac2fost.py
+
+
 
 
 Testing
@@ -91,7 +125,7 @@ generated from command line with ``vac2fost.py --genconf``)
            ! additional options
                origin = '/path/to/mod_usr.t/parent/directory'
                amrvac_conf = 'relative/path/to/vac/config_file/from/origin'
-               offset = 0  ! output number of the .dat file to be converted
+               num = 0  ! output number of the .dat file to be converted
                zmax = 5    ! use same unit at distance in the original simulation
                aspect_ratio = 0.01
            /
@@ -103,7 +137,7 @@ The app can be used in two fashions
 
   .. code:: bash
 
-            # provided that the offset is included in the configuration:&target_options:offset
+            # provided that the num parameter is included in the configuration:&target_options:num
             ./vac2mcfost.py <configuration_file>
             # otherwise
             ./vac2mcfost.py <configuration_file> -n <input file num>
@@ -121,11 +155,10 @@ The app can be used in two fashions
             vac2fost(config_file=conf)
 
 	    # more sophisticated call
-            vac2fost(config_file=conf, offset=10, output_dir=out)
+            vac2fost(config_file=conf, num=10, output_dir=out)
   
-note that if ``<input file num>`` (aka ``offset``) is defined as a
-parameter **and** included in the configuration, the parameter value
-is used.
+note that if ``<input file num>`` is defined as a parameter **and** included in
+the configuration, the parameter value is used.
 
 
 Get help
