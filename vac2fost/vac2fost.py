@@ -442,7 +442,7 @@ class Interface:
         origin = Path(self.config['target_options']['origin'])
         if not origin.is_absolute():
             to = self.config['target_options']
-            p1 = Path(".").resolve()
+            p1 = Path.cwd()
             p2 = (Path(config_file).parent/origin).resolve()
 
             if isinstance(to['amrvac_conf'], (list, tuple)):
@@ -451,11 +451,11 @@ class Interface:
                 fi = to['amrvac_conf']
 
             found = [(p/fi).is_file() for p in (p1, p2)]
-            if all(found) and p1.resolve() != p2.resolve():
+            if all(found) and p1 != p2:
                 raise FileNotFoundError(
-                    f"""can not guess if <origin> "{origin}" is relative to the cwd or to the location of configuration file""")
+                    f"""can not guess if path "{origin}" is relative to cwd or configuration file""")
             elif not any(found):
-                raise FileNotFoundError(f"""<origin> "{origin}" """)
+                raise FileNotFoundError(origin)
             else:
                 p = (p1, p2)[found.index(True)]
             self.config['target_options'].update({'origin': p.resolve()})
