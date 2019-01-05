@@ -232,7 +232,6 @@ class MCFOSTUtils:
             'rout': mesh['xprobmax1']*itf.conv2au,
             'maps_size': 2*mesh['xprobmax1']*itf.conv2au,
         })
-
         # aspect ratio may be defined in the hd simulation conf file
         try:
             parameters.update({
@@ -262,12 +261,13 @@ class MCFOSTUtils:
 
         return parameters
 
-    def get_mcfost_grid(
-            mcfost_conf_file: str,
-            mcfost_list: dict = None,
-            output_dir: str = '.',
-            silent=True) -> np.ndarray:
+    def get_mcfost_grid(itf) -> np.ndarray:
         '''Pre-run MCFOST with -disk_struct flag to get the exact grid used.'''
+        mcfost_conf_file = itf.mcfost_para_file
+        mcfost_list = itf.config['mcfost_list']
+        output_dir = itf.io['out'].directory
+        silent = (not itf.dbg)
+
         output_dir = Path(output_dir).resolve()
         mcfost_conf_path = Path(mcfost_conf_file)
         if not output_dir.exists():
@@ -284,8 +284,14 @@ class MCFOSTUtils:
                 (mcfost_list['nphi'], mcfost_list['nz'], mcfost_list['nr']),
                 (mcfost_list['nphi'], mcfost_list['nz']*2+1, mcfost_list['nr'])
             )
-            gen_needed = shape_found not in correct_shapes
-
+            #import pdb; pdb.set_trace()
+            radial_range_correct = itf.conv2au*np.array([
+                itf.sim_conf["meshlist"]["xprobmin1"],
+                itf.sim_conf["meshlist"]["xprobmax1"]
+            ])
+            radial_range_found = np.array([target_grid[0,:,0].min(), target_grid[0,:,0].max()])
+            gen_needed = shape_found not in correct_shapes or not np.all(radial_range_found == radial_range_correct)
+            #import pdb; pdb.set_trace()
         if gen_needed:
             assert mcfost_conf_path.exists()
             # generate a grid data file with mcfost itself and extract it
@@ -593,12 +599,7 @@ class Interface:
         if self._output_grid is None:
             if not Path(self.mcfost_para_file).is_file():
                 self.write_mcfost_conf_file()
-            target_grid = MCFOSTUtils.get_mcfost_grid(
-                mcfost_conf_file=self.mcfost_para_file,
-                mcfost_list=self.config['mcfost_list'],
-                output_dir=self.io['out'].directory,
-                silent=(not self.dbg)
-            )
+            target_grid = MCFOSTUtils.get_mcfost_grid(self)
             self._output_grid = {
                 'array': target_grid,
                 # 2D grids
