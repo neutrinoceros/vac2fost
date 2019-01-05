@@ -284,14 +284,13 @@ class MCFOSTUtils:
                 (mcfost_list['nphi'], mcfost_list['nz'], mcfost_list['nr']),
                 (mcfost_list['nphi'], mcfost_list['nz']*2+1, mcfost_list['nr'])
             )
-            #import pdb; pdb.set_trace()
             radial_range_correct = itf.conv2au*np.array([
                 itf.sim_conf["meshlist"]["xprobmin1"],
                 itf.sim_conf["meshlist"]["xprobmax1"]
             ])
-            radial_range_found = np.array([target_grid[0,:,0].min(), target_grid[0,:,0].max()])
+            radial_range_found = np.array([target_grid[0,0,0,:].min(), target_grid[0,0,0,:].max()])
             gen_needed = shape_found not in correct_shapes or not np.all(radial_range_found == radial_range_correct)
-            #import pdb; pdb.set_trace()
+
         if gen_needed:
             assert mcfost_conf_path.exists()
             # generate a grid data file with mcfost itself and extract it

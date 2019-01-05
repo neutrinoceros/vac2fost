@@ -25,7 +25,6 @@ if __name__=='__main__':
     X = (itf.output_grid['rg'] * np.cos(itf.output_grid['phig'])).T
     Y = (itf.output_grid['rg'] * np.sin(itf.output_grid['phig'])).T
 
-
     nr, nz, nphi = data.shape
     vertical_profile = data[0,:,0]
     vertical_slice   = data[0,:,:]
