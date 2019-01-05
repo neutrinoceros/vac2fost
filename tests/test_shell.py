@@ -11,27 +11,27 @@ from vac2fost import main as app
 from vac2fost import __file__ as v2cfile
 
 root = Path(v2cfile).parent
-here = Path(__file__).absolute().parent
+test_dir = Path(__file__).absolute().parent
 
 @pytest.mark.incremental #each test is run only if the previous one passed
 class TestShellCalling():
     '''require that vac2fost.py be accessible through your $PATH env variable'''
 
     def test_command_line_call(self):
-        output_dir = here / 'output/test_command_line_call/'
+        output_dir = test_dir / 'output/test_command_line_call/'
         comm = ' '.join([
             str(root / 'vac2fost.py'),
-            str(here / 'sample/vac2fost_conf.nml'),
+            str(test_dir / 'sample/vac2fost_conf.nml'),
             f'-o {output_dir}'
         ])
         exitcode = subprocess.call(comm, shell=True)
         assert exitcode == 0
 
     def test_command_line_call_w_number(self):
-        output_dir = here / 'output/test_command_line_call_w_number_1/'
+        output_dir = test_dir / 'output/test_command_line_call_w_number_1/'
         comm = ' '.join([
             str(root / 'vac2fost.py'),
-            str(here / 'sample/vac2fost_conf_quick.nml'),
+            str(test_dir / 'sample/vac2fost_conf_quick.nml'),
             f'-o {output_dir}',
             '-n 2'
         ])
@@ -39,10 +39,10 @@ class TestShellCalling():
         assert exitcode == 0
 
     def test_command_line_call_w_number_argonly(self):
-        output_dir = here / 'output/test_command_line_call_w_number_2/'
+        output_dir = test_dir / 'output/test_command_line_call_w_number_2/'
         comm = ' '.join([
             str(root / 'vac2fost.py'),
-            str(here / 'sample/vac2fost_conf_quick_no_number.nml'),
+            str(test_dir / 'sample/vac2fost_conf_quick_no_number.nml'),
             f'-o {output_dir}',
             '-n 2'
         ])
@@ -50,10 +50,10 @@ class TestShellCalling():
         assert exitcode == 0
 
     def test_command_line_call_w_number_argonly_zero(self):
-        output_dir = here / 'output/test_command_line_call_w_number_3/'
+        output_dir = test_dir / 'output/test_command_line_call_w_number_3/'
         comm = ' '.join([
             str(root / 'vac2fost.py'),
-            str(here / 'sample/vac2fost_conf_quick_no_number.nml'),
+            str(test_dir / 'sample/vac2fost_conf_quick_no_number.nml'),
             f'-o {output_dir}',
             '-n 0'
         ])
@@ -62,7 +62,7 @@ class TestShellCalling():
 
 class TestNarrowCases:
     def test_genconf(self):
-        output_dir = here / 'output/test_genconf/'
+        output_dir = test_dir / 'output/test_genconf/'
         comm = ' '.join([
             str(root / 'vac2fost.py'),
             '--genconf',
