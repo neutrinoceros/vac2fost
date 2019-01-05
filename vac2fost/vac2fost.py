@@ -434,7 +434,7 @@ class Interface:
 
         # parse configuration file
         self.config = f90nml.read(config_file)
-        self.num = num or self.config['target_options']['offset']
+        self.num = num or self.config['target_options']['num']
 
         origin = Path(self.config['target_options']['origin'])
         if not origin.is_absolute():
@@ -734,7 +734,7 @@ class Interface:
 
 # =======================================================================================
 def main(config_file: str,
-         offset: int = None,
+         num: int = None,
          output_dir: str = '.',
          dust_bin_mode: str = DEFAULTS['DBM'],
          verbose=False,
@@ -751,7 +751,7 @@ def main(config_file: str,
 
     tell(' --------- Start vac2fost.main() ---------', end=True)
     tell('reading input')
-    itf = Interface(config_file, num=offset, output_dir=output_dir,
+    itf = Interface(config_file, num=num, output_dir=output_dir,
                     dust_bin_mode=dust_bin_mode, dbg=dbg)
     tell(end=True)
 
@@ -861,7 +861,7 @@ if __name__ == '__main__':
     # -------------------------------------------
     main(
         config_file=args.configuration,
-        offset=args.num,
+        num=args.num,
         output_dir=args.output,
         dust_bin_mode=args.dbm,
         verbose=args.verbose,
