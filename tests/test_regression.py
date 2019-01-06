@@ -66,7 +66,7 @@ class TestRegression:
         outdir = test_dir / 'output/test_regression_non_axisym'
         if outdir.is_dir():
             shutil.rmtree(outdir)
-        itf = app(test_dir/'sample/vac2fost_conf.nml', output_dir=outdir)
+        itf = app(test_dir/'sample/vac2fost_conf_nonaxisym.nml', output_dir=outdir)
         out_ref = pickle.load(open(test_dir/'ref/main_out_non_axisym.p', 'rb'))
         assert itf._dbm == out_ref['_dbm']
         assert itf.sim_conf == out_ref['sim_conf']
