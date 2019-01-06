@@ -264,7 +264,6 @@ class MCFOSTUtils:
     def get_mcfost_grid(itf) -> np.ndarray:
         '''Pre-run MCFOST with -disk_struct flag to get the exact grid used.'''
         mcfost_conf_file = itf.mcfost_para_file
-        mcfost_list = itf.config['mcfost_list']
         output_dir = itf.io['out'].directory
         silent = (not itf.dbg)
 
@@ -275,62 +274,68 @@ class MCFOSTUtils:
 
         grid_file_name = output_dir / 'mcfost_grid.fits.gz'
 
-        gen_needed = True
+        #gen_needed = True
+        #mcfost_list = itf.config['mcfost_list']
         if grid_file_name.exists():
-            with fits.open(grid_file_name, mode='readonly') as fi:
-                target_grid = fi[0].data
-            shape_found = target_grid.shape[1:]
-            correct_shapes = (
-                (mcfost_list['nphi'], mcfost_list['nz'], mcfost_list['nr']),
-                (mcfost_list['nphi'], mcfost_list['nz']*2+1, mcfost_list['nr'])
+            itf.warnings.append("found existing grid file, ignored it.")
+            # devnote : this block is deprecated because it was getting off hand.
+            #           a more maintainable solution is being studied.
+            #
+            # with fits.open(grid_file_name, mode='readonly') as fi:
+            #     target_grid = fi[0].data
+            # shape_found = target_grid.shape[1:]
+            # correct_shapes = (
+            #     (mcfost_list['nphi'], mcfost_list['nz'], mcfost_list['nr']),
+            #     (mcfost_list['nphi'], mcfost_list['nz']*2+1, mcfost_list['nr'])
+            # )
+            # radial_range_correct = itf.conv2au*np.array([
+            #     itf.sim_conf["meshlist"]["xprobmin1"],
+            #     itf.sim_conf["meshlist"]["xprobmax1"]
+            # ])
+            # radial_range_found = np.array([target_grid[0, 0, 0, :].min(),
+            #                                target_grid[0, 0, 0, :].max()])
+            # zmax_found = target_grid[1, 0, :, :].max()
+            # zmax_correct = itf.config["target_options"]["zmax"] * itf.conv2au
+            # gen_needed = shape_found not in correct_shapes \
+            #              or not np.all(radial_range_found == radial_range_correct) \
+            #              or zmax_found != zmax_correct
+
+        #if gen_needed: #devnote : always consider this true from now on
+        assert mcfost_conf_path.exists()
+        # generate a grid data file with mcfost itself and extract it
+        tmp_mcfost_dir = Path(f'TMP_VAC2FOST_MCFOST_GRID_{uuid.uuid4()}')
+        os.mkdir(tmp_mcfost_dir)
+        try:
+            shutil.copyfile(mcfost_conf_path.resolve(),
+                            tmp_mcfost_dir/mcfost_conf_path.name)
+        except shutil.SameFileError:
+            pass
+
+        pile = Path.cwd()
+        os.chdir(tmp_mcfost_dir)
+        try:
+            os.environ['OMP_NUM_THREADS'] = '1'
+            subprocess.check_call(
+                f"mcfost mcfost_conf.para -disk_struct",
+                shell=True,
+                stdout={True: subprocess.PIPE, False: None}[silent]
             )
-            radial_range_correct = itf.conv2au*np.array([
-                itf.sim_conf["meshlist"]["xprobmin1"],
-                itf.sim_conf["meshlist"]["xprobmax1"]
-            ])
-            radial_range_found = np.array([target_grid[0, 0, 0, :].min(),
-                                           target_grid[0, 0, 0, :].max()])
-            zmax_found = target_grid[1, 0, :, :].max()
-            zmax_correct = itf.config["target_options"]["zmax"] * itf.conv2au
-            gen_needed = shape_found not in correct_shapes \
-                         or not np.all(radial_range_found == radial_range_correct) \
-                         or zmax_found != zmax_correct
-
-        if gen_needed:
-            assert mcfost_conf_path.exists()
-            # generate a grid data file with mcfost itself and extract it
-            tmp_mcfost_dir = Path(f'TMP_VAC2FOST_MCFOST_GRID_{uuid.uuid4()}')
-            os.mkdir(tmp_mcfost_dir)
-            try:
-                shutil.copyfile(mcfost_conf_path.resolve(),
-                                tmp_mcfost_dir/mcfost_conf_path.name)
-            except shutil.SameFileError:
-                pass
-
-            pile = Path.cwd()
-            os.chdir(tmp_mcfost_dir)
-            try:
-                os.environ['OMP_NUM_THREADS'] = '1'
-                subprocess.check_call(
-                    f"mcfost mcfost_conf.para -disk_struct",
-                    shell=True,
-                    stdout={True: subprocess.PIPE, False: None}[silent]
+            shutil.move("data_disk/grid.fits.gz", grid_file_name)
+        except subprocess.CalledProcessError as exc:
+            errtip = f'\nError in MCFOST, exited with exitcode {exc.returncode}'
+            if exc.returncode == 174:
+                errtip += (
+                    '\nThis is probably a memory issue. '
+                    'Try reducing the target resolution or,'
+                    ' alternatively, give more cpu memory to this task.'
                 )
-                shutil.move("data_disk/grid.fits.gz", grid_file_name)
-            except subprocess.CalledProcessError as exc:
-                errtip = f'\nError in MCFOST, exited with exitcode {exc.returncode}'
-                if exc.returncode == 174:
-                    errtip += (
-                        '\nThis is probably a memory issue. '
-                        'Try reducing the target resolution or,'
-                        ' alternatively, give more cpu memory to this task.'
-                    )
-                    raise RuntimeError(errtip)
-            finally:
-                os.chdir(pile)
-                shutil.rmtree(tmp_mcfost_dir)
-            with fits.open(grid_file_name, mode='readonly') as fi:
-                target_grid = fi[0].data
+                raise RuntimeError(errtip)
+        finally:
+            os.chdir(pile)
+            shutil.rmtree(tmp_mcfost_dir)
+        with fits.open(grid_file_name, mode='readonly') as fi:
+            target_grid = fi[0].data
+        # end if gen_needed
         return target_grid
 
 
