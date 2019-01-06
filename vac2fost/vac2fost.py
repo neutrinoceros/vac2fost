@@ -749,23 +749,23 @@ def main(config_file: str,
          dbg=False):
     '''Try to transform a .vtu file into a .fits'''
 
-    def tell(message: str = 'ok', end=False):
+    def tell(message: str = 'ok', end=False, unconditional=False):
         '''print wrapper'''
-        if verbose:
+        if verbose or unconditional:
             if end:
                 print(message)
             else:
                 print(message.ljust(61), '...'.ljust(1), end=' ', flush=True)
 
-    tell('=========================== vac2fost.py ============================', end=True)
+    print('=========================== vac2fost.py ============================')
     tell('reading input')
     itf = Interface(config_file, num=num, output_dir=output_dir,
                     dust_bin_mode=dust_bin_mode, dbg=dbg)
     tell(end=True)
 
-    tell(f"loading data from {itf.io['in'].filename}")
+    tell(f"loading data from {itf.io['in'].filename}", unconditional=True)
     itf.load_input_data()
-    tell(end=True)
+    tell(unconditional=True, end=True)
 
     tell('writting the mcfost configuration file')
     itf.write_mcfost_conf_file()
@@ -783,12 +783,12 @@ def main(config_file: str,
     itf.write_output()
     tell(end=True)
 
-    tell(f"\nsuccess ! output wrote:\n{itf.io['out'].filepath}", end=True)
+    print(f"\nsuccess ! output wrote:\n{itf.io['out'].filepath}")
 
-    if verbose:
-        itf.print_warnings()
+    #if verbose:
+    itf.print_warnings()
 
-    tell('=========================== end program ============================', end=True)
+    print('=========================== end program ============================')
 
     # return the Interface object for inspection (tests)
     return itf
