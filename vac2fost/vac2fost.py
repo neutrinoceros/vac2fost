@@ -528,8 +528,7 @@ class Interface:
             print(" WARNINGS:")
             print(red+'\n'.join([f" - {w}" for w in self.warnings]))
             if colorama is not None:
-                print(colorama.Style.RESET_ALL)
-            else: print()
+                print(colorama.Style.RESET_ALL, end='')
 
     @property
     def grain_micron_sizes(self) -> np.ndarray:
@@ -798,11 +797,8 @@ def main(config_file: str,
     itf.gen_2D_arrays()
     itf.gen_3D_arrays()
     itf.write_output()
-
-    print(f"\nsuccess ! output wrote:\n{itf.io['out'].filepath}")
-
-    #if verbose:
     itf.print_warnings()
+    print(f"\nsuccess ! output wrote:\n{itf.io['out'].filepath}")
 
     print('=========================== end program ============================')
 
