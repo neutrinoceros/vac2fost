@@ -53,7 +53,6 @@ DataInfo = namedtuple(
     ['shape', 'directory', 'filename', 'filepath']
 )
 
-
 class MCFOSTUtils:
     """Utility functions to call MCFOST in vac2fost.main()
     to define the output grid."""
@@ -277,7 +276,7 @@ class MCFOSTUtils:
         #gen_needed = True
         #mcfost_list = itf.config['mcfost_list']
         if grid_file_name.exists():
-            itf.warnings.append("found existing grid file, ignored it.")
+            itf.warnings.append("found existing grid file, ignored it")
             # devnote : this block is deprecated because it was getting off hand.
             #           a more maintainable solution is being studied.
             #
@@ -416,6 +415,25 @@ def generate_conf_template() -> f90nml.Namelist:
     })
     return template
 
+# decorators
+def parameterized(dec):
+    """meta decorator, allow definition of decorators with parameters
+    source: https://stackoverflow.com/questions/5929107/decorators-with-parameters"""
+    def layer(*args, **kwargs):
+        def repl(f):
+            return dec(f, *args, **kwargs)
+        return repl
+    return layer
+
+@parameterized
+def wait_for_ok(func, mess, lenght=61):
+    """decorator, sandwich the function execution with '<mess>  ...' & 'ok'"""
+    def modfunc(*args, **kwargs):
+        print(mess.ljust(lenght), end="... ", flush=True)
+        result = func(*args, **kwargs)
+        print("ok")
+        return result
+    return modfunc
 
 class Interface:
     '''A class to hold global variables as attributes and give
@@ -423,6 +441,7 @@ class Interface:
 
     known_dbms = {'dust-only', 'gas-only', 'mixed', 'auto'}
 
+    @wait_for_ok("parsing input")
     def __init__(self, config_file, num: int = None,
                  output_dir: Path = Path('.'),
                  dust_bin_mode: str = DEFAULTS['DBM'], dbg=False):
@@ -511,8 +530,7 @@ class Interface:
             print(" WARNINGS:")
             print(red+'\n'.join([f" - {w}" for w in self.warnings]))
             if colorama is not None:
-                print(colorama.Style.RESET_ALL)
-            else: print()
+                print(colorama.Style.RESET_ALL, end='')
 
     @property
     def grain_micron_sizes(self) -> np.ndarray:
@@ -739,6 +757,29 @@ class Interface:
             self.gen_3D_arrays()
         return self._new_3D_arrays
 
+# =======================================================================================
+class VerbatimInterface(Interface):
+    """A more talkative Interface"""
+    @wait_for_ok(f"loading input data")
+    def load_input_data(self) -> None:
+        super().load_input_data()
+
+    @wait_for_ok('writting mcfost configuration file')
+    def write_mcfost_conf_file(self) -> None:
+        super().write_mcfost_conf_file()
+
+    @wait_for_ok('interpolating to mcfost grid')
+    def gen_2D_arrays(self):
+        super().gen_2D_arrays()
+
+    @wait_for_ok('converting 2D arrays to 3D')
+    def gen_3D_arrays(self):
+        super().gen_3D_arrays()
+
+    @wait_for_ok('building the .fits file')
+    def write_output(self) -> None:
+        super().write_output()
+
 
 # =======================================================================================
 def main(config_file: str,
@@ -749,46 +790,20 @@ def main(config_file: str,
          dbg=False):
     '''Try to transform a .vtu file into a .fits'''
 
-    def tell(message: str = 'ok', end=False):
-        '''print wrapper'''
-        if verbose:
-            if end:
-                print(message)
-            else:
-                print(message.ljust(61), '...'.ljust(1), end=' ', flush=True)
+    print('=========================== vac2fost.py ============================')
+    InterfaceType = {True: VerbatimInterface, False: Interface}[verbose]
+    itf = InterfaceType(config_file, num=num, output_dir=output_dir,
+                        dust_bin_mode=dust_bin_mode, dbg=dbg)
 
-    tell('=========================== vac2fost.py ============================', end=True)
-    tell('reading input')
-    itf = Interface(config_file, num=num, output_dir=output_dir,
-                    dust_bin_mode=dust_bin_mode, dbg=dbg)
-    tell(end=True)
-
-    tell(f"loading data from {itf.io['in'].filename}")
     itf.load_input_data()
-    tell(end=True)
-
-    tell('writting the mcfost configuration file')
     itf.write_mcfost_conf_file()
-    tell(end=True)
-
-    tell('interpolating to MCFOST grid')
     itf.gen_2D_arrays()
-    tell(end=True)
-
-    tell('converting 2D arrays to 3D')
     itf.gen_3D_arrays()
-    tell(end=True)
-
-    tell('building the .fits file')
     itf.write_output()
-    tell(end=True)
+    itf.print_warnings()
+    print(f"\nsuccess ! output wrote:\n{itf.io['out'].filepath}")
 
-    tell(f"\nsuccess ! output wrote:\n{itf.io['out'].filepath}", end=True)
-
-    if verbose:
-        itf.print_warnings()
-
-    tell('=========================== end program ============================', end=True)
+    print('=========================== end program ============================')
 
     # return the Interface object for inspection (tests)
     return itf
@@ -842,13 +857,13 @@ if __name__ == '__main__':
         help='activate profiling mode'
     )
 
-    args = parser.parse_args()
+    cargs = parser.parse_args()
 
-    if args.genconf:
+    if cargs.genconf:
         template_nml = generate_conf_template()
-        finame = args.output + '/template_vac2fost.nml'
-        if not Path(args.output).exists():
-            subprocess.call(f'mkdir -p {args.output}', shell=True)
+        finame = cargs.output + '/template_vac2fost.nml'
+        if not Path(cargs.output).exists():
+            subprocess.call(f'mkdir -p {cargs.output}', shell=True)
         if Path(finame).exists():
             sys.exit(f'Error: {finame} already exists, exiting vac2fost.py')
         else:
@@ -860,7 +875,7 @@ if __name__ == '__main__':
         parser.print_help(sys.stderr)
         sys.exit(2)
 
-    if args.profile:
+    if cargs.profile:
         import cProfile
         import pstats
         import io
@@ -868,15 +883,15 @@ if __name__ == '__main__':
         pr.enable()
     # -------------------------------------------
     main(
-        config_file=args.configuration,
-        num=args.num,
-        output_dir=args.output,
-        dust_bin_mode=args.dbm,
-        verbose=args.verbose,
-        dbg=args.dbg
+        config_file=cargs.configuration,
+        num=cargs.num,
+        output_dir=cargs.output,
+        dust_bin_mode=cargs.dbm,
+        verbose=cargs.verbose,
+        dbg=cargs.dbg
     )
     # -------------------------------------------
-    if args.profile:
+    if cargs.profile:
         pr.disable()
         s = io.StringIO()
         ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')
