@@ -276,7 +276,7 @@ class MCFOSTUtils:
         #gen_needed = True
         #mcfost_list = itf.config['mcfost_list']
         if grid_file_name.exists():
-            itf.warnings.append("found existing grid file, ignored it.")
+            itf.warnings.append("found existing grid file, ignored it")
             # devnote : this block is deprecated because it was getting off hand.
             #           a more maintainable solution is being studied.
             #
