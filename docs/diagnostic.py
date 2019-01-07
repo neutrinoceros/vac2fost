@@ -16,7 +16,7 @@ conf = doc_dir.parent/"tests/sample/vac2fost_conf_nonaxisym.nml"
 output_dir = doc_dir.parent/"demo_out"
 
 if __name__=='__main__':
-    itf = app(conf, output_dir=output_dir, verbose=True)
+    itf = app(conf, output_dir=output_dir, verbose=False)
 
     # get the Primary (only image available),
     # and exctract its first 3d array (density field)

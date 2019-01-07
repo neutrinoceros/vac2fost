@@ -712,7 +712,7 @@ class Interface:
         }
         return ig
 
-    @wait_for_ok('interpolating to MCFOST grid')
+    @wait_for_ok('interpolating to mcfost grid')
     def gen_2D_arrays(self):
         '''Interpolate input data onto r-phi grid
         with output grid specifications'''
