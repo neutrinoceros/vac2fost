@@ -417,7 +417,8 @@ def generate_conf_template() -> f90nml.Namelist:
 
 # decorators
 def parameterized(dec):
-    """source: https://stackoverflow.com/questions/5929107/decorators-with-parameters"""
+    """meta decorator, allow definition of decorators with parameters
+    source: https://stackoverflow.com/questions/5929107/decorators-with-parameters"""
     def layer(*args, **kwargs):
         def repl(f):
             return dec(f, *args, **kwargs)
@@ -426,11 +427,12 @@ def parameterized(dec):
 
 @parameterized
 def wait_for_ok(func, mess, lenght=61):
+    """decorator, sandwich the function execution with '<mess>  ...' & 'ok'"""
     def modfunc(*args, **kwargs):
         print(mess.ljust(lenght), end="... ", flush=True)
-        res = func(*args, **kwargs)
+        result = func(*args, **kwargs)
         print("ok")
-        return res
+        return result
     return modfunc
 
 class Interface:
@@ -757,6 +759,7 @@ class Interface:
 
 # =======================================================================================
 class VerbatimInterface(Interface):
+    """A more talkative Interface"""
     @wait_for_ok(f"loading input data")
     def load_input_data(self) -> None:
         super().load_input_data()
@@ -790,7 +793,7 @@ def main(config_file: str,
     print('=========================== vac2fost.py ============================')
     InterfaceType = {True: VerbatimInterface, False: Interface}[verbose]
     itf = InterfaceType(config_file, num=num, output_dir=output_dir,
-                    dust_bin_mode=dust_bin_mode, dbg=dbg)
+                        dust_bin_mode=dust_bin_mode, dbg=dbg)
 
     itf.load_input_data()
     itf.write_mcfost_conf_file()
@@ -854,13 +857,13 @@ if __name__ == '__main__':
         help='activate profiling mode'
     )
 
-    args = parser.parse_args()
+    cargs = parser.parse_args()
 
-    if args.genconf:
+    if cargs.genconf:
         template_nml = generate_conf_template()
-        finame = args.output + '/template_vac2fost.nml'
-        if not Path(args.output).exists():
-            subprocess.call(f'mkdir -p {args.output}', shell=True)
+        finame = cargs.output + '/template_vac2fost.nml'
+        if not Path(cargs.output).exists():
+            subprocess.call(f'mkdir -p {cargs.output}', shell=True)
         if Path(finame).exists():
             sys.exit(f'Error: {finame} already exists, exiting vac2fost.py')
         else:
@@ -872,7 +875,7 @@ if __name__ == '__main__':
         parser.print_help(sys.stderr)
         sys.exit(2)
 
-    if args.profile:
+    if cargs.profile:
         import cProfile
         import pstats
         import io
@@ -880,15 +883,15 @@ if __name__ == '__main__':
         pr.enable()
     # -------------------------------------------
     main(
-        config_file=args.configuration,
-        num=args.num,
-        output_dir=args.output,
-        dust_bin_mode=args.dbm,
-        verbose=args.verbose,
-        dbg=args.dbg
+        config_file=cargs.configuration,
+        num=cargs.num,
+        output_dir=cargs.output,
+        dust_bin_mode=cargs.dbm,
+        verbose=cargs.verbose,
+        dbg=cargs.dbg
     )
     # -------------------------------------------
-    if args.profile:
+    if cargs.profile:
         pr.disable()
         s = io.StringIO()
         ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')
