@@ -53,25 +53,6 @@ DataInfo = namedtuple(
     ['shape', 'directory', 'filename', 'filepath']
 )
 
-# decorators
-def parameterized(dec):
-    """source: https://stackoverflow.com/questions/5929107/decorators-with-parameters"""
-    def layer(*args, **kwargs):
-        def repl(f):
-            return dec(f, *args, **kwargs)
-        return repl
-    return layer
-
-@parameterized
-def wait_for_ok(func, mess, lenght=61):
-    def modfunc(*args, **kwargs):
-        print(mess.ljust(lenght), end="... ", flush=True)
-        res = func(*args, **kwargs)
-        print("ok")
-        return res
-    return modfunc
-
-
 class MCFOSTUtils:
     """Utility functions to call MCFOST in vac2fost.main()
     to define the output grid."""
@@ -210,7 +191,6 @@ class MCFOSTUtils:
         for di in descriptor[1]:
             known_args += list(di.keys())
 
-    @wait_for_ok('writting the mcfost configuration file')
     def write_mcfost_conf(output_file: str, custom: dict = None, silent=True):
         '''Write a configuration file for mcfost using values from <custom>,
         and falling back to defaults found in block_descriptor defined above
@@ -435,6 +415,23 @@ def generate_conf_template() -> f90nml.Namelist:
     })
     return template
 
+# decorators
+def parameterized(dec):
+    """source: https://stackoverflow.com/questions/5929107/decorators-with-parameters"""
+    def layer(*args, **kwargs):
+        def repl(f):
+            return dec(f, *args, **kwargs)
+        return repl
+    return layer
+
+@parameterized
+def wait_for_ok(func, mess, lenght=61):
+    def modfunc(*args, **kwargs):
+        print(mess.ljust(lenght), end="... ", flush=True)
+        res = func(*args, **kwargs)
+        print("ok")
+        return res
+    return modfunc
 
 class Interface:
     '''A class to hold global variables as attributes and give
@@ -607,7 +604,6 @@ class Interface:
         file = self.io['out'].directory/'mcfost_conf.para'
         return str(file)
 
-    @wait_for_ok(f"loading input data")
     def load_input_data(self) -> None:
         '''Use vtkvacreader.VacDataSorter to load AMRVAC data'''
         self._input_data = VacDataSorter(
@@ -665,7 +661,6 @@ class Interface:
                 unknowns.append(arg)
         return unknowns
 
-    @wait_for_ok('building the .fits file')
     def write_output(self) -> None:
         '''Main method. Write a .fits file suited for MCFOST input.'''
         # the transposition is handling a weird behavior of fits files...
@@ -712,7 +707,6 @@ class Interface:
         }
         return ig
 
-    @wait_for_ok('interpolating to mcfost grid')
     def gen_2D_arrays(self):
         '''Interpolate input data onto r-phi grid
         with output grid specifications'''
@@ -736,7 +730,6 @@ class Interface:
         assert interpolated_arrays[0].shape == (n_rad_new, n_phi_new)
         self._new_2D_arrays = np.array(interpolated_arrays)
 
-    @wait_for_ok('converting 2D arrays to 3D')
     def gen_3D_arrays(self):
         '''Interpolate input data onto full 3D output grid'''
         zmax = self.config['target_options']['zmax']
@@ -763,6 +756,28 @@ class Interface:
             self.gen_3D_arrays()
         return self._new_3D_arrays
 
+# =======================================================================================
+class VerbatimInterface(Interface):
+    @wait_for_ok(f"loading input data")
+    def load_input_data(self) -> None:
+        super().load_input_data()
+
+    @wait_for_ok('writting mcfost configuration file')
+    def write_mcfost_conf_file(self) -> None:
+        super().write_mcfost_conf_file()
+
+    @wait_for_ok('interpolating to mcfost grid')
+    def gen_2D_arrays(self):
+        super().gen_2D_arrays()
+
+    @wait_for_ok('converting 2D arrays to 3D')
+    def gen_3D_arrays(self):
+        super().gen_3D_arrays()
+
+    @wait_for_ok('building the .fits file')
+    def write_output(self) -> None:
+        super().write_output()
+
 
 # =======================================================================================
 def main(config_file: str,
@@ -774,7 +789,8 @@ def main(config_file: str,
     '''Try to transform a .vtu file into a .fits'''
 
     print('=========================== vac2fost.py ============================')
-    itf = Interface(config_file, num=num, output_dir=output_dir,
+    InterfaceType = {True: VerbatimInterface, False: Interface}[verbose]
+    itf = InterfaceType(config_file, num=num, output_dir=output_dir,
                     dust_bin_mode=dust_bin_mode, dbg=dbg)
 
     itf.load_input_data()
