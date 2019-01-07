@@ -53,6 +53,24 @@ DataInfo = namedtuple(
     ['shape', 'directory', 'filename', 'filepath']
 )
 
+# decorators
+def parameterized(dec):
+    """source: https://stackoverflow.com/questions/5929107/decorators-with-parameters"""
+    def layer(*args, **kwargs):
+        def repl(f):
+            return dec(f, *args, **kwargs)
+        return repl
+    return layer
+
+@parameterized
+def wait_for_ok(func, mess, lenght=61):
+    def modfunc(*args, **kwargs):
+        print(mess.ljust(lenght), end="... ", flush=True)
+        res = func(*args, **kwargs)
+        print("ok")
+        return res
+    return modfunc
+
 
 class MCFOSTUtils:
     """Utility functions to call MCFOST in vac2fost.main()
@@ -192,6 +210,7 @@ class MCFOSTUtils:
         for di in descriptor[1]:
             known_args += list(di.keys())
 
+    @wait_for_ok('writting the mcfost configuration file')
     def write_mcfost_conf(output_file: str, custom: dict = None, silent=True):
         '''Write a configuration file for mcfost using values from <custom>,
         and falling back to defaults found in block_descriptor defined above
@@ -423,6 +442,7 @@ class Interface:
 
     known_dbms = {'dust-only', 'gas-only', 'mixed', 'auto'}
 
+    @wait_for_ok("parsing input")
     def __init__(self, config_file, num: int = None,
                  output_dir: Path = Path('.'),
                  dust_bin_mode: str = DEFAULTS['DBM'], dbg=False):
@@ -587,6 +607,7 @@ class Interface:
         file = self.io['out'].directory/'mcfost_conf.para'
         return str(file)
 
+    @wait_for_ok(f"loading input data")
     def load_input_data(self) -> None:
         '''Use vtkvacreader.VacDataSorter to load AMRVAC data'''
         self._input_data = VacDataSorter(
@@ -644,6 +665,7 @@ class Interface:
                 unknowns.append(arg)
         return unknowns
 
+    @wait_for_ok('building the .fits file')
     def write_output(self) -> None:
         '''Main method. Write a .fits file suited for MCFOST input.'''
         # the transposition is handling a weird behavior of fits files...
@@ -690,6 +712,7 @@ class Interface:
         }
         return ig
 
+    @wait_for_ok('interpolating to MCFOST grid')
     def gen_2D_arrays(self):
         '''Interpolate input data onto r-phi grid
         with output grid specifications'''
@@ -713,6 +736,7 @@ class Interface:
         assert interpolated_arrays[0].shape == (n_rad_new, n_phi_new)
         self._new_2D_arrays = np.array(interpolated_arrays)
 
+    @wait_for_ok('converting 2D arrays to 3D')
     def gen_3D_arrays(self):
         '''Interpolate input data onto full 3D output grid'''
         zmax = self.config['target_options']['zmax']
@@ -749,39 +773,15 @@ def main(config_file: str,
          dbg=False):
     '''Try to transform a .vtu file into a .fits'''
 
-    def tell(message: str = 'ok', end=False, unconditional=False):
-        '''print wrapper'''
-        if verbose or unconditional:
-            if end:
-                print(message)
-            else:
-                print(message.ljust(61), '...'.ljust(1), end=' ', flush=True)
-
     print('=========================== vac2fost.py ============================')
-    tell('reading input')
     itf = Interface(config_file, num=num, output_dir=output_dir,
                     dust_bin_mode=dust_bin_mode, dbg=dbg)
-    tell(end=True)
 
-    tell(f"loading data from {itf.io['in'].filename}", unconditional=True)
     itf.load_input_data()
-    tell(unconditional=True, end=True)
-
-    tell('writting the mcfost configuration file')
     itf.write_mcfost_conf_file()
-    tell(end=True)
-
-    tell('interpolating to MCFOST grid')
     itf.gen_2D_arrays()
-    tell(end=True)
-
-    tell('converting 2D arrays to 3D')
     itf.gen_3D_arrays()
-    tell(end=True)
-
-    tell('building the .fits file')
     itf.write_output()
-    tell(end=True)
 
     print(f"\nsuccess ! output wrote:\n{itf.io['out'].filepath}")
 
