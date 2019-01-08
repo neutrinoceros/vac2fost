@@ -706,8 +706,8 @@ class Interface:
             sigma = r * self.aspect_ratio
             gaussian = np.exp(-z_vect**2/ (2*sigma**2)) / (np.sqrt(2*np.pi) * sigma)
             for i_bin, surface_density in enumerate(self.new_2D_arrays[:, ir, :]):
-                res = gaussian * surface_density.reshape(nphi, 1)
-                self._new_3D_arrays[i_bin, ir, :, :] = res.T
+                self._new_3D_arrays[i_bin, ir, :, :] = np.transpose(
+                    gaussian * surface_density.reshape(nphi, 1))
 
     @property
     def new_2D_arrays(self) -> list:
