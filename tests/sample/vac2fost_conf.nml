@@ -8,6 +8,8 @@
     distance_pc  = 157  ! [pc]    (Gaia consortium 2016)
 
     flaring_index = 1.125
+    scale_height = 10.0
+    ref_radius = 100.0
 /
 
 &target_options
