@@ -125,7 +125,7 @@ class MCFOSTUtils:
                 od([('zone_type', 1)]),
                 od([('dust_mass', '1e-3'),
                     ('gas_to_dust_ratio', 100)]),
-                od([('scale_height', 10.0),
+                od([('scale_height', 5.0),
                     ('ref_radius', 100.0),
                     # only relevant in geometry "4" (debris disk) according to doc
                     ('profile_exp', 2)]),
