@@ -339,44 +339,44 @@ class MCFOSTUtils:
         return target_grid
 
 
-def gauss(z, sigma):
-    '''Gaussian function for vertical extrapolation'''
-    return 1./(np.sqrt(2*np.pi) * sigma) * np.exp(-z**2/(2*sigma**2))
+# def gauss(z, sigma):
+#     '''Gaussian function for vertical extrapolation'''
+#     return 1./(np.sqrt(2*np.pi) * sigma) * np.exp(-z**2/(2*sigma**2))
 
 
-def twoD2threeD(
-        arr2d: np.ndarray,
-        scale_height: np.ndarray,
-        zvect: np.ndarray) -> np.ndarray:
-    '''Convert surface density 2D array into volumic density 3D
-    cylindrical array assuming a gaussian vertical distribution.
+# def twoD2threeD(
+#         arr2d: np.ndarray,
+#         scale_height: np.ndarray,
+#         zvect: np.ndarray) -> np.ndarray:
+#     '''Convert surface density 2D array into volumic density 3D
+#     cylindrical array assuming a gaussian vertical distribution.
 
-    array shapes
-    ------------
-    arr2d : (nrad, nphi)
-    scale_height (2D) : (nrad, nphi)
-    zvect : (nz,)
-    arr3d : (nrad, nz, nphi) (suited for mcfost)
+#     array shapes
+#     ------------
+#     arr2d : (nrad, nphi)
+#     scale_height (2D) : (nrad, nphi)
+#     zvect : (nz,)
+#     arr3d : (nrad, nz, nphi) (suited for mcfost)
 
-    note
-    MCFOST offers the possibility to use a spherical grid instead.
-    '''
-    # devnote : gaussian distribution of dust is a bad fit.
-    # For better modelization, see
-    # eq 1 from (Pinte et al 2008) and eq 25 from (Fromang & Nelson 2009)
+#     note
+#     MCFOST offers the possibility to use a spherical grid instead.
+#     '''
+#     # devnote : gaussian distribution of dust is a bad fit.
+#     # For better modelization, see
+#     # eq 1 from (Pinte et al 2008) and eq 25 from (Fromang & Nelson 2009)
 
-    nrad, nphi = arr2d.shape
-    nz = len(zvect)
-    assert arr2d.shape == (nrad, nphi)
-    if isinstance(scale_height, float):
-        scale_height = scale_height * np.ones((nrad, nphi))
-    else:
-        assert scale_height.shape == (nrad, nphi)
-    arr3d = np.ones((nrad, nz, nphi))
+#     nrad, nphi = arr2d.shape
+#     nz = len(zvect)
+#     assert arr2d.shape == (nrad, nphi)
+#     if isinstance(scale_height, float):
+#         scale_height = scale_height * np.ones((nrad, nphi))
+#     else:
+#         assert scale_height.shape == (nrad, nphi)
+#     arr3d = np.ones((nrad, nz, nphi))
 
-    for k, z in enumerate(zvect):
-        arr3d[:, k, :] = arr2d[:, :] * gauss(z, sigma=scale_height)
-    return arr3d
+#     for k, z in enumerate(zvect):
+#         arr3d[:, k, :] = arr2d[:, :] * gauss(z, sigma=scale_height)
+#     return arr3d
 
 
 def get_dust_mass(data: VacDataSorter) -> float:
@@ -630,10 +630,12 @@ class Interface:
             target_grid = MCFOSTUtils.get_mcfost_grid(self)
             self._output_grid = {
                 'array': target_grid,
-                # 2D grids
+                # (nr, nphi) 2D grids
                 'rg': target_grid[0, :, 0, :].T,
                 'phig': target_grid[2, :, 0, :].T,
-                # vectors
+                # (nr, nz) 2D grid (z points do not depend on phi)
+                'zg': target_grid[1, 0, :, :].T,
+                # vectors (1D arrays)
                 'rv': target_grid[0, :, 0, :].T[:, 0],
                 'phiv': target_grid[2, :, 0, :].T[0],
             }
@@ -734,15 +736,34 @@ class Interface:
 
     def gen_3D_arrays(self):
         '''Interpolate input data onto full 3D output grid'''
-        zmax = self.config['target_options']['zmax']
+        #zmax = self.config['target_options']['zmax']
         nz = self.config['mcfost_list']['nz']
-        z_vect = np.linspace(0, zmax, nz)
-        scale_height_grid = self.config['target_options']['aspect_ratio'] \
-                            * self.output_grid['rg']
-        self._new_3D_arrays = np.array([
-            twoD2threeD(arr, scale_height_grid, z_vect)
-            for arr in self.new_2D_arrays
-        ])
+        #z_vect = np.linspace(0, zmax, nz)
+        #scale_height_grid = self.config['target_options']['aspect_ratio'] \
+                            #* self.output_grid['rg']
+        #import pdb; pdb.set_trace()
+
+        aspect_ratio = self.config['mcfost_list']['scale_height']/self.config['mcfost_list']['ref_radius'] # todo make this a property
+        nr, nphi = self.output_grid['rg'].shape
+        nr2, nz_out = self.output_grid['zg'].shape
+        nz_in = self.config['mcfost_list']['nz']
+        assert nr2 == nr
+        assert nz_out == 2*nz_in+1
+
+        nbins = len(self.new_2D_arrays)
+        self._new_3D_arrays = np.zeros((nbins, nr, nz_in, nphi))
+        for ir, r in enumerate(self.output_grid['rv']):
+            z_vect = self.output_grid['zg'][ir, :nz_in].reshape(1, nz_in)
+            sigma = r * aspect_ratio
+            gaussian = np.exp(-z_vect**2/ (2*sigma**2)) / (np.sqrt(2*np.pi) * sigma)
+            for i_bin, surface_density in enumerate(self.new_2D_arrays[:, ir, :]):
+                res = gaussian * surface_density.reshape(nphi, 1)
+                #import pdb; pdb.set_trace()
+                self._new_3D_arrays[i_bin, ir, :, :] = res.T
+        #self._new_3D_arrays = np.array([
+        #    twoD2threeD(arr, scale_height_grid, z_vect)
+        #    for arr in self.new_2D_arrays
+        #])
 
     @property
     def new_2D_arrays(self) -> list:
