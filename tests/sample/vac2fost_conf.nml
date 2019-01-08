@@ -6,6 +6,8 @@
     star_mass    = 1.8  ! [M_sun] (Casassus et al 2015)
     star_temp    = 6550 ! [K]     (Mendiguita et al 2014)
     distance_pc  = 157  ! [pc]    (Gaia consortium 2016)
+
+    flaring_index = 1.125
 /
 
 &target_options
