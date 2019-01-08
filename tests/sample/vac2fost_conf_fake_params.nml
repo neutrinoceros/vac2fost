@@ -14,5 +14,4 @@
     origin = '.'
     amrvac_conf = 'hd142527.nml', 'add_multidust.nml'
     num = 0
-    aspect_ratio = 0.01
 /
