@@ -127,12 +127,13 @@ class MCFOSTUtils:
                     ('gas_to_dust_ratio', 100)]),
                 od([('scale_height', 10.0),
                     ('ref_radius', 100.0),
+                    # only relevant in geometry "4" (debris disk) according to doc
                     ('profile_exp', 2)]),
                 od([('rin', 10),
                     ('edge', 0),
                     ('rout', 200),
                     ('rc', 100)]),
-                od([('flaring_index', 1.125)]),
+                od([('flaring_index', 1.0)]),
                 od([('density_exp', -0.5),
                     ('gamma_exp', 0.0)])
             )),
