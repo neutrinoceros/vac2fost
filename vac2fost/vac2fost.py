@@ -688,6 +688,7 @@ class Interface:
 
     @property
     def aspect_ratio(self):
+        """Dimensionless ratio implied by mcfost parameters"""
         mcfl = self.config['mcfost_list']
         return mcfl['scale_height'] / mcfl['ref_radius']
 
@@ -703,8 +704,8 @@ class Interface:
         self._new_3D_arrays = np.zeros((nbins, nr, nz_in, nphi))
         for ir, r in enumerate(self.output_grid['rv']):
             z_vect = self.output_grid['zg'][ir, nz_in+1:].reshape(1, nz_in)
-            sigma = r * self.aspect_ratio
-            gaussian = np.exp(-z_vect**2/ (2*sigma**2)) / (np.sqrt(2*np.pi) * sigma)
+            local_height = r * self.aspect_ratio
+            gaussian = np.exp(-z_vect**2/ (2*local_height**2)) / (np.sqrt(2*np.pi) * local_height)
             for i_bin, surface_density in enumerate(self.new_2D_arrays[:, ir, :]):
                 self._new_3D_arrays[i_bin, ir, :, :] = np.transpose(
                     gaussian * surface_density.reshape(nphi, 1))
