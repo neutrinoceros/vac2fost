@@ -232,16 +232,6 @@ class MCFOSTUtils:
             'rout': mesh['xprobmax1']*itf.conv2au,
             'maps_size': 2*mesh['xprobmax1']*itf.conv2au,
         })
-        # aspect ratio may be defined in the hd simulation conf file
-        try:
-            parameters.update({
-                # unit: au
-                'ref_radius': 1.0,
-                # scale_height is defined at ref radius
-                'scale_height': itf.sim_conf['disk_list']['aspect_ratio']
-            })
-        except KeyError:
-            itf.warnings.append("could not find aspect_ratio in hydro sim conf")
 
         try:
             dl2 = itf.sim_conf['usr_dust_list']
@@ -361,17 +351,19 @@ def generate_conf_template() -> f90nml.Namelist:
     target = {
         'origin': '!path to the simulation repository, where datafiles are located',
         'amrvac_conf': '!one or multiple file path relative to origin, ","separeated',
-        'zmax': '!<real> max disk height for vertical cylindrical extrapolation. Use same unit as inupt data',
-        'aspect_ratio': '!<real> cst aspect ratio for vertical extrapolation'
     }
-    mcfost_params = {
+    mcfost_list = {
         'nr': 128,
         'nr_in': 4,
         'nphi': 128,
-        'nz': 10
+        'nz': 10,
+        # aspect ratio is implied by those parameters
+        "flaring_index": 1.125,
+        "ref_radius": 100.0,  # [a.u.]
+        "scale_height": 1.0,  # [a.u.], at defined at ref_radius
     }
     template = f90nml.Namelist({
-        'mcfost_list': f90nml.Namelist(mcfost_params),
+        'mcfost_list': f90nml.Namelist(mcfost_list),
         'target_options': f90nml.Namelist(target)
     })
     return template
@@ -694,11 +686,13 @@ class Interface:
         assert interpolated_arrays[0].shape == (n_rad_new, n_phi_new)
         self._new_2D_arrays = np.array(interpolated_arrays)
 
+    @property
+    def aspect_ratio(self):
+        mcfl = self.config['mcfost_list']
+        return mcfl['scale_height'] / mcfl['ref_radius']
+
     def gen_3D_arrays(self):
         '''Interpolate input data onto full 3D output grid'''
-        nz = self.config['mcfost_list']['nz']
-
-        aspect_ratio = self.config['mcfost_list']['scale_height']/self.config['mcfost_list']['ref_radius'] # todo make this a property
         nr, nphi = self.output_grid['rg'].shape
         nr2, nz_out = self.output_grid['zg'].shape
         nz_in = self.config['mcfost_list']['nz']
@@ -709,7 +703,7 @@ class Interface:
         self._new_3D_arrays = np.zeros((nbins, nr, nz_in, nphi))
         for ir, r in enumerate(self.output_grid['rv']):
             z_vect = self.output_grid['zg'][ir, nz_in+1:].reshape(1, nz_in)
-            sigma = r * aspect_ratio
+            sigma = r * self.aspect_ratio
             gaussian = np.exp(-z_vect**2/ (2*sigma**2)) / (np.sqrt(2*np.pi) * sigma)
             for i_bin, surface_density in enumerate(self.new_2D_arrays[:, ir, :]):
                 res = gaussian * surface_density.reshape(nphi, 1)
