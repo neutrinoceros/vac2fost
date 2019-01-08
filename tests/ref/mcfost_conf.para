@@ -13,7 +13,7 @@
 
 # Grid
   1                                     geometry
-  128  12  64  2                        nr, nz, nphi, nr_in
+  128  10  64  2                        nr, nz, nphi, nr_in
 
 # Maps
   501  501  900.0                       nx, ny, maps_size
@@ -71,6 +71,5 @@
   6550  2.0  1.8  0.0  0.0  0  True     star_temp, star_radius, star_mass, star_x, star_y, star_z, star_is_bb
   lte4000-3.5.NextGen.fits.gz           star_rad_file
   0.0  2.2                              fUV, slope_fUV
-
 
 
