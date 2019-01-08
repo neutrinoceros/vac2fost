@@ -41,6 +41,17 @@ class TestRegression:
 
     def test_out(self):
         out_ref = pickle.load(open(test_dir/'ref/main_out.p', 'rb'))
+
+        #use this to regold the reference file
+        # with open(test_dir/'ref/main_out.p', 'wb') as file:
+        #     save_keys = ['sim_conf',
+        #                 'input_grid', 'output_grid',
+        #                  'new_2D_arrays', 'new_3D_arrays',
+        #                  '_dbm'
+        # ]
+        #     out = {k: itf.__getattribute__(k) for k in save_keys}
+        #     pickle.dump(out, file)
+
         assert itf._dbm == out_ref['_dbm']
         assert itf.sim_conf == out_ref['sim_conf']
         np.testing.assert_array_equal(itf.input_grid['rv'], out_ref['input_grid']['rv'])
@@ -51,16 +62,6 @@ class TestRegression:
         np.testing.assert_array_equal(itf.output_grid['phig'], out_ref['output_grid']['phig'])
         np.testing.assert_allclose(itf.new_2D_arrays, out_ref['new_2D_arrays'], rtol=1e-25)
         np.testing.assert_allclose(itf.new_3D_arrays, out_ref['new_3D_arrays'], rtol=1e-15)
-
-        ##use this to regold the reference file
-        # with open(test_dir/'ref/main_out2.p', 'wb') as file:
-        #     save_keys = ['sim_conf',
-        #                  'input_grid', 'output_grid',
-        #                  'new_2D_arrays', 'new_3D_arrays',
-        #                  '_dbm'
-        #     ]
-        #    out = {k: itf.__getattribute__(k) for k in save_keys}
-        #    pickle.dump(out, file)
 
     def test_out_non_axisym(self):
         outdir = test_dir / 'output/test_regression_non_axisym'
@@ -68,16 +69,6 @@ class TestRegression:
             shutil.rmtree(outdir)
         itf = app(test_dir/'sample/vac2fost_conf_nonaxisym.nml', output_dir=outdir)
         out_ref = pickle.load(open(test_dir/'ref/main_out_non_axisym.p', 'rb'))
-        assert itf._dbm == out_ref['_dbm']
-        assert itf.sim_conf == out_ref['sim_conf']
-        np.testing.assert_array_equal(itf.input_grid['rv'], out_ref['input_grid']['rv'])
-        np.testing.assert_array_equal(itf.input_grid['phiv'], out_ref['input_grid']['phiv'])
-        np.testing.assert_array_equal(itf.output_grid['rv'], out_ref['output_grid']['rv'])
-        np.testing.assert_array_equal(itf.output_grid['phiv'], out_ref['output_grid']['phiv'])
-        np.testing.assert_array_equal(itf.output_grid['rg'], out_ref['output_grid']['rg'])
-        np.testing.assert_array_equal(itf.output_grid['phig'], out_ref['output_grid']['phig'])
-        np.testing.assert_allclose(itf.new_2D_arrays, out_ref['new_2D_arrays'], rtol=1e-25)
-        np.testing.assert_allclose(itf.new_3D_arrays, out_ref['new_3D_arrays'], rtol=1e-15)
 
         #use this to regold the reference file
         # with open(test_dir/'ref/main_out_non_axisym.p', 'wb') as file:
@@ -88,3 +79,14 @@ class TestRegression:
         #     ]
         #     out = {k: itf.__getattribute__(k) for k in save_keys}
         #     pickle.dump(out, file)
+
+        assert itf._dbm == out_ref['_dbm']
+        assert itf.sim_conf == out_ref['sim_conf']
+        np.testing.assert_array_equal(itf.input_grid['rv'], out_ref['input_grid']['rv'])
+        np.testing.assert_array_equal(itf.input_grid['phiv'], out_ref['input_grid']['phiv'])
+        np.testing.assert_array_equal(itf.output_grid['rv'], out_ref['output_grid']['rv'])
+        np.testing.assert_array_equal(itf.output_grid['phiv'], out_ref['output_grid']['phiv'])
+        np.testing.assert_array_equal(itf.output_grid['rg'], out_ref['output_grid']['rg'])
+        np.testing.assert_array_equal(itf.output_grid['phig'], out_ref['output_grid']['phig'])
+        np.testing.assert_allclose(itf.new_2D_arrays, out_ref['new_2D_arrays'], rtol=1e-25)
+        np.testing.assert_allclose(itf.new_3D_arrays, out_ref['new_3D_arrays'], rtol=1e-15)
