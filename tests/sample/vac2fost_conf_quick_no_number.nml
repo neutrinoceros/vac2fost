@@ -3,11 +3,13 @@
     nphi = 10
     nz   = 2
     nr_in = 2
+
+    flaring_index = 1.125
+    scale_height = 10.0
+    ref_radius = 100.0
 /
 
 &target_options
     origin = '.' ! relative to the present configuration file
     amrvac_conf = 'hd142527.nml', 'add_multidust.nml'
-    zmax = 5         ! use same distance unit in the original simulation
-    aspect_ratio = 0.01
 /

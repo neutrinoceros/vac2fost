@@ -125,14 +125,15 @@ class MCFOSTUtils:
                 od([('zone_type', 1)]),
                 od([('dust_mass', '1e-3'),
                     ('gas_to_dust_ratio', 100)]),
-                od([('scale_height', 10.0),
+                od([('scale_height', 5.0),
                     ('ref_radius', 100.0),
+                    # only relevant in geometry "4" (debris disk) according to doc
                     ('profile_exp', 2)]),
                 od([('rin', 10),
                     ('edge', 0),
                     ('rout', 200),
                     ('rc', 100)]),
-                od([('flaring_index', 1.125)]),
+                od([('flaring_index', 1.0)]),
                 od([('density_exp', -0.5),
                     ('gamma_exp', 0.0)])
             )),
@@ -231,16 +232,6 @@ class MCFOSTUtils:
             'rout': mesh['xprobmax1']*itf.conv2au,
             'maps_size': 2*mesh['xprobmax1']*itf.conv2au,
         })
-        # aspect ratio may be defined in the hd simulation conf file
-        try:
-            parameters.update({
-                # unit: au
-                'ref_radius': 1.0,
-                # scale_height is defined at ref radius
-                'scale_height': itf.sim_conf['disk_list']['aspect_ratio']
-            })
-        except KeyError:
-            itf.warnings.append("could not find aspect_ratio in hydro sim conf")
 
         try:
             dl2 = itf.sim_conf['usr_dust_list']
@@ -338,46 +329,6 @@ class MCFOSTUtils:
         return target_grid
 
 
-def gauss(z, sigma):
-    '''Gaussian function for vertical extrapolation'''
-    return 1./(np.sqrt(2*np.pi) * sigma) * np.exp(-z**2/(2*sigma**2))
-
-
-def twoD2threeD(
-        arr2d: np.ndarray,
-        scale_height: np.ndarray,
-        zvect: np.ndarray) -> np.ndarray:
-    '''Convert surface density 2D array into volumic density 3D
-    cylindrical array assuming a gaussian vertical distribution.
-
-    array shapes
-    ------------
-    arr2d : (nrad, nphi)
-    scale_height (2D) : (nrad, nphi)
-    zvect : (nz,)
-    arr3d : (nrad, nz, nphi) (suited for mcfost)
-
-    note
-    MCFOST offers the possibility to use a spherical grid instead.
-    '''
-    # devnote : gaussian distribution of dust is a bad fit.
-    # For better modelization, see
-    # eq 1 from (Pinte et al 2008) and eq 25 from (Fromang & Nelson 2009)
-
-    nrad, nphi = arr2d.shape
-    nz = len(zvect)
-    assert arr2d.shape == (nrad, nphi)
-    if isinstance(scale_height, float):
-        scale_height = scale_height * np.ones((nrad, nphi))
-    else:
-        assert scale_height.shape == (nrad, nphi)
-    arr3d = np.ones((nrad, nz, nphi))
-
-    for k, z in enumerate(zvect):
-        arr3d[:, k, :] = arr2d[:, :] * gauss(z, sigma=scale_height)
-    return arr3d
-
-
 def get_dust_mass(data: VacDataSorter) -> float:
     '''estimate the total dust mass in the grid in code units
     (solar mass = 1) is assumed by the present script and MCFOST
@@ -400,17 +351,19 @@ def generate_conf_template() -> f90nml.Namelist:
     target = {
         'origin': '!path to the simulation repository, where datafiles are located',
         'amrvac_conf': '!one or multiple file path relative to origin, ","separeated',
-        'zmax': '!<real> max disk height for vertical cylindrical extrapolation. Use same unit as inupt data',
-        'aspect_ratio': '!<real> cst aspect ratio for vertical extrapolation'
     }
-    mcfost_params = {
+    mcfost_list = {
         'nr': 128,
         'nr_in': 4,
         'nphi': 128,
-        'nz': 10
+        'nz': 10,
+        # aspect ratio is implied by those parameters
+        "flaring_index": 1.125,
+        "ref_radius": 100.0,  # [a.u.]
+        "scale_height": 1.0,  # [a.u.], at defined at ref_radius
     }
     template = f90nml.Namelist({
-        'mcfost_list': f90nml.Namelist(mcfost_params),
+        'mcfost_list': f90nml.Namelist(mcfost_list),
         'target_options': f90nml.Namelist(target)
     })
     return template
@@ -629,10 +582,12 @@ class Interface:
             target_grid = MCFOSTUtils.get_mcfost_grid(self)
             self._output_grid = {
                 'array': target_grid,
-                # 2D grids
+                # (nr, nphi) 2D grids
                 'rg': target_grid[0, :, 0, :].T,
                 'phig': target_grid[2, :, 0, :].T,
-                # vectors
+                # (nr, nz) 2D grid (z points do not depend on phi)
+                'zg': target_grid[1, 0, :, :].T,
+                # vectors (1D arrays)
                 'rv': target_grid[0, :, 0, :].T[:, 0],
                 'phiv': target_grid[2, :, 0, :].T[0],
             }
@@ -731,17 +686,29 @@ class Interface:
         assert interpolated_arrays[0].shape == (n_rad_new, n_phi_new)
         self._new_2D_arrays = np.array(interpolated_arrays)
 
+    @property
+    def aspect_ratio(self):
+        """Dimensionless ratio implied by mcfost parameters"""
+        mcfl = self.config['mcfost_list']
+        return mcfl['scale_height'] / mcfl['ref_radius']
+
     def gen_3D_arrays(self):
         '''Interpolate input data onto full 3D output grid'''
-        zmax = self.config['target_options']['zmax']
-        nz = self.config['mcfost_list']['nz']
-        z_vect = np.linspace(0, zmax, nz)
-        scale_height_grid = self.config['target_options']['aspect_ratio'] \
-                            * self.output_grid['rg']
-        self._new_3D_arrays = np.array([
-            twoD2threeD(arr, scale_height_grid, z_vect)
-            for arr in self.new_2D_arrays
-        ])
+        nr, nphi = self.output_grid['rg'].shape
+        nr2, nz_out = self.output_grid['zg'].shape
+        nz_in = self.config['mcfost_list']['nz']
+        assert nr2 == nr
+        assert nz_out == 2*nz_in+1
+
+        nbins = len(self.new_2D_arrays)
+        self._new_3D_arrays = np.zeros((nbins, nr, nz_in, nphi))
+        for ir, r in enumerate(self.output_grid['rv']):
+            z_vect = self.output_grid['zg'][ir, nz_in+1:].reshape(1, nz_in)
+            local_height = r * self.aspect_ratio
+            gaussian = np.exp(-z_vect**2/ (2*local_height**2)) / (np.sqrt(2*np.pi) * local_height)
+            for i_bin, surface_density in enumerate(self.new_2D_arrays[:, ir, :]):
+                self._new_3D_arrays[i_bin, ir, :, :] = np.transpose(
+                    gaussian * surface_density.reshape(nphi, 1))
 
     @property
     def new_2D_arrays(self) -> list:

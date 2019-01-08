@@ -103,6 +103,11 @@ generated from command line with ``vac2fost.py --genconf``)
                nphi = 100
                nz   = 50
                nr_in = 30  ! need to be < nr
+
+	       flaring_index = 1.125
+	       ref_radius = 100.0    ! [a.u.]
+	       scale_height = 10.0   ! [a.u.] defined at ref_radius
+
                star_mass = 1.8
                star_temp = 6550
                distance  = 157
@@ -113,8 +118,6 @@ generated from command line with ``vac2fost.py --genconf``)
                origin = '/path/to/mod_usr.t/parent/directory'
                amrvac_conf = 'relative/path/to/vac/config_file/from/origin'
                num = 0  ! output number of the .dat file to be converted
-               zmax = 5    ! use same unit at distance in the original simulation
-               aspect_ratio = 0.01
            /
 
 

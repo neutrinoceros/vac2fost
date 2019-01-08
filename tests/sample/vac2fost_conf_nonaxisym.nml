@@ -1,11 +1,15 @@
 &mcfost_list
-    nr   = 150
-    nphi = 100
-    nz   = 25
-    nr_in = 30
+    nr   = 128
+    nphi = 64
+    nz   = 10
+    nr_in = 2
     star_mass    = 1.8  ! [M_sun] (Casassus et al 2015)
     star_temp    = 6550 ! [K]     (Mendiguita et al 2014)
     distance_pc  = 157  ! [pc]    (Gaia consortium 2016)
+
+    flaring_index = 1.125
+    scale_height = 10.0
+    ref_radius = 100.0
 /
 
 &target_options
@@ -13,6 +17,4 @@
     amrvac_conf = 'hd142527_rphi.nml', 'dust_rphi.par'
     conv2au = 100
     num = 20
-    zmax = 10.           ! use same distance unit as hydro simulation
-    aspect_ratio = 0.02
 /
