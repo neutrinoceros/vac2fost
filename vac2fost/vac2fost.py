@@ -708,7 +708,7 @@ class Interface:
         nbins = len(self.new_2D_arrays)
         self._new_3D_arrays = np.zeros((nbins, nr, nz_in, nphi))
         for ir, r in enumerate(self.output_grid['rv']):
-            z_vect = self.output_grid['zg'][ir, :nz_in].reshape(1, nz_in)
+            z_vect = self.output_grid['zg'][ir, nz_in+1:].reshape(1, nz_in)
             sigma = r * aspect_ratio
             gaussian = np.exp(-z_vect**2/ (2*sigma**2)) / (np.sqrt(2*np.pi) * sigma)
             for i_bin, surface_density in enumerate(self.new_2D_arrays[:, ir, :]):
