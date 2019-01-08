@@ -17,6 +17,5 @@
     amrvac_conf = 'hd142527_rphi.nml', 'dust_rphi.par'
     conv2au = 100
     num = 20
-    zmax = 10.           ! use same distance unit as hydro simulation
     aspect_ratio = 0.02
 /

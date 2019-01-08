@@ -14,6 +14,5 @@
     origin = '.'
     amrvac_conf = 'hd142527.nml', 'add_multidust.nml'
     num = 0
-    zmax = 5         ! use same distance unit in the original simulation
     aspect_ratio = 0.01
 /
