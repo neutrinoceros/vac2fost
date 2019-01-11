@@ -52,7 +52,7 @@ class TestRegression:
         #     out = {k: itf.__getattribute__(k) for k in save_keys}
         #     pickle.dump(out, file)
 
-        assert itf._dbm == out_ref['_dbm']
+        assert itf.dust_binning_mode == out_ref['_dbm']
         assert itf.sim_conf == out_ref['sim_conf']
         np.testing.assert_array_equal(itf.input_grid['rv'], out_ref['input_grid']['rv'])
         np.testing.assert_array_equal(itf.input_grid['phiv'], out_ref['input_grid']['phiv'])
@@ -80,7 +80,7 @@ class TestRegression:
         #     out = {k: itf.__getattribute__(k) for k in save_keys}
         #     pickle.dump(out, file)
 
-        assert itf._dbm == out_ref['_dbm']
+        assert itf.dust_binning_mode == out_ref['_dbm']
         assert itf.sim_conf == out_ref['sim_conf']
         np.testing.assert_array_equal(itf.input_grid['rv'], out_ref['input_grid']['rv'])
         np.testing.assert_array_equal(itf.input_grid['phiv'], out_ref['input_grid']['phiv'])
