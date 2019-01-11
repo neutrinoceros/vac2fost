@@ -41,7 +41,11 @@ Most of the non-standard Python dependencies can be installed with
     
         conda create --name vac2fost --file environment.ylm --channel conda-forge
 
-Other parts of the program are ``amrvac_pywrap`` and ``vtk_vacreader``.
+Other parts of the program are amrvac_pywrap_ and vtk_vacreader_.
+
+
+.. _amrvac_pywrap: https://gitlab.oca.eu/crobert/amrvac-pywrap-project
+.. _vtk_vacreader: https://gitlab.oca.eu/crobert/vtk_vacreader-project
 
 They can be installed with
 
