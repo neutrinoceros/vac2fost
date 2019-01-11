@@ -356,6 +356,8 @@ def generate_conf_template() -> f90nml.Namelist:
     target = {
         'origin': '!path to the simulation repository, where datafiles are located',
         'amrvac_conf': '!one or multiple file path relative to origin, ","separeated',
+        'conv2au': 100,
+        'num': 0
     }
     mcfost_list = {
         'nr': 128,
@@ -832,7 +834,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--genconf', action='store_true',
-        help='generate configuration file template for this script in the current dir'
+        help="print a default configuration file for vac2fost"
     )
     parser.add_argument(
         '--profile',
@@ -843,20 +845,12 @@ if __name__ == '__main__':
     cargs = parser.parse_args()
 
     if cargs.genconf:
-        template_nml = generate_conf_template()
-        finame = cargs.output + '/template_vac2fost.nml'
-        if not Path(cargs.output).exists():
-            subprocess.call(f'mkdir -p {cargs.output}', shell=True)
-        if Path(finame).exists():
-            sys.exit(f'Error: {finame} already exists, exiting vac2fost.py')
-        else:
-            with open(finame, 'wt') as wfile:
-                template_nml.write(wfile)
-                print(f'Generated {finame}')
-        sys.exit(1)
+        print(generate_conf_template())
+        print(f"%% automatically generated with vac2fost {__version__}\n")
+        sys.exit(0)
     elif len(sys.argv) == 1:
         parser.print_help(sys.stderr)
-        sys.exit(2)
+        sys.exit(1)
 
     if cargs.profile:
         import cProfile
