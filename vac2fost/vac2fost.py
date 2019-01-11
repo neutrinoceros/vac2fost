@@ -18,6 +18,8 @@ Known limitations
   5) gas density is never passed to MCFOST as is but only
      as a tracer for smallest dust grains
 '''
+__version__ = '2.1.1'
+
 from collections import OrderedDict as od, namedtuple
 import os
 import sys
