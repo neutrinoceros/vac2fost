@@ -39,8 +39,7 @@ Most of the non-standard Python dependencies can be installed with
 
     .. code-block:: bash
     
-        conda config --add channels conda-forge
-        conda create --name vac2fost --file environment.ylm
+        conda create --name vac2fost --file environment.ylm --channel conda-forge
 
 Other parts of the program are ``amrvac_pywrap`` and ``vtk_vacreader``.
 
