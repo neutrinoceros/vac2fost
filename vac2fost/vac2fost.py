@@ -354,8 +354,8 @@ def get_dust_mass(data: VacDataSorter) -> float:
 def generate_conf_template() -> f90nml.Namelist:
     '''Generate a template namelist object with comments instead of default values'''
     target = {
-        'origin': '!path to the simulation repository, where datafiles are located',
-        'amrvac_conf': '!one or multiple file path relative to origin, ","separeated',
+        'origin': "path/to/output/data/directory",
+        'amrvac_conf': "relative/path/to/amrvac/configuration/file[s]",
         'conv2au': 100,
         'num': 0
     }
