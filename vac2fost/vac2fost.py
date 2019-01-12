@@ -437,14 +437,14 @@ class Interface:
 
         origin = Path(self.config["amrvac_input"]["origin"])
         if not origin.is_absolute():
-            to = self.config['amrvac_input']
+            options = self.config['amrvac_input']
             p1 = Path.cwd()
             p2 = (Path(config_file).parent/origin).resolve()
 
-            if isinstance(to['amrvac_conf'], (list, tuple)):
-                fi = to['amrvac_conf'][0]
+            if isinstance(options['amrvac_conf'], (list, tuple)):
+                fi = options['amrvac_conf'][0]
             else:
-                fi = to['amrvac_conf']
+                fi = options['amrvac_conf']
 
             found = [(p/fi).is_file() for p in (p1, p2)]
             if all(found) and p1 != p2:
