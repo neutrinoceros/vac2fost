@@ -398,8 +398,6 @@ class Interface:
     '''A class to hold global variables as attributes and give
     clear and concise structure to the main() function.'''
 
-    known_dbms = {'dust-only', 'gas-only', 'mixed', 'auto'}
-
     @wait_for_ok("parsing input")
     def __init__(self, config_file, num: int = None,
                  output_dir: Path = Path('.'),
@@ -411,8 +409,6 @@ class Interface:
             raise TypeError(config_file)
         if not isinstance(output_dir, (str, Path)):
             raise TypeError(output_dir)
-        if dust_bin_mode not in __class__.known_dbms:
-            raise KeyError(f'Unknown dust binning mode "{dust_bin_mode}"')
         else:
             self._dust_binning_mode = dust_bin_mode
 
@@ -448,8 +444,10 @@ class Interface:
 
             found = [(p/fi).is_file() for p in (p1, p2)]
             if all(found) and p1 != p2:
-                raise FileNotFoundError(
-                    f"""can not guess if path "{hydro_data_dir}" is relative to cwd or configuration file""")
+                errmess = f'can not guess if path "{hydro_data_dir}" '
+                errmess += "is relative to cwd or configuration file"
+                raise FileNotFoundError(errmess)
+
             elif not any(found):
                 raise FileNotFoundError(hydro_data_dir)
             else:
@@ -494,17 +492,25 @@ class Interface:
 
     @property
     def dust_binning_mode(self):
+        """Define binning strategy
+        - use only gas as a proxy ?
+        - use only dust information ?
+        - use both, assuming gas traces the smallest grains ?
+        """
         return self._dust_binning_mode
 
     @dust_binning_mode.setter
-    def dust_binning_mode(self, args:list):
+    def dust_binning_mode(self, args: list):
+        known_dbms = {"dust-only", "gas-only", "mixed", "auto"}
         if isinstance(args, str):
             dbm = args
             reason = None
         else:
             assert isinstance(args, list) and len(args) == 2
             dbm, reason = args
-        assert dbm in __class__.known_dbms
+        if dbm not in known_dbms:
+            raise KeyError(f'Unknown dust binning mode "{dbm}"')
+
         w = f'dust-binning mode was switched to "{args[0]}"'
         if reason:
             w += f'; reason: {reason}'
@@ -552,7 +558,9 @@ class Interface:
                                     '.vtu'])
             self._iodat = {}
             basein = dict(
-                directory=Path(interpret_shell_path(self.config['amrvac_input']['hydro_data_dir'])).resolve(),
+                directory=Path(interpret_shell_path(
+                    self.config['amrvac_input']['hydro_data_dir']
+                )).resolve(),
                 filename=vtu_filename,
                 shape=tuple(
                     [self.sim_conf['meshlist'][f'domain_nx{n}']
@@ -820,7 +828,7 @@ if __name__ == '__main__':
         '-dbm', '--dustbinmode', dest='dbm', type=str,
         required=False,
         default=DEFAULTS['DBM'],
-        help='prefered bin selection mode (accepted values "dust-only", "gas-only", "mixed", "auto")'
+        help="prefered bin selection mode [dust-only, gas-only, mixed, auto]"
     )
     parser.add_argument(
         '-v', '--verbose',
