@@ -610,7 +610,7 @@ class Interface:
                 'array': target_grid,
                 # (nr, nphi) 2D grids
                 'rg': target_grid[0, :, 0, :],
-                'phig': target_grid[2, :, 0, :].transpose(),
+                'phig': target_grid[2, :, 0, :],
                 # (nr, nz) 2D grid (z points do not depend on phi)
                 'zg': target_grid[1, 0, :, :],
                 # vectors (1D arrays)
