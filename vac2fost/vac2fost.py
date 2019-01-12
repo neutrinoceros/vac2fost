@@ -195,13 +195,13 @@ class MCFOSTUtils:
         for di in descriptor[1]:
             known_args += list(di.keys())
 
-    def write_mcfost_conf(output_file: str, custom: dict = None, silent=True):
+    def write_mcfost_conf(output_file: str, custom: dict = None, verbose=False):
         '''Write a configuration file for mcfost using values from <custom>,
         and falling back to defaults found in block_descriptor defined above
         '''
         if custom is None:
             custom = {}
-        if Path(output_file).exists() and not silent:
+        if Path(output_file).exists() and verbose:
             print(f'Warning: {output_file} already exists, and will be overwritten.')
         with open(output_file, 'wt') as fi:
             fi.write('3.0'.ljust(10) + 'mcfost minimal version\n\n')
@@ -222,10 +222,10 @@ class MCFOSTUtils:
             fi.write("\n\n")
             fi.write(f"%% automatically generated with vac2fost {__version__}\n")
             fi.write(f"%% run by {os.environ['USER']} on {gethostname()}\n")
-        if not silent:
+        if verbose:
             print(f'wrote {output_file}')
 
-    def translate_amrvac_conf(itf) -> dict:
+    def translate_amrvac_config(itf) -> dict:
         # itf must be of type Interface (can't be parsed properly before python 3.7)
         '''pass amrvac parameters to mcfost'''
         parameters = {}
@@ -260,7 +260,6 @@ class MCFOSTUtils:
         '''Pre-run MCFOST with -disk_struct flag to get the exact grid used.'''
         mcfost_conf_file = itf.mcfost_para_file
         output_dir = itf.io['out'].directory
-        silent = (not itf.dbg)
 
         output_dir = Path(output_dir).resolve()
         mcfost_conf_path = Path(mcfost_conf_file)
@@ -270,7 +269,7 @@ class MCFOSTUtils:
         grid_file_name = output_dir / 'mcfost_grid.fits.gz'
 
         #gen_needed = True
-        #mcfost_list = itf.config['mcfost_list']
+        #mcfost_output = itf.config['mcfost_output']
         if grid_file_name.exists():
             itf.warnings.append("found existing grid file, ignored it")
             # devnote : this block is deprecated because it was getting off hand.
@@ -280,8 +279,8 @@ class MCFOSTUtils:
             #     target_grid = fi[0].data
             # shape_found = target_grid.shape[1:]
             # correct_shapes = (
-            #     (mcfost_list['nphi'], mcfost_list['nz'], mcfost_list['nr']),
-            #     (mcfost_list['nphi'], mcfost_list['nz']*2+1, mcfost_list['nr'])
+            #     (mcfost_output['nphi'], mcfost_output['nz'], mcfost_output['nr']),
+            #     (mcfost_output['nphi'], mcfost_output['nz']*2+1, mcfost_output['nr'])
             # )
             # radial_range_correct = itf.conv2au*np.array([
             #     itf.sim_conf["meshlist"]["xprobmin1"],
@@ -290,7 +289,7 @@ class MCFOSTUtils:
             # radial_range_found = np.array([target_grid[0, 0, 0, :].min(),
             #                                target_grid[0, 0, 0, :].max()])
             # zmax_found = target_grid[1, 0, :, :].max()
-            # zmax_correct = itf.config["target_options"]["zmax"] * itf.conv2au
+            # zmax_correct = itf.config["amrvac_input"]["zmax"] * itf.conv2au
             # gen_needed = shape_found not in correct_shapes \
             #              or not np.all(radial_range_found == radial_range_correct) \
             #              or zmax_found != zmax_correct
@@ -313,7 +312,7 @@ class MCFOSTUtils:
             subprocess.check_call(
                 f"mcfost mcfost_conf.para -disk_struct",
                 shell=True,
-                stdout={True: subprocess.PIPE, False: None}[silent]
+                stdout={True: None, False: subprocess.PIPE}[itf.mcfost_verbose]
             )
             shutil.move("data_disk/grid.fits.gz", grid_file_name)
         except subprocess.CalledProcessError as exc:
@@ -353,9 +352,9 @@ def get_dust_mass(data: VacDataSorter) -> float:
 
 def generate_conf_template() -> f90nml.Namelist:
     '''Generate a template namelist object with comments instead of default values'''
-    target = {
-        'origin': "path/to/output/data/directory",
-        'amrvac_conf': "relative/path/to/amrvac/configuration/file[s]",
+    amrvac_list = {
+        'hydro_data_dir': "path/to/output/data/directory",
+        'config': "relative/to/<hydro_data_dir>/path/to/amrvac/config/file[s]",
         'conv2au': 100,
         'num': 0
     }
@@ -370,8 +369,8 @@ def generate_conf_template() -> f90nml.Namelist:
         "scale_height": 1.0,  # [a.u.], at defined at ref_radius
     }
     template = f90nml.Namelist({
-        'mcfost_list': f90nml.Namelist(mcfost_list),
-        'target_options': f90nml.Namelist(target)
+        'amrvac_input': f90nml.Namelist(amrvac_list),
+        'mcfost_output': f90nml.Namelist(mcfost_list),
     })
     return template
 
@@ -404,7 +403,8 @@ class Interface:
     @wait_for_ok("parsing input")
     def __init__(self, config_file, num: int = None,
                  output_dir: Path = Path('.'),
-                 dust_bin_mode: str = DEFAULTS['DBM'], dbg=False):
+                 dust_bin_mode: str = DEFAULTS['DBM'],
+                 mcfost_verbose=False):
 
         # input checking
         if not isinstance(config_file, (str, Path)):
@@ -425,7 +425,7 @@ class Interface:
         }
 
         self._dim = 2  # no support for 3D input yet
-        self.dbg = dbg
+        self.mcfost_verbose = mcfost_verbose
         self.warnings = []
 
         # parse configuration file
@@ -433,31 +433,31 @@ class Interface:
         if num is not None:
             self.num = num
         else:
-            self.num = self.config['target_options']['num']
+            self.num = self.config["amrvac_input"]["num"]
 
-        origin = Path(self.config['target_options']['origin'])
-        if not origin.is_absolute():
-            to = self.config['target_options']
+        hydro_data_dir = Path(self.config["amrvac_input"]["hydro_data_dir"])
+        if not hydro_data_dir.is_absolute():
+            options = self.config['amrvac_input']
             p1 = Path.cwd()
-            p2 = (Path(config_file).parent/origin).resolve()
+            p2 = (Path(config_file).parent/hydro_data_dir).resolve()
 
-            if isinstance(to['amrvac_conf'], (list, tuple)):
-                fi = to['amrvac_conf'][0]
+            if isinstance(options['config'], (list, tuple)):
+                fi = options['config'][0]
             else:
-                fi = to['amrvac_conf']
+                fi = options['config']
 
             found = [(p/fi).is_file() for p in (p1, p2)]
             if all(found) and p1 != p2:
                 raise FileNotFoundError(
-                    f"""can not guess if path "{origin}" is relative to cwd or configuration file""")
+                    f"""can not guess if path "{hydro_data_dir}" is relative to cwd or configuration file""")
             elif not any(found):
-                raise FileNotFoundError(origin)
+                raise FileNotFoundError(hydro_data_dir)
             else:
                 p = (p1, p2)[found.index(True)]
-            self.config['target_options'].update({'origin': p.resolve()})
+            self.config['amrvac_input'].update({'hydro_data_dir': p.resolve()})
         self.sim_conf = read_amrvac_conf(
-            files=self.config['target_options']['amrvac_conf'],
-            origin=self.config['target_options']['origin']
+            files=self.config['amrvac_input']['config'],
+            origin=self.config['amrvac_input']['hydro_data_dir']
         )
         self.small_grains_from_gas = True
         self._iodat = None
@@ -475,7 +475,7 @@ class Interface:
         # optional definition of the distance unit
         self.conv2au = 1.0
         try:
-            self.conv2au = self.config['target_options']['conv2au']
+            self.conv2au = self.config['amrvac_input']['conv2au']
         except KeyError:
             self.warnings.append("could not find conv2au, distance unit assumed 1au")
 
@@ -552,7 +552,7 @@ class Interface:
                                     '.vtu'])
             self._iodat = {}
             basein = dict(
-                directory=Path(interpret_shell_path(self.config['target_options']['origin'])).resolve(),
+                directory=Path(interpret_shell_path(self.config['amrvac_input']['hydro_data_dir'])).resolve(),
                 filename=vtu_filename,
                 shape=tuple(
                     [self.sim_conf['meshlist'][f'domain_nx{n}']
@@ -614,23 +614,23 @@ class Interface:
     def write_mcfost_conf_file(self) -> None:
         '''Customize defaults with user specifications'''
         custom = {}
-        custom.update(MCFOSTUtils.translate_amrvac_conf(self))
+        custom.update(MCFOSTUtils.translate_amrvac_config(self))
         unknown_args = self.scan_for_unknown_arguments()
         if unknown_args:
             raise KeyError(f'Unrecognized MCFOST argument(s): {unknown_args}')
-        custom.update(self.config['mcfost_list'])
+        custom.update(self.config['mcfost_output'])
 
         custom.update({'dust_mass': get_dust_mass(self.input_data)})
         MCFOSTUtils.write_mcfost_conf(
             output_file=self.mcfost_para_file,
             custom=custom,
-            silent=(not self.dbg)
+            verbose=self.mcfost_verbose
         )
 
     def scan_for_unknown_arguments(self) -> list:
-        '''Get unrecognized arguments found in mcfost_list'''
+        '''Get unrecognized arguments found in mcfost_output'''
         unknowns = []
-        for arg in self.config['mcfost_list'].keys():
+        for arg in self.config['mcfost_output'].keys():
             if not arg.lower() in MCFOSTUtils.known_args:
                 unknowns.append(arg)
         return unknowns
@@ -685,8 +685,8 @@ class Interface:
         '''Interpolate input data onto r-phi grid
         with output grid specifications'''
         n_rad_new, n_phi_new = self.output_grid['rg'].shape
-        assert n_rad_new == self.config['mcfost_list']['nr']
-        assert n_phi_new == self.config['mcfost_list']['nphi']
+        assert n_rad_new == self.config['mcfost_output']['nr']
+        assert n_phi_new == self.config['mcfost_output']['nphi']
 
         density_keys = sorted(filter(
             lambda k: 'rho' in k, self.input_data.fields.keys()))
@@ -707,14 +707,14 @@ class Interface:
     @property
     def aspect_ratio(self):
         """Dimensionless ratio implied by mcfost parameters"""
-        mcfl = self.config['mcfost_list']
+        mcfl = self.config['mcfost_output']
         return mcfl['scale_height'] / mcfl['ref_radius']
 
     def gen_3D_arrays(self):
         '''Interpolate input data onto full 3D output grid'''
         nr, nphi = self.output_grid['rg'].shape
         nr2, nz_out = self.output_grid['zg'].shape
-        nz_in = self.config['mcfost_list']['nz']
+        nz_in = self.config['mcfost_output']['nz']
         assert nr2 == nr
         assert nz_out == 2*nz_in+1
 
@@ -772,13 +772,13 @@ def main(config_file: str,
          output_dir: str = '.',
          dust_bin_mode: str = DEFAULTS['DBM'],
          verbose=False,
-         dbg=False):
+         mcfost_verbose=False):
     '''Try to transform a .vtu file into a .fits'''
 
     print('=========================== vac2fost.py ============================')
     InterfaceType = {True: VerbatimInterface, False: Interface}[verbose]
     itf = InterfaceType(config_file, num=num, output_dir=output_dir,
-                        dust_bin_mode=dust_bin_mode, dbg=dbg)
+                        dust_bin_mode=dust_bin_mode, mcfost_verbose=mcfost_verbose)
 
     itf.load_input_data()
     itf.write_mcfost_conf_file()
@@ -828,18 +828,18 @@ if __name__ == '__main__':
         help='activate verbose mode'
     )
     parser.add_argument(
-        '--dbg', '--debug', dest='dbg',
+        '--mcfost_verbose',
         action='store_true',
-        help='activate debug mode (verbose for MCFOST)'
+        help='do not silence mcfost'
     )
     parser.add_argument(
         '--genconf', action='store_true',
         help="print a default configuration file for vac2fost"
     )
     parser.add_argument(
-        '--profile',
+        '--cprofile',
         action='store_true',
-        help='activate profiling mode'
+        help='activate code profiling'
     )
 
     cargs = parser.parse_args()
@@ -852,7 +852,7 @@ if __name__ == '__main__':
         parser.print_help(sys.stderr)
         sys.exit(1)
 
-    if cargs.profile:
+    if cargs.cprofile:
         import cProfile
         import pstats
         import io
@@ -865,10 +865,10 @@ if __name__ == '__main__':
         output_dir=cargs.output,
         dust_bin_mode=cargs.dbm,
         verbose=cargs.verbose,
-        dbg=cargs.dbg
+        mcfost_verbose=cargs.mcfost_verbose
     )
     # -------------------------------------------
-    if cargs.profile:
+    if cargs.cprofile:
         pr.disable()
         s = io.StringIO()
         ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')

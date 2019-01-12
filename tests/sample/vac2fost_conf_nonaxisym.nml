@@ -1,4 +1,4 @@
-&mcfost_list
+&mcfost_output
     nr   = 128
     nphi = 64
     nz   = 10
@@ -12,9 +12,9 @@
     ref_radius = 100.0
 /
 
-&target_options
-    origin = 'nonaxisym' ! relative to the present configuration file
-    amrvac_conf = 'hd142527_rphi.nml', 'dust_rphi.par'
+&amrvac_input
+    hydro_data_dir = 'nonaxisym' ! relative to the present configuration file
+    config = 'hd142527_rphi.nml', 'dust_rphi.par'
     conv2au = 100
     num = 20
 /
