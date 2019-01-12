@@ -612,7 +612,7 @@ class Interface:
                 'rg': target_grid[0, :, 0, :].transpose(),
                 'phig': target_grid[2, :, 0, :].transpose(),
                 # (nr, nz) 2D grid (z points do not depend on phi)
-                'zg': target_grid[1, 0, :, :].transpose(),
+                'zg': target_grid[1, 0, :, :],
                 # vectors (1D arrays)
                 'rv': target_grid[0, :, 0, :].transpose()[:, 0],
                 'phiv': target_grid[2, :, 0, :].transpose()[0],
@@ -717,7 +717,7 @@ class Interface:
     def gen_3D_arrays(self):
         '''Interpolate input data onto full 3D output grid'''
         nr, nphi = self.output_grid['rg'].shape
-        nr2, nz_out = self.output_grid['zg'].shape
+        nz_out, nr2 = self.output_grid['zg'].shape
         nz_in = self.config['mcfost_output']['nz']
         assert nr2 == nr
         assert nz_out == 2*nz_in+1
@@ -725,7 +725,7 @@ class Interface:
         nbins = len(self.new_2D_arrays)
         self._new_3D_arrays = np.zeros((nbins, nphi, nz_in, nr))
         for ir, r in enumerate(self.output_grid['rv']):
-            z_vect = self.output_grid['zg'][ir, nz_in+1:].reshape(1, nz_in)
+            z_vect = self.output_grid['zg'][nz_in+1:, ir].reshape(1, nz_in)
             local_height = r * self.aspect_ratio
             gaussian = np.exp(-z_vect**2/ (2*local_height**2)) / (np.sqrt(2*np.pi) * local_height)
             for i_bin, surface_density in enumerate(self.new_2D_arrays[:, ir, :]):
