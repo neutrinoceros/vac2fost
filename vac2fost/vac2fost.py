@@ -609,13 +609,13 @@ class Interface:
             self._output_grid = {
                 'array': target_grid,
                 # (nr, nphi) 2D grids
-                'rg': target_grid[0, :, 0, :].T,
-                'phig': target_grid[2, :, 0, :].T,
+                'rg': target_grid[0, :, 0, :].transpose(),
+                'phig': target_grid[2, :, 0, :].transpose(),
                 # (nr, nz) 2D grid (z points do not depend on phi)
-                'zg': target_grid[1, 0, :, :].T,
+                'zg': target_grid[1, 0, :, :].transpose(),
                 # vectors (1D arrays)
-                'rv': target_grid[0, :, 0, :].T[:, 0],
-                'phiv': target_grid[2, :, 0, :].T[0],
+                'rv': target_grid[0, :, 0, :].transpose()[:, 0],
+                'phiv': target_grid[2, :, 0, :].transpose()[0],
             }
         return self._output_grid
 
