@@ -645,10 +645,8 @@ class Interface:
 
     def write_output(self) -> None:
         '''Main method. Write a .fits file suited for MCFOST input.'''
-        # the transposition is handling a weird behavior of fits files...
         argsort = self.argsort_offset + self.grain_micron_sizes.argsort()
-        dust_densities_array = self.new_3D_arrays[argsort]
-        dust_densities_HDU = fits.PrimaryHDU(dust_densities_array)
+        dust_densities_HDU = fits.PrimaryHDU(self.new_3D_arrays[argsort])
 
         mcfost_keywords = {
             # automatic normalization of size-bins from mcfost param file.
