@@ -54,6 +54,7 @@ class TestRegression:
         np.testing.assert_array_equal(itf.output_grid['phiv'], out_ref['output_grid']['phiv'])
         np.testing.assert_array_equal(itf.output_grid['rg'], out_ref['output_grid']['rg'])
         np.testing.assert_array_equal(itf.output_grid['phig'], out_ref['output_grid']['phig'])
+        np.testing.assert_array_equal(itf.output_grid['zg'], out_ref['output_grid']['zg'])
         np.testing.assert_allclose(itf.new_2D_arrays, out_ref['new_2D_arrays'], rtol=1e-25)
         np.testing.assert_allclose(itf.new_3D_arrays, out_ref['new_3D_arrays'], rtol=1e-15)
 
@@ -81,6 +82,7 @@ class TestRegression:
         np.testing.assert_array_equal(itf2.output_grid['phiv'], out_ref['output_grid']['phiv'])
         np.testing.assert_array_equal(itf2.output_grid['rg'], out_ref['output_grid']['rg'])
         np.testing.assert_array_equal(itf2.output_grid['phig'], out_ref['output_grid']['phig'])
+        np.testing.assert_array_equal(itf2.output_grid['zg'], out_ref['output_grid']['zg'])
         np.testing.assert_allclose(itf2.new_2D_arrays, out_ref['new_2D_arrays'], rtol=1e-25)
         np.testing.assert_allclose(itf2.new_3D_arrays, out_ref['new_3D_arrays'], rtol=1e-15)
 
