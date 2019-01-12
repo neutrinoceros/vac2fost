@@ -12,6 +12,6 @@
 
 &amrvac_input
     origin = '.'
-    amrvac_conf = 'hd142527.nml', 'add_multidust.nml'
+    config = 'hd142527.nml', 'add_multidust.nml'
     num = 0
 /

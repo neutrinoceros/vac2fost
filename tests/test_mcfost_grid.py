@@ -16,11 +16,11 @@ sampledir = test_dir / 'sample'
 config_file = sampledir / 'vac2fost_conf.nml'
 config = f90nml.read(config_file)
 options = config['amrvac_input']
-sim_conf = read_amrvac_conf(files=options['amrvac_conf'], origin=sampledir/options['origin'])
+sim_conf = read_amrvac_conf(files=options["config"], origin=sampledir/options['origin'])
 
 custom = {}
 itf = Interface(str(config_file))
-custom.update(MCFOSTUtils.translate_amrvac_conf(itf))
+custom.update(MCFOSTUtils.translate_amrvac_config(itf))
 
 def gen_mcfost_grid(output_dir):
     """Create an Interface only to create an mcfost grid from it,

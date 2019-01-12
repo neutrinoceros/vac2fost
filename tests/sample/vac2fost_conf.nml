@@ -14,6 +14,6 @@
 
 &amrvac_input
     origin = '.' ! relative to the present configuration file
-    amrvac_conf = 'hd142527.nml', 'add_multidust.nml'
+    config = 'hd142527.nml', 'add_multidust.nml'
     num = 0
 /

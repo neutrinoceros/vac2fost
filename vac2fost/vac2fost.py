@@ -225,7 +225,7 @@ class MCFOSTUtils:
         if verbose:
             print(f'wrote {output_file}')
 
-    def translate_amrvac_conf(itf) -> dict:
+    def translate_amrvac_config(itf) -> dict:
         # itf must be of type Interface (can't be parsed properly before python 3.7)
         '''pass amrvac parameters to mcfost'''
         parameters = {}
@@ -354,11 +354,11 @@ def generate_conf_template() -> f90nml.Namelist:
     '''Generate a template namelist object with comments instead of default values'''
     amrvac_list = {
         'origin': "path/to/output/data/directory",
-        'amrvac_conf': "relative/to/<origin>/path/to/amrvac/config/file[s]",
+        'config': "relative/to/<origin>/path/to/amrvac/config/file[s]",
         'conv2au': 100,
         'num': 0
     }
-    mcfost_output = {
+    mcfost_list = {
         'nr': 128,
         'nr_in': 4,
         'nphi': 128,
@@ -370,7 +370,7 @@ def generate_conf_template() -> f90nml.Namelist:
     }
     template = f90nml.Namelist({
         'amrvac_input': f90nml.Namelist(amrvac_list),
-        'mcfost_output': f90nml.Namelist(mcfost_output),
+        'mcfost_output': f90nml.Namelist(mcfost_list),
     })
     return template
 
@@ -441,10 +441,10 @@ class Interface:
             p1 = Path.cwd()
             p2 = (Path(config_file).parent/origin).resolve()
 
-            if isinstance(options['amrvac_conf'], (list, tuple)):
-                fi = options['amrvac_conf'][0]
+            if isinstance(options['config'], (list, tuple)):
+                fi = options['config'][0]
             else:
-                fi = options['amrvac_conf']
+                fi = options['config']
 
             found = [(p/fi).is_file() for p in (p1, p2)]
             if all(found) and p1 != p2:
@@ -456,7 +456,7 @@ class Interface:
                 p = (p1, p2)[found.index(True)]
             self.config['amrvac_input'].update({'origin': p.resolve()})
         self.sim_conf = read_amrvac_conf(
-            files=self.config['amrvac_input']['amrvac_conf'],
+            files=self.config['amrvac_input']['config'],
             origin=self.config['amrvac_input']['origin']
         )
         self.small_grains_from_gas = True
@@ -614,7 +614,7 @@ class Interface:
     def write_mcfost_conf_file(self) -> None:
         '''Customize defaults with user specifications'''
         custom = {}
-        custom.update(MCFOSTUtils.translate_amrvac_conf(self))
+        custom.update(MCFOSTUtils.translate_amrvac_config(self))
         unknown_args = self.scan_for_unknown_arguments()
         if unknown_args:
             raise KeyError(f'Unrecognized MCFOST argument(s): {unknown_args}')
