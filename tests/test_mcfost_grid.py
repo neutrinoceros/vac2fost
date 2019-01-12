@@ -15,7 +15,7 @@ test_dir = Path(__file__).absolute().parent
 sampledir = test_dir / 'sample'
 config_file = sampledir / 'vac2fost_conf.nml'
 config = f90nml.read(config_file)
-options = config['target_options']
+options = config['amrvac_input']
 sim_conf = read_amrvac_conf(files=options['amrvac_conf'], origin=sampledir/options['origin'])
 
 custom = {}

@@ -1,4 +1,4 @@
-&mcfost_list
+&mcfost_output
     nr   = 128
     nphi = 64
     nz   = 10
@@ -12,7 +12,7 @@
     ref_radius = 100.0
 /
 
-&target_options
+&amrvac_input
     origin = '.' ! relative to the present configuration file
     amrvac_conf = 'hd142527.nml', 'add_multidust.nml'
     num = 0

@@ -269,7 +269,7 @@ class MCFOSTUtils:
         grid_file_name = output_dir / 'mcfost_grid.fits.gz'
 
         #gen_needed = True
-        #mcfost_list = itf.config['mcfost_list']
+        #mcfost_output = itf.config['mcfost_output']
         if grid_file_name.exists():
             itf.warnings.append("found existing grid file, ignored it")
             # devnote : this block is deprecated because it was getting off hand.
@@ -279,8 +279,8 @@ class MCFOSTUtils:
             #     target_grid = fi[0].data
             # shape_found = target_grid.shape[1:]
             # correct_shapes = (
-            #     (mcfost_list['nphi'], mcfost_list['nz'], mcfost_list['nr']),
-            #     (mcfost_list['nphi'], mcfost_list['nz']*2+1, mcfost_list['nr'])
+            #     (mcfost_output['nphi'], mcfost_output['nz'], mcfost_output['nr']),
+            #     (mcfost_output['nphi'], mcfost_output['nz']*2+1, mcfost_output['nr'])
             # )
             # radial_range_correct = itf.conv2au*np.array([
             #     itf.sim_conf["meshlist"]["xprobmin1"],
@@ -289,7 +289,7 @@ class MCFOSTUtils:
             # radial_range_found = np.array([target_grid[0, 0, 0, :].min(),
             #                                target_grid[0, 0, 0, :].max()])
             # zmax_found = target_grid[1, 0, :, :].max()
-            # zmax_correct = itf.config["target_options"]["zmax"] * itf.conv2au
+            # zmax_correct = itf.config["amrvac_input"]["zmax"] * itf.conv2au
             # gen_needed = shape_found not in correct_shapes \
             #              or not np.all(radial_range_found == radial_range_correct) \
             #              or zmax_found != zmax_correct
@@ -352,13 +352,13 @@ def get_dust_mass(data: VacDataSorter) -> float:
 
 def generate_conf_template() -> f90nml.Namelist:
     '''Generate a template namelist object with comments instead of default values'''
-    target = {
+    amrvac_list = {
         'origin': "path/to/output/data/directory",
-        'amrvac_conf': "relative/path/to/amrvac/configuration/file[s]",
+        'amrvac_conf': "relative/to/<origin>/path/to/amrvac/config/file[s]",
         'conv2au': 100,
         'num': 0
     }
-    mcfost_list = {
+    mcfost_output = {
         'nr': 128,
         'nr_in': 4,
         'nphi': 128,
@@ -369,8 +369,8 @@ def generate_conf_template() -> f90nml.Namelist:
         "scale_height": 1.0,  # [a.u.], at defined at ref_radius
     }
     template = f90nml.Namelist({
-        'mcfost_list': f90nml.Namelist(mcfost_list),
-        'target_options': f90nml.Namelist(target)
+        'amrvac_input': f90nml.Namelist(amrvac_list),
+        'mcfost_output': f90nml.Namelist(mcfost_output),
     })
     return template
 
@@ -433,11 +433,11 @@ class Interface:
         if num is not None:
             self.num = num
         else:
-            self.num = self.config['target_options']['num']
+            self.num = self.config["amrvac_input"]["num"]
 
-        origin = Path(self.config['target_options']['origin'])
+        origin = Path(self.config["amrvac_input"]["origin"])
         if not origin.is_absolute():
-            to = self.config['target_options']
+            to = self.config['amrvac_input']
             p1 = Path.cwd()
             p2 = (Path(config_file).parent/origin).resolve()
 
@@ -454,10 +454,10 @@ class Interface:
                 raise FileNotFoundError(origin)
             else:
                 p = (p1, p2)[found.index(True)]
-            self.config['target_options'].update({'origin': p.resolve()})
+            self.config['amrvac_input'].update({'origin': p.resolve()})
         self.sim_conf = read_amrvac_conf(
-            files=self.config['target_options']['amrvac_conf'],
-            origin=self.config['target_options']['origin']
+            files=self.config['amrvac_input']['amrvac_conf'],
+            origin=self.config['amrvac_input']['origin']
         )
         self.small_grains_from_gas = True
         self._iodat = None
@@ -475,7 +475,7 @@ class Interface:
         # optional definition of the distance unit
         self.conv2au = 1.0
         try:
-            self.conv2au = self.config['target_options']['conv2au']
+            self.conv2au = self.config['amrvac_input']['conv2au']
         except KeyError:
             self.warnings.append("could not find conv2au, distance unit assumed 1au")
 
@@ -552,7 +552,7 @@ class Interface:
                                     '.vtu'])
             self._iodat = {}
             basein = dict(
-                directory=Path(interpret_shell_path(self.config['target_options']['origin'])).resolve(),
+                directory=Path(interpret_shell_path(self.config['amrvac_input']['origin'])).resolve(),
                 filename=vtu_filename,
                 shape=tuple(
                     [self.sim_conf['meshlist'][f'domain_nx{n}']
@@ -618,7 +618,7 @@ class Interface:
         unknown_args = self.scan_for_unknown_arguments()
         if unknown_args:
             raise KeyError(f'Unrecognized MCFOST argument(s): {unknown_args}')
-        custom.update(self.config['mcfost_list'])
+        custom.update(self.config['mcfost_output'])
 
         custom.update({'dust_mass': get_dust_mass(self.input_data)})
         MCFOSTUtils.write_mcfost_conf(
@@ -628,9 +628,9 @@ class Interface:
         )
 
     def scan_for_unknown_arguments(self) -> list:
-        '''Get unrecognized arguments found in mcfost_list'''
+        '''Get unrecognized arguments found in mcfost_output'''
         unknowns = []
-        for arg in self.config['mcfost_list'].keys():
+        for arg in self.config['mcfost_output'].keys():
             if not arg.lower() in MCFOSTUtils.known_args:
                 unknowns.append(arg)
         return unknowns
@@ -685,8 +685,8 @@ class Interface:
         '''Interpolate input data onto r-phi grid
         with output grid specifications'''
         n_rad_new, n_phi_new = self.output_grid['rg'].shape
-        assert n_rad_new == self.config['mcfost_list']['nr']
-        assert n_phi_new == self.config['mcfost_list']['nphi']
+        assert n_rad_new == self.config['mcfost_output']['nr']
+        assert n_phi_new == self.config['mcfost_output']['nphi']
 
         density_keys = sorted(filter(
             lambda k: 'rho' in k, self.input_data.fields.keys()))
@@ -707,14 +707,14 @@ class Interface:
     @property
     def aspect_ratio(self):
         """Dimensionless ratio implied by mcfost parameters"""
-        mcfl = self.config['mcfost_list']
+        mcfl = self.config['mcfost_output']
         return mcfl['scale_height'] / mcfl['ref_radius']
 
     def gen_3D_arrays(self):
         '''Interpolate input data onto full 3D output grid'''
         nr, nphi = self.output_grid['rg'].shape
         nr2, nz_out = self.output_grid['zg'].shape
-        nz_in = self.config['mcfost_list']['nz']
+        nz_in = self.config['mcfost_output']['nz']
         assert nr2 == nr
         assert nz_out == 2*nz_in+1
 
