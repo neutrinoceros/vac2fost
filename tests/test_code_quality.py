@@ -5,7 +5,7 @@ test_dir = pathlib.Path(__file__).parent.resolve()
 output_file = test_dir/"output/pylint.log"
 mainfile = (test_dir.parent/"vac2fost/vac2fost.py").resolve()
 rcfile = test_dir.parent/".pylintrc"
-MINIMAL_MARK = 9.92
+MINIMAL_MARK = 10.0 #perfect score or nothing
 
 def test_style_standard():
     subprocess.call(f"pylint {mainfile} --rcfile {rcfile} > {output_file}", shell=True)
