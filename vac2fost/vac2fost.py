@@ -353,8 +353,8 @@ def get_dust_mass(data: VacDataSorter) -> float:
 def generate_conf_template() -> f90nml.Namelist:
     '''Generate a template namelist object with comments instead of default values'''
     amrvac_list = {
-        'origin': "path/to/output/data/directory",
-        'config': "relative/to/<origin>/path/to/amrvac/config/file[s]",
+        'hydro_data_dir': "path/to/output/data/directory",
+        'config': "relative/to/<hydro_data_dir>/path/to/amrvac/config/file[s]",
         'conv2au': 100,
         'num': 0
     }
@@ -435,11 +435,11 @@ class Interface:
         else:
             self.num = self.config["amrvac_input"]["num"]
 
-        origin = Path(self.config["amrvac_input"]["origin"])
-        if not origin.is_absolute():
+        hydro_data_dir = Path(self.config["amrvac_input"]["hydro_data_dir"])
+        if not hydro_data_dir.is_absolute():
             options = self.config['amrvac_input']
             p1 = Path.cwd()
-            p2 = (Path(config_file).parent/origin).resolve()
+            p2 = (Path(config_file).parent/hydro_data_dir).resolve()
 
             if isinstance(options['config'], (list, tuple)):
                 fi = options['config'][0]
@@ -449,15 +449,15 @@ class Interface:
             found = [(p/fi).is_file() for p in (p1, p2)]
             if all(found) and p1 != p2:
                 raise FileNotFoundError(
-                    f"""can not guess if path "{origin}" is relative to cwd or configuration file""")
+                    f"""can not guess if path "{hydro_data_dir}" is relative to cwd or configuration file""")
             elif not any(found):
-                raise FileNotFoundError(origin)
+                raise FileNotFoundError(hydro_data_dir)
             else:
                 p = (p1, p2)[found.index(True)]
-            self.config['amrvac_input'].update({'origin': p.resolve()})
+            self.config['amrvac_input'].update({'hydro_data_dir': p.resolve()})
         self.sim_conf = read_amrvac_conf(
             files=self.config['amrvac_input']['config'],
-            origin=self.config['amrvac_input']['origin']
+            origin=self.config['amrvac_input']['hydro_data_dir']
         )
         self.small_grains_from_gas = True
         self._iodat = None
@@ -552,7 +552,7 @@ class Interface:
                                     '.vtu'])
             self._iodat = {}
             basein = dict(
-                directory=Path(interpret_shell_path(self.config['amrvac_input']['origin'])).resolve(),
+                directory=Path(interpret_shell_path(self.config['amrvac_input']['hydro_data_dir'])).resolve(),
                 filename=vtu_filename,
                 shape=tuple(
                     [self.sim_conf['meshlist'][f'domain_nx{n}']

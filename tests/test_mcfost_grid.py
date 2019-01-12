@@ -16,7 +16,8 @@ sampledir = test_dir / 'sample'
 config_file = sampledir / 'vac2fost_conf.nml'
 config = f90nml.read(config_file)
 options = config['amrvac_input']
-sim_conf = read_amrvac_conf(files=options["config"], origin=sampledir/options['origin'])
+sim_conf = read_amrvac_conf(files=options["config"],
+                            origin=sampledir/options['hydro_data_dir'])
 
 custom = {}
 itf = Interface(str(config_file))
