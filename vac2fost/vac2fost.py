@@ -195,13 +195,13 @@ class MCFOSTUtils:
         for di in descriptor[1]:
             known_args += list(di.keys())
 
-    def write_mcfost_conf(output_file: str, custom: dict = None, silent=True):
+    def write_mcfost_conf(output_file: str, custom: dict = None, verbose=False):
         '''Write a configuration file for mcfost using values from <custom>,
         and falling back to defaults found in block_descriptor defined above
         '''
         if custom is None:
             custom = {}
-        if Path(output_file).exists() and not silent:
+        if Path(output_file).exists() and verbose:
             print(f'Warning: {output_file} already exists, and will be overwritten.')
         with open(output_file, 'wt') as fi:
             fi.write('3.0'.ljust(10) + 'mcfost minimal version\n\n')
@@ -222,7 +222,7 @@ class MCFOSTUtils:
             fi.write("\n\n")
             fi.write(f"%% automatically generated with vac2fost {__version__}\n")
             fi.write(f"%% run by {os.environ['USER']} on {gethostname()}\n")
-        if not silent:
+        if verbose:
             print(f'wrote {output_file}')
 
     def translate_amrvac_conf(itf) -> dict:
@@ -260,7 +260,6 @@ class MCFOSTUtils:
         '''Pre-run MCFOST with -disk_struct flag to get the exact grid used.'''
         mcfost_conf_file = itf.mcfost_para_file
         output_dir = itf.io['out'].directory
-        silent = (not itf.dbg)
 
         output_dir = Path(output_dir).resolve()
         mcfost_conf_path = Path(mcfost_conf_file)
@@ -313,7 +312,7 @@ class MCFOSTUtils:
             subprocess.check_call(
                 f"mcfost mcfost_conf.para -disk_struct",
                 shell=True,
-                stdout={True: subprocess.PIPE, False: None}[silent]
+                stdout={True: None, False: subprocess.PIPE}[itf.mcfost_verbose]
             )
             shutil.move("data_disk/grid.fits.gz", grid_file_name)
         except subprocess.CalledProcessError as exc:
@@ -404,7 +403,8 @@ class Interface:
     @wait_for_ok("parsing input")
     def __init__(self, config_file, num: int = None,
                  output_dir: Path = Path('.'),
-                 dust_bin_mode: str = DEFAULTS['DBM'], dbg=False):
+                 dust_bin_mode: str = DEFAULTS['DBM'],
+                 mcfost_verbose=False):
 
         # input checking
         if not isinstance(config_file, (str, Path)):
@@ -425,7 +425,7 @@ class Interface:
         }
 
         self._dim = 2  # no support for 3D input yet
-        self.dbg = dbg
+        self.mcfost_verbose = mcfost_verbose
         self.warnings = []
 
         # parse configuration file
@@ -624,7 +624,7 @@ class Interface:
         MCFOSTUtils.write_mcfost_conf(
             output_file=self.mcfost_para_file,
             custom=custom,
-            silent=(not self.dbg)
+            verbose=self.mcfost_verbose
         )
 
     def scan_for_unknown_arguments(self) -> list:
@@ -772,13 +772,13 @@ def main(config_file: str,
          output_dir: str = '.',
          dust_bin_mode: str = DEFAULTS['DBM'],
          verbose=False,
-         dbg=False):
+         mcfost_verbose=False):
     '''Try to transform a .vtu file into a .fits'''
 
     print('=========================== vac2fost.py ============================')
     InterfaceType = {True: VerbatimInterface, False: Interface}[verbose]
     itf = InterfaceType(config_file, num=num, output_dir=output_dir,
-                        dust_bin_mode=dust_bin_mode, dbg=dbg)
+                        dust_bin_mode=dust_bin_mode, mcfost_verbose=mcfost_verbose)
 
     itf.load_input_data()
     itf.write_mcfost_conf_file()
@@ -828,18 +828,18 @@ if __name__ == '__main__':
         help='activate verbose mode'
     )
     parser.add_argument(
-        '--dbg', '--debug', dest='dbg',
+        '--mcfost_verbose',
         action='store_true',
-        help='activate debug mode (verbose for MCFOST)'
+        help='do not silence mcfost'
     )
     parser.add_argument(
         '--genconf', action='store_true',
         help="print a default configuration file for vac2fost"
     )
     parser.add_argument(
-        '--profile',
+        '--cprofile',
         action='store_true',
-        help='activate profiling mode'
+        help='activate code profiling'
     )
 
     cargs = parser.parse_args()
@@ -852,7 +852,7 @@ if __name__ == '__main__':
         parser.print_help(sys.stderr)
         sys.exit(1)
 
-    if cargs.profile:
+    if cargs.cprofile:
         import cProfile
         import pstats
         import io
@@ -865,10 +865,10 @@ if __name__ == '__main__':
         output_dir=cargs.output,
         dust_bin_mode=cargs.dbm,
         verbose=cargs.verbose,
-        dbg=cargs.dbg
+        mcfost_verbose=cargs.mcfost_verbose
     )
     # -------------------------------------------
-    if cargs.profile:
+    if cargs.cprofile:
         pr.disable()
         s = io.StringIO()
         ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')

@@ -22,7 +22,7 @@ class TestPyScripting():
         app(
             str(here/'sample/vac2fost_conf.nml'),
             output_dir=__class__.output_dir,
-            dbg=True,
+            mcfost_verbose=True,
         )
 
     def test_format(self):

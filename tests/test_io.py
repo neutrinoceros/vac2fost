@@ -34,4 +34,4 @@ class Test_IO:
 
     def test_path_reading(self):
         """Check that AMRVAC config file can be correctly assessed with a relative "origin" argument"""
-        Interface(config_file=test_dir/'sample/vac2fost_conf_nonaxisym.nml', dbg=True)
+        Interface(config_file=test_dir/'sample/vac2fost_conf_nonaxisym.nml', mcfost_verbose=True)
