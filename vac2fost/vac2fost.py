@@ -609,7 +609,7 @@ class Interface:
             self._output_grid = {
                 'array': target_grid,
                 # (nr, nphi) 2D grids
-                'rg': target_grid[0, :, 0, :].transpose(),
+                'rg': target_grid[0, :, 0, :],
                 'phig': target_grid[2, :, 0, :].transpose(),
                 # (nr, nz) 2D grid (z points do not depend on phi)
                 'zg': target_grid[1, 0, :, :],
@@ -688,7 +688,7 @@ class Interface:
     def gen_2D_arrays(self):
         '''Interpolate input data onto r-phi grid
         with output grid specifications'''
-        n_rad_new, n_phi_new = self.output_grid['rg'].shape
+        n_phi_new, n_rad_new = self.output_grid['rg'].shape
         assert n_rad_new == self.config['mcfost_output']['nr']
         assert n_phi_new == self.config['mcfost_output']['nphi']
 
@@ -716,7 +716,7 @@ class Interface:
 
     def gen_3D_arrays(self):
         '''Interpolate input data onto full 3D output grid'''
-        nr, nphi = self.output_grid['rg'].shape
+        nphi, nr = self.output_grid['rg'].shape
         nz_out, nr2 = self.output_grid['zg'].shape
         nz_in = self.config['mcfost_output']['nz']
         assert nr2 == nr

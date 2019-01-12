@@ -69,7 +69,7 @@ class TestRegression:
     def test_out_non_axisym(self):
         #use this to regold the reference file
         # with open(test_dir/'ref/main_out_non_axisym.p', 'wb') as file:
-        #     out = {k: itf.__getattribute__(k) for k in save_keys}
+        #     out = {k: itf2.__getattribute__(k) for k in save_keys}
         #     pickle.dump(out, file)
 
         out_ref = pickle.load(open(test_dir/'ref/main_out_non_axisym.p', 'rb'))
