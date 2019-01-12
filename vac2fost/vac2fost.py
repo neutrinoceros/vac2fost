@@ -609,13 +609,13 @@ class Interface:
             self._output_grid = {
                 'array': target_grid,
                 # (nr, nphi) 2D grids
-                'rg': target_grid[0, :, 0, :].T,
-                'phig': target_grid[2, :, 0, :].T,
+                'rg': target_grid[0, :, 0, :],
+                'phig': target_grid[2, :, 0, :],
                 # (nr, nz) 2D grid (z points do not depend on phi)
-                'zg': target_grid[1, 0, :, :].T,
+                'zg': target_grid[1, 0, :, :],
                 # vectors (1D arrays)
-                'rv': target_grid[0, :, 0, :].T[:, 0],
-                'phiv': target_grid[2, :, 0, :].T[0],
+                'rv': target_grid[0, 0, 0, :],
+                'phiv': target_grid[2, :, 0, 0],
             }
         return self._output_grid
 
@@ -645,12 +645,8 @@ class Interface:
 
     def write_output(self) -> None:
         '''Main method. Write a .fits file suited for MCFOST input.'''
-        # the transposition is handling a weird behavior of fits files...
-        dust_densities_array = np.stack(
-            self.new_3D_arrays[
-                self.argsort_offset + self.grain_micron_sizes.argsort()],
-            axis=3).transpose()
-        dust_densities_HDU = fits.PrimaryHDU(dust_densities_array)
+        argsort = self.argsort_offset + self.grain_micron_sizes.argsort()
+        dust_densities_HDU = fits.PrimaryHDU(self.new_3D_arrays[argsort])
 
         mcfost_keywords = {
             # automatic normalization of size-bins from mcfost param file.
@@ -692,7 +688,7 @@ class Interface:
     def gen_2D_arrays(self):
         '''Interpolate input data onto r-phi grid
         with output grid specifications'''
-        n_rad_new, n_phi_new = self.output_grid['rg'].shape
+        n_phi_new, n_rad_new = self.output_grid['rg'].shape
         assert n_rad_new == self.config['mcfost_output']['nr']
         assert n_phi_new == self.config['mcfost_output']['nphi']
 
@@ -720,21 +716,21 @@ class Interface:
 
     def gen_3D_arrays(self):
         '''Interpolate input data onto full 3D output grid'''
-        nr, nphi = self.output_grid['rg'].shape
-        nr2, nz_out = self.output_grid['zg'].shape
+        nphi, nr = self.output_grid['rg'].shape
+        nz_out, nr2 = self.output_grid['zg'].shape
         nz_in = self.config['mcfost_output']['nz']
         assert nr2 == nr
         assert nz_out == 2*nz_in+1
 
         nbins = len(self.new_2D_arrays)
-        self._new_3D_arrays = np.zeros((nbins, nr, nz_in, nphi))
+        self._new_3D_arrays = np.zeros((nbins, nphi, nz_in, nr))
         for ir, r in enumerate(self.output_grid['rv']):
-            z_vect = self.output_grid['zg'][ir, nz_in+1:].reshape(1, nz_in)
+            z_vect = self.output_grid['zg'][nz_in+1:, ir].reshape(1, nz_in)
             local_height = r * self.aspect_ratio
             gaussian = np.exp(-z_vect**2/ (2*local_height**2)) / (np.sqrt(2*np.pi) * local_height)
             for i_bin, surface_density in enumerate(self.new_2D_arrays[:, ir, :]):
-                self._new_3D_arrays[i_bin, ir, :, :] = np.transpose(
-                    gaussian * surface_density.reshape(nphi, 1))
+                self._new_3D_arrays[i_bin, :, :, ir] = \
+                    gaussian * surface_density.reshape(nphi, 1)
 
     @property
     def new_2D_arrays(self) -> list:
