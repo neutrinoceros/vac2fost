@@ -444,8 +444,10 @@ class Interface:
 
             found = [(p/fi).is_file() for p in (p1, p2)]
             if all(found) and p1 != p2:
-                raise FileNotFoundError(
-                    f"""can not guess if path "{hydro_data_dir}" is relative to cwd or configuration file""")
+                errmess = f'can not guess if path "{hydro_data_dir}" '
+                errmess += "is relative to cwd or configuration file"
+                raise FileNotFoundError(errmess)
+
             elif not any(found):
                 raise FileNotFoundError(hydro_data_dir)
             else:
@@ -556,7 +558,9 @@ class Interface:
                                     '.vtu'])
             self._iodat = {}
             basein = dict(
-                directory=Path(interpret_shell_path(self.config['amrvac_input']['hydro_data_dir'])).resolve(),
+                directory=Path(interpret_shell_path(
+                    self.config['amrvac_input']['hydro_data_dir']
+                )).resolve(),
                 filename=vtu_filename,
                 shape=tuple(
                     [self.sim_conf['meshlist'][f'domain_nx{n}']
@@ -824,7 +828,7 @@ if __name__ == '__main__':
         '-dbm', '--dustbinmode', dest='dbm', type=str,
         required=False,
         default=DEFAULTS['DBM'],
-        help='prefered bin selection mode (accepted values "dust-only", "gas-only", "mixed", "auto")'
+        help="prefered bin selection mode [dust-only, gas-only, mixed, auto]"
     )
     parser.add_argument(
         '-v', '--verbose',
