@@ -132,8 +132,6 @@ disable=print-statement,
 	too-many-instance-attributes,
 	no-member,
 	no-self-argument,
-	consider-using-ternary,
-	too-many-locals,
 	too-many-branches,
 	too-many-statements,
 	no-value-for-parameter
