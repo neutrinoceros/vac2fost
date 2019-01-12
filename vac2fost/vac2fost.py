@@ -646,10 +646,8 @@ class Interface:
     def write_output(self) -> None:
         '''Main method. Write a .fits file suited for MCFOST input.'''
         # the transposition is handling a weird behavior of fits files...
-        dust_densities_array = np.stack(
-            self.new_3D_arrays[
-                self.argsort_offset + self.grain_micron_sizes.argsort()],
-            axis=3).transpose()
+        argsort = self.argsort_offset + self.grain_micron_sizes.argsort()
+        dust_densities_array = np.stack(self.new_3D_arrays[argsort], axis=3).transpose()
         dust_densities_HDU = fits.PrimaryHDU(dust_densities_array)
 
         mcfost_keywords = {
