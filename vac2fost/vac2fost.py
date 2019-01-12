@@ -614,7 +614,7 @@ class Interface:
                 # (nr, nz) 2D grid (z points do not depend on phi)
                 'zg': target_grid[1, 0, :, :],
                 # vectors (1D arrays)
-                'rv': target_grid[0, :, 0, :].transpose()[:, 0],
+                'rv': target_grid[0, 0, 0, :],
                 'phiv': target_grid[2, :, 0, :].transpose()[0],
             }
         return self._output_grid
