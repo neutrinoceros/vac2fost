@@ -400,7 +400,7 @@ class Interface:
 
     @wait_for_ok("parsing input")
     def __init__(self, config_file, num: int = None,
-                 output_dir: Path = Path('.'),
+                 output_dir: Path = Path.cwd(),
                  dust_bin_mode: str = DEFAULTS['DBM'],
                  mcfost_verbose=False):
 
