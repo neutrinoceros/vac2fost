@@ -98,3 +98,18 @@ class TestShellCalling():
         ])
         exitcode = subprocess.call(comm, shell=True)
         assert exitcode != 0 # Excepted to fail
+
+    def test_command_line_call_w_multiple_numbers(self):
+        output_dir = test_dir / 'output/test_command_line_w_multiple_numbers/'
+        if output_dir.is_dir():
+            shutil.rmtree(output_dir)
+        comm = " ".join([
+            str(root / "vac2fost.py"),
+            str(test_dir / "sample/vac2fost_conf_quick_no_number.nml"),
+            f"-n 0 1 2",
+            f"-o {output_dir}",
+        ])
+        exitcode = subprocess.call(comm, shell=True)
+        assert exitcode == 0
+        for n in (0,1,2):
+            assert (output_dir / f"hd142527_dusty{str(n).zfill(4)}.fits").exists()

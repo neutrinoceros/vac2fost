@@ -268,68 +268,40 @@ class MCFOSTUtils:
 
         grid_file_name = output_dir / 'mcfost_grid.fits.gz'
 
-        #gen_needed = True
-        #mcfost_output = itf.config['mcfost_output']
-        if grid_file_name.exists():
-            itf.warnings.append("found existing grid file, ignored it")
-            # devnote : this block is deprecated because it was getting off hand.
-            #           a more maintainable solution is being studied.
-            #
-            # with fits.open(grid_file_name, mode='readonly') as fi:
-            #     target_grid = fi[0].data
-            # shape_found = target_grid.shape[1:]
-            # correct_shapes = (
-            #     (mcfost_output['nphi'], mcfost_output['nz'], mcfost_output['nr']),
-            #     (mcfost_output['nphi'], mcfost_output['nz']*2+1, mcfost_output['nr'])
-            # )
-            # radial_range_correct = itf.conv2au*np.array([
-            #     itf.sim_conf["meshlist"]["xprobmin1"],
-            #     itf.sim_conf["meshlist"]["xprobmax1"]
-            # ])
-            # radial_range_found = np.array([target_grid[0, 0, 0, :].min(),
-            #                                target_grid[0, 0, 0, :].max()])
-            # zmax_found = target_grid[1, 0, :, :].max()
-            # zmax_correct = itf.config["amrvac_input"]["zmax"] * itf.conv2au
-            # gen_needed = shape_found not in correct_shapes \
-            #              or not np.all(radial_range_found == radial_range_correct) \
-            #              or zmax_found != zmax_correct
+        if itf.current_num == itf.nums[0]:
+            assert mcfost_conf_path.exists()
+            # generate a grid data file with mcfost itself and extract it
+            tmp_mcfost_dir = Path(f'TMP_VAC2FOST_MCFOST_GRID_{uuid.uuid4()}')
+            os.mkdir(tmp_mcfost_dir)
+            try:
+                shutil.copyfile(mcfost_conf_path.resolve(),
+                                tmp_mcfost_dir/mcfost_conf_path.name)
+            except shutil.SameFileError:
+                pass
 
-        #if gen_needed: #devnote : always consider this true from now on
-        assert mcfost_conf_path.exists()
-        # generate a grid data file with mcfost itself and extract it
-        tmp_mcfost_dir = Path(f'TMP_VAC2FOST_MCFOST_GRID_{uuid.uuid4()}')
-        os.mkdir(tmp_mcfost_dir)
-        try:
-            shutil.copyfile(mcfost_conf_path.resolve(),
-                            tmp_mcfost_dir/mcfost_conf_path.name)
-        except shutil.SameFileError:
-            pass
-
-        pile = Path.cwd()
-        os.chdir(tmp_mcfost_dir)
-        try:
-            os.environ['OMP_NUM_THREADS'] = '1'
-            subprocess.check_call(
-                f"mcfost mcfost_conf.para -disk_struct",
-                shell=True,
-                stdout={True: None, False: subprocess.PIPE}[itf.mcfost_verbose]
-            )
-            shutil.move("data_disk/grid.fits.gz", grid_file_name)
-        except subprocess.CalledProcessError as exc:
-            errtip = f'\nError in MCFOST, exited with exitcode {exc.returncode}'
-            if exc.returncode == 174:
-                errtip += (
-                    '\nThis is probably a memory issue. '
-                    'Try reducing the target resolution or,'
-                    ' alternatively, give more cpu memory to this task.'
+            pile = Path.cwd()
+            os.chdir(tmp_mcfost_dir)
+            try:
+                subprocess.check_call(
+                    f"mcfost mcfost_conf.para -disk_struct",
+                    shell=True,
+                    stdout={True: None, False: subprocess.PIPE}[itf.mcfost_verbose]
                 )
-                raise RuntimeError(errtip)
-        finally:
-            os.chdir(pile)
-            shutil.rmtree(tmp_mcfost_dir)
+                shutil.move("data_disk/grid.fits.gz", grid_file_name)
+            except subprocess.CalledProcessError as exc:
+                errtip = f'\nError in MCFOST, exited with exitcode {exc.returncode}'
+                if exc.returncode == 174:
+                    errtip += (
+                        '\nThis is probably a memory issue. '
+                        'Try reducing the target resolution or,'
+                        ' alternatively, give more cpu memory to this task.'
+                    )
+                    raise RuntimeError(errtip)
+            finally:
+                os.chdir(pile)
+                shutil.rmtree(tmp_mcfost_dir)
         with fits.open(grid_file_name, mode='readonly') as fi:
             target_grid = fi[0].data
-        # end if gen_needed
         return target_grid
 
 
@@ -399,8 +371,9 @@ class Interface:
     clear and concise structure to the main() function.'''
 
     @wait_for_ok("parsing input")
-    def __init__(self, config_file, num: int = None,
-                 output_dir: Path = Path.cwd(),
+    def __init__(self, config_file,
+                 nums: int = None, # or any int-returning iterable
+                 output_dir: Path = Path('.'),
                  dust_bin_mode: str = DEFAULTS['DBM'],
                  mcfost_verbose=False):
 
@@ -416,7 +389,7 @@ class Interface:
         self._base_args = {
             'config_file': Path(config_file),
             'output_dir': Path(output_dir),
-            'num': num,
+            'nums': nums,
             'dust_bin_mode': dust_bin_mode,
         }
 
@@ -426,10 +399,13 @@ class Interface:
 
         # parse configuration file
         self.config = f90nml.read(config_file)
-        if num is not None:
-            self.num = num
+        if nums is None:
+            nums = self.config["amrvac_input"]["nums"]
+        if isinstance(nums, int):
+            self.nums = [nums]  # make it iterable
         else:
-            self.num = self.config["amrvac_input"]["num"]
+            self.nums = tuple(nums)
+        self.current_num = self.nums[0]
 
         hydro_data_dir = Path(self.config["amrvac_input"]["hydro_data_dir"])
         if not hydro_data_dir.is_absolute():
@@ -458,10 +434,12 @@ class Interface:
             origin=self.config['amrvac_input']['hydro_data_dir']
         )
         self.small_grains_from_gas = True
+
+        self._µsizes = None
+
         self._iodat = None
         self._input_data = None
         self._output_grid = None
-        self._µsizes = None
         self._new_2D_arrays = None
         self._new_3D_arrays = None
 
@@ -554,7 +532,7 @@ class Interface:
         and data array shapes.'''
         if self._iodat is None:
             vtu_filename = ''.join([self.sim_conf['filelist']['base_filename'],
-                                    str(self.num).zfill(4),
+                                    str(self.current_num).zfill(4),
                                     '.vtu'])
             self._iodat = {}
             basein = dict(
@@ -584,8 +562,17 @@ class Interface:
         file = self.io['out'].directory/'mcfost_conf.para'
         return str(file)
 
-    def load_input_data(self) -> None:
+    def load_input_data(self, n: int = None) -> None:
         '''Use vtkvacreader.VacDataSorter to load AMRVAC data'''
+        if n is not None:
+            assert n in self.nums
+            #reinit properties
+            self._iodat = None
+            self._input_data = None
+            self._output_grid = None
+            self._new_2D_arrays = None
+            self._new_3D_arrays = None
+            self.current_num = n
         self._input_data = VacDataSorter(
             file_name=str(self.io['in'].filepath),
             shape=self.io['in'].shape
@@ -595,7 +582,7 @@ class Interface:
     def input_data(self):
         '''Load input simulation data'''
         if self._input_data is None:
-            self.load_input_data()
+            self.load_input_data(self.current_num)
         return self._input_data
 
     @property
@@ -750,8 +737,8 @@ class Interface:
 class VerbatimInterface(Interface):
     """A more talkative Interface"""
     @wait_for_ok(f"loading input data")
-    def load_input_data(self) -> None:
-        super().load_input_data()
+    def load_input_data(self, n: int = None) -> None:
+        super().load_input_data(n)
 
     @wait_for_ok('writing mcfost configuration file')
     def write_mcfost_conf_file(self) -> None:
@@ -772,7 +759,7 @@ class VerbatimInterface(Interface):
 
 # =======================================================================================
 def main(config_file: str,
-         num: int = None,
+         nums: int = None, # or any in-returning interable
          output_dir: str = '.',
          dust_bin_mode: str = DEFAULTS['DBM'],
          verbose=False,
@@ -781,16 +768,19 @@ def main(config_file: str,
 
     print('=========================== vac2fost.py ============================')
     InterfaceType = {True: VerbatimInterface, False: Interface}[verbose]
-    itf = InterfaceType(config_file, num=num, output_dir=output_dir,
+    itf = InterfaceType(config_file, nums=nums, output_dir=output_dir,
                         dust_bin_mode=dust_bin_mode, mcfost_verbose=mcfost_verbose)
 
-    itf.load_input_data()
-    itf.write_mcfost_conf_file()
-    itf.gen_2D_arrays()
-    itf.gen_3D_arrays()
-    itf.write_output()
+    for i, n in enumerate(itf.nums):
+        print(f"\n{i+1}/{len(itf.nums)} | current input number: {n}")
+        itf.load_input_data(n)
+        itf.write_mcfost_conf_file()
+        itf.gen_2D_arrays()
+        itf.gen_3D_arrays()
+        itf.write_output()
+        print(f"\nsuccess ! wrote to\n{itf.io['out'].filepath}")
     itf.print_warnings()
-    print(f"\nsuccess ! output wrote:\n{itf.io['out'].filepath}")
+
 
     print('=========================== end program ============================')
 
@@ -809,10 +799,11 @@ if __name__ == '__main__':
         help='configuration file (namelist) for this script'
     )
     parser.add_argument(
-        '-n', dest='num', type=int,
+        '-n', dest='nums', type=int,
         required=False,
         default=None,
-        help='output number of the target .vtu VAC output file to be converted'
+        nargs="*",
+        help='output number(s) of the target .vtu VAC output file to be converted'
     )
     parser.add_argument(
         '-o', '--output', dest='output', type=str,
@@ -865,7 +856,7 @@ if __name__ == '__main__':
     # -------------------------------------------
     main(
         config_file=cargs.configuration,
-        num=cargs.num,
+        nums=cargs.nums,
         output_dir=cargs.output,
         dust_bin_mode=cargs.dbm,
         verbose=cargs.verbose,

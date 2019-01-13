@@ -29,3 +29,13 @@ class TestPyScripting():
         f = pyfits.open(__class__.output_dir / 'hd142527_dusty0000.fits')[0]
         opt = f90nml.read(here / 'sample/vac2fost_conf.nml')['mcfost_output']
         assert f.data.shape[1:] == (opt['nphi'], opt['nz'], opt['nr'])
+
+    def test_python_call_multiple(self):
+        app(
+            str(here/'sample/vac2fost_conf.nml'),
+            output_dir=__class__.output_dir,
+            mcfost_verbose=True,
+            nums=[0,1,2]
+        )
+        for n in (0,1,2):
+            assert (__class__.output_dir / f"hd142527_dusty{str(n).zfill(4)}.fits").exists()

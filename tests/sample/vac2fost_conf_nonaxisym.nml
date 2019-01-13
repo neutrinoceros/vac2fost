@@ -16,5 +16,5 @@
     hydro_data_dir = 'nonaxisym' ! relative to the present configuration file
     config = 'hd142527_rphi.nml', 'dust_rphi.par'
     conv2au = 100
-    num = 20
+    nums = 20
 /
