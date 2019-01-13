@@ -8,6 +8,8 @@ import pytest
 
 import f90nml
 from astropy.io import fits as pyfits
+import numpy as np
+from astropy.io import fits
 
 from vac2fost import main as app
 from vac2fost import __file__ as v2cfile
@@ -111,5 +113,8 @@ class TestShellCalling():
         ])
         exitcode = subprocess.call(comm, shell=True)
         assert exitcode == 0
-        for n in (0,1,2):
-            assert (output_dir / f"hd142527_dusty{str(n).zfill(4)}.fits").exists()
+        for n in (0, 1, 2):
+            out_file = output_dir / f"hd142527_dusty{str(n).zfill(4)}.fits"
+            ref_file = test_dir /  f"ref/quick/hd142527_dusty{str(n).zfill(4)}.fits"
+            assert out_file.exists()
+            np.testing.assert_array_equal(fits.open(out_file)[0].data, fits.open(ref_file)[0].data)
