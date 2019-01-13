@@ -282,7 +282,6 @@ class MCFOSTUtils:
             pile = Path.cwd()
             os.chdir(tmp_mcfost_dir)
             try:
-                os.environ['OMP_NUM_THREADS'] = '1'
                 subprocess.check_call(
                     f"mcfost mcfost_conf.para -disk_struct",
                     shell=True,
