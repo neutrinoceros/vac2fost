@@ -268,68 +268,41 @@ class MCFOSTUtils:
 
         grid_file_name = output_dir / 'mcfost_grid.fits.gz'
 
-        #gen_needed = True
-        #mcfost_output = itf.config['mcfost_output']
-        if grid_file_name.exists():
-            itf.warnings.append("found existing grid file, ignored it")
-            # devnote : this block is deprecated because it was getting off hand.
-            #           a more maintainable solution is being studied.
-            #
-            # with fits.open(grid_file_name, mode='readonly') as fi:
-            #     target_grid = fi[0].data
-            # shape_found = target_grid.shape[1:]
-            # correct_shapes = (
-            #     (mcfost_output['nphi'], mcfost_output['nz'], mcfost_output['nr']),
-            #     (mcfost_output['nphi'], mcfost_output['nz']*2+1, mcfost_output['nr'])
-            # )
-            # radial_range_correct = itf.conv2au*np.array([
-            #     itf.sim_conf["meshlist"]["xprobmin1"],
-            #     itf.sim_conf["meshlist"]["xprobmax1"]
-            # ])
-            # radial_range_found = np.array([target_grid[0, 0, 0, :].min(),
-            #                                target_grid[0, 0, 0, :].max()])
-            # zmax_found = target_grid[1, 0, :, :].max()
-            # zmax_correct = itf.config["amrvac_input"]["zmax"] * itf.conv2au
-            # gen_needed = shape_found not in correct_shapes \
-            #              or not np.all(radial_range_found == radial_range_correct) \
-            #              or zmax_found != zmax_correct
+        if itf.current_num == itf.nums[0]:
+            assert mcfost_conf_path.exists()
+            # generate a grid data file with mcfost itself and extract it
+            tmp_mcfost_dir = Path(f'TMP_VAC2FOST_MCFOST_GRID_{uuid.uuid4()}')
+            os.mkdir(tmp_mcfost_dir)
+            try:
+                shutil.copyfile(mcfost_conf_path.resolve(),
+                                tmp_mcfost_dir/mcfost_conf_path.name)
+            except shutil.SameFileError:
+                pass
 
-        #if gen_needed: #devnote : always consider this true from now on
-        assert mcfost_conf_path.exists()
-        # generate a grid data file with mcfost itself and extract it
-        tmp_mcfost_dir = Path(f'TMP_VAC2FOST_MCFOST_GRID_{uuid.uuid4()}')
-        os.mkdir(tmp_mcfost_dir)
-        try:
-            shutil.copyfile(mcfost_conf_path.resolve(),
-                            tmp_mcfost_dir/mcfost_conf_path.name)
-        except shutil.SameFileError:
-            pass
-
-        pile = Path.cwd()
-        os.chdir(tmp_mcfost_dir)
-        try:
-            os.environ['OMP_NUM_THREADS'] = '1'
-            subprocess.check_call(
-                f"mcfost mcfost_conf.para -disk_struct",
-                shell=True,
-                stdout={True: None, False: subprocess.PIPE}[itf.mcfost_verbose]
-            )
-            shutil.move("data_disk/grid.fits.gz", grid_file_name)
-        except subprocess.CalledProcessError as exc:
-            errtip = f'\nError in MCFOST, exited with exitcode {exc.returncode}'
-            if exc.returncode == 174:
-                errtip += (
-                    '\nThis is probably a memory issue. '
-                    'Try reducing the target resolution or,'
-                    ' alternatively, give more cpu memory to this task.'
+            pile = Path.cwd()
+            os.chdir(tmp_mcfost_dir)
+            try:
+                os.environ['OMP_NUM_THREADS'] = '1'
+                subprocess.check_call(
+                    f"mcfost mcfost_conf.para -disk_struct",
+                    shell=True,
+                    stdout={True: None, False: subprocess.PIPE}[itf.mcfost_verbose]
                 )
-                raise RuntimeError(errtip)
-        finally:
-            os.chdir(pile)
-            shutil.rmtree(tmp_mcfost_dir)
+                shutil.move("data_disk/grid.fits.gz", grid_file_name)
+            except subprocess.CalledProcessError as exc:
+                errtip = f'\nError in MCFOST, exited with exitcode {exc.returncode}'
+                if exc.returncode == 174:
+                    errtip += (
+                        '\nThis is probably a memory issue. '
+                        'Try reducing the target resolution or,'
+                        ' alternatively, give more cpu memory to this task.'
+                    )
+                    raise RuntimeError(errtip)
+            finally:
+                os.chdir(pile)
+                shutil.rmtree(tmp_mcfost_dir)
         with fits.open(grid_file_name, mode='readonly') as fi:
             target_grid = fi[0].data
-        # end if gen_needed
         return target_grid
 
 
