@@ -399,7 +399,8 @@ class Interface:
     clear and concise structure to the main() function.'''
 
     @wait_for_ok("parsing input")
-    def __init__(self, config_file, num: int = None,
+    def __init__(self, config_file,
+                 nums: int = None, # or any int-returning iterable
                  output_dir: Path = Path('.'),
                  dust_bin_mode: str = DEFAULTS['DBM'],
                  mcfost_verbose=False):
@@ -416,7 +417,7 @@ class Interface:
         self._base_args = {
             'config_file': Path(config_file),
             'output_dir': Path(output_dir),
-            'num': num,
+            'nums': nums,
             'dust_bin_mode': dust_bin_mode,
         }
 
@@ -426,10 +427,13 @@ class Interface:
 
         # parse configuration file
         self.config = f90nml.read(config_file)
-        if num is not None:
-            self.num = num
+        if nums is None:
+            nums = self.config["amrvac_input"]["nums"]
+        if isinstance(nums, int):
+            self.nums = [nums]  # make it iterable
         else:
-            self.num = self.config["amrvac_input"]["num"]
+            self.nums = tuple(nums)
+        self.current_num = self.nums[0]
 
         hydro_data_dir = Path(self.config["amrvac_input"]["hydro_data_dir"])
         if not hydro_data_dir.is_absolute():
@@ -554,7 +558,7 @@ class Interface:
         and data array shapes.'''
         if self._iodat is None:
             vtu_filename = ''.join([self.sim_conf['filelist']['base_filename'],
-                                    str(self.num).zfill(4),
+                                    str(self.current_num).zfill(4),
                                     '.vtu'])
             self._iodat = {}
             basein = dict(
@@ -584,8 +588,12 @@ class Interface:
         file = self.io['out'].directory/'mcfost_conf.para'
         return str(file)
 
-    def load_input_data(self) -> None:
+    def load_input_data(self, n: int = None) -> None:
         '''Use vtkvacreader.VacDataSorter to load AMRVAC data'''
+        if n is not None:
+            assert n in self.nums
+            self._iodat = None # reinit input/ouput data
+            self.current_num = n
         self._input_data = VacDataSorter(
             file_name=str(self.io['in'].filepath),
             shape=self.io['in'].shape
@@ -750,7 +758,7 @@ class Interface:
 class VerbatimInterface(Interface):
     """A more talkative Interface"""
     @wait_for_ok(f"loading input data")
-    def load_input_data(self) -> None:
+    def load_input_data(self, n: int = None) -> None:
         super().load_input_data()
 
     @wait_for_ok('writting mcfost configuration file')
@@ -772,7 +780,7 @@ class VerbatimInterface(Interface):
 
 # =======================================================================================
 def main(config_file: str,
-         num: int = None,
+         nums: int = None, # or any in-returning interable
          output_dir: str = '.',
          dust_bin_mode: str = DEFAULTS['DBM'],
          verbose=False,
@@ -781,15 +789,16 @@ def main(config_file: str,
 
     print('=========================== vac2fost.py ============================')
     InterfaceType = {True: VerbatimInterface, False: Interface}[verbose]
-    itf = InterfaceType(config_file, num=num, output_dir=output_dir,
+    itf = InterfaceType(config_file, nums=nums, output_dir=output_dir,
                         dust_bin_mode=dust_bin_mode, mcfost_verbose=mcfost_verbose)
 
-    itf.load_input_data()
-    itf.write_mcfost_conf_file()
-    itf.gen_2D_arrays()
-    itf.gen_3D_arrays()
-    itf.write_output()
-    itf.print_warnings()
+    for n in itf.nums:
+        itf.load_input_data(n)
+        itf.write_mcfost_conf_file()
+        itf.gen_2D_arrays()
+        itf.gen_3D_arrays()
+        itf.write_output()
+        itf.print_warnings()
     print(f"\nsuccess ! output wrote:\n{itf.io['out'].filepath}")
 
     print('=========================== end program ============================')
@@ -809,11 +818,11 @@ if __name__ == '__main__':
         help='configuration file (namelist) for this script'
     )
     parser.add_argument(
-        '-n', dest='num', type=int,
+        '-n', dest='nums', type=int,
         required=False,
         default=None,
-        help='output number of the target .vtu VAC output file to be converted'
-    )
+        help='output number(s) of the target .vtu VAC output file to be converted'
+    )#TODO : make this accept multiple values !!
     parser.add_argument(
         '-o', '--output', dest='output', type=str,
         required=False,
@@ -865,7 +874,7 @@ if __name__ == '__main__':
     # -------------------------------------------
     main(
         config_file=cargs.configuration,
-        num=cargs.num,
+        nums=cargs.nums,
         output_dir=cargs.output,
         dust_bin_mode=cargs.dbm,
         verbose=cargs.verbose,

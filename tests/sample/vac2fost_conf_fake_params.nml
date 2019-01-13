@@ -13,5 +13,5 @@
 &amrvac_input
     hydro_data_dir = '.'
     config = 'hd142527.nml', 'add_multidust.nml'
-    num = 0
+    nums = 0
 /
