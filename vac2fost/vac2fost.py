@@ -333,7 +333,7 @@ def generate_conf_template() -> f90nml.Namelist:
         'hydro_data_dir': "path/to/output/data/directory",
         'config': "relative/to/<hydro_data_dir>/path/to/amrvac/config/file[s]",
         'conv2au': 100,
-        'num': 0
+        'nums': 0
     }
     mcfost_list = {
         'nr': 128,

@@ -99,7 +99,14 @@ generated from command line with ``vac2fost.py --genconf``)
 
  .. code:: fortran
 
-           &mcfost_list
+           &amrvac_input
+           ! additional options
+               origin = '/path/to/mod_usr.t/parent/directory'
+               amrvac_conf = 'relative/path/to/vac/config_file/from/origin'
+               nums = 0  ! output number of the .dat file to be converted
+           /
+
+           &mcfost_output
            ! this list describes MCFOST parameters
            ! named according to vac2fost.MCFOSTUtils.blocks_descriptors
                nr   = 150
@@ -116,13 +123,6 @@ generated from command line with ``vac2fost.py --genconf``)
                distance  = 157
            /
 
-           &target_options
-           ! additional options
-               origin = '/path/to/mod_usr.t/parent/directory'
-               amrvac_conf = 'relative/path/to/vac/config_file/from/origin'
-               num = 0  ! output number of the .dat file to be converted
-           /
-
 
 The app can be used in two fashions
 
@@ -130,10 +130,10 @@ The app can be used in two fashions
 
   .. code:: bash
 
-            # provided that the num parameter is included in the configuration:&target_options:num
+            # provided that the num parameter is included in the configuration:&amrvac_input:nums
             ./vac2mcfost.py <configuration_file>
             # otherwise
-            ./vac2mcfost.py <configuration_file> -n <input file num>
+            ./vac2mcfost.py <configuration_file> --nums <input file num>
 
 * as an importable python function
 
@@ -148,11 +148,11 @@ The app can be used in two fashions
             vac2fost(config_file=conf)
 
 	    # more sophisticated call
-            vac2fost(config_file=conf, num=10, output_dir=out)
+            vac2fost(config_file=conf, nums=10, output_dir=out)
   
-note that if ``<input file num>`` is defined as a parameter **and** included in
+note that if ``nums`` are defined as a parameter **and** included in
 the configuration, the parameter value is used.
-
+``nums`` can be a single integer or any integer-returning iterable.
 
 Get help
 --------
