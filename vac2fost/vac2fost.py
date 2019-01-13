@@ -821,8 +821,9 @@ if __name__ == '__main__':
         '-n', dest='nums', type=int,
         required=False,
         default=None,
+        nargs="*",
         help='output number(s) of the target .vtu VAC output file to be converted'
-    )#TODO : make this accept multiple values !!
+    )
     parser.add_argument(
         '-o', '--output', dest='output', type=str,
         required=False,
