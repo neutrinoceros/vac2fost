@@ -462,10 +462,12 @@ class Interface:
             origin=self.config['amrvac_input']['hydro_data_dir']
         )
         self.small_grains_from_gas = True
+
+        self._µsizes = None
+
         self._iodat = None
         self._input_data = None
         self._output_grid = None
-        self._µsizes = None
         self._new_2D_arrays = None
         self._new_3D_arrays = None
 
@@ -592,7 +594,12 @@ class Interface:
         '''Use vtkvacreader.VacDataSorter to load AMRVAC data'''
         if n is not None:
             assert n in self.nums
-            self._iodat = None # reinit input/ouput data
+            #reinit properties
+            self._iodat = None
+            self._input_data = None
+            self._output_grid = None
+            self._new_2D_arrays = None
+            self._new_3D_arrays = None
             self.current_num = n
         self._input_data = VacDataSorter(
             file_name=str(self.io['in'].filepath),
@@ -603,7 +610,7 @@ class Interface:
     def input_data(self):
         '''Load input simulation data'''
         if self._input_data is None:
-            self.load_input_data()
+            self.load_input_data(self.current_num)
         return self._input_data
 
     @property
@@ -759,7 +766,7 @@ class VerbatimInterface(Interface):
     """A more talkative Interface"""
     @wait_for_ok(f"loading input data")
     def load_input_data(self, n: int = None) -> None:
-        super().load_input_data()
+        super().load_input_data(n)
 
     @wait_for_ok('writting mcfost configuration file')
     def write_mcfost_conf_file(self) -> None:
@@ -792,14 +799,16 @@ def main(config_file: str,
     itf = InterfaceType(config_file, nums=nums, output_dir=output_dir,
                         dust_bin_mode=dust_bin_mode, mcfost_verbose=mcfost_verbose)
 
-    for n in itf.nums:
+    for i, n in enumerate(itf.nums):
+        print(f"\n{i+1}/{len(itf.nums)} | current input number: {n}")
         itf.load_input_data(n)
         itf.write_mcfost_conf_file()
         itf.gen_2D_arrays()
         itf.gen_3D_arrays()
         itf.write_output()
-        itf.print_warnings()
-    print(f"\nsuccess ! output wrote:\n{itf.io['out'].filepath}")
+        print(f"\nsuccess ! wrote to\n{itf.io['out'].filepath}")
+    itf.print_warnings()
+
 
     print('=========================== end program ============================')
 
