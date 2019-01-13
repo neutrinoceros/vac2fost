@@ -38,8 +38,10 @@ try:
     import colorama
     colorama.init(autoreset=True)
     BOLD = colorama.Style.BRIGHT
+    RED = BOLD + colorama.Fore.RED
 except ImportError:
     colorama = None
+    RED = ""
     BOLD = ""
 
 from amrvac_pywrap import interpret_shell_path, read_amrvac_conf
@@ -466,13 +468,9 @@ class Interface:
     def print_warnings(self):
         '''Print warnings if any.'''
         if self.warnings:
-            if colorama is not None:
-                colorama.init()
-                red = colorama.Fore.RED + colorama.Style.BRIGHT
-            else: red = ""
             print()
             print(" WARNINGS:")
-            print(red+'\n'.join([f" - {w}" for w in self.warnings]))
+            print(RED+'\n'.join([f" - {w}" for w in self.warnings]))
             if colorama is not None:
                 print(colorama.Style.RESET_ALL, end='')
 
