@@ -36,8 +36,11 @@ from scipy.interpolate import interp2d
 import f90nml
 try:
     import colorama
+    colorama.init(autoreset=True)
+    BOLD = colorama.Style.BRIGHT
 except ImportError:
     colorama = None
+    BOLD = ""
 
 from amrvac_pywrap import interpret_shell_path, read_amrvac_conf
 from vtk_vacreader import VacDataSorter
@@ -346,6 +349,11 @@ def generate_conf_template() -> f90nml.Namelist:
     })
     return template
 
+def get_prompt_size():
+    """size of command line interface messages sized to window. Caps at 80."""
+    cols, _ = shutil.get_terminal_size()
+    return min(cols, 80)
+
 # decorators
 def parameterized(dec):
     """meta decorator, allow definition of decorators with parameters
@@ -357,7 +365,7 @@ def parameterized(dec):
     return layer
 
 @parameterized
-def wait_for_ok(func, mess, lenght=61):
+def wait_for_ok(func, mess, lenght=get_prompt_size()-7):
     """decorator, sandwich the function execution with '<mess>  ...' & 'ok'"""
     def modfunc(*args, **kwargs):
         print(mess.ljust(lenght), end="... ", flush=True)
@@ -756,8 +764,12 @@ class VerbatimInterface(Interface):
     def write_output(self) -> None:
         super().write_output()
 
-
 # =======================================================================================
+def decorated_centered_message(mess: str, dec: str = "=") -> str:
+    """Return a decorated version of <mess>"""
+    ndecor = int((get_prompt_size() - (len(mess)+2)) / 2)
+    return BOLD + " ".join([dec*ndecor, mess, dec*ndecor])
+
 def main(config_file: str,
          nums: int = None, # or any in-returning interable
          output_dir: str = '.',
@@ -765,24 +777,29 @@ def main(config_file: str,
          verbose=False,
          mcfost_verbose=False):
     '''Try to transform a .vtu file into a .fits'''
-
-    print('=========================== vac2fost.py ============================')
+    print(decorated_centered_message("start vac2fost"))
     InterfaceType = {True: VerbatimInterface, False: Interface}[verbose]
     itf = InterfaceType(config_file, nums=nums, output_dir=output_dir,
                         dust_bin_mode=dust_bin_mode, mcfost_verbose=mcfost_verbose)
 
     for i, n in enumerate(itf.nums):
-        print(f"\n{i+1}/{len(itf.nums)} | current input number: {n}")
+        if verbose or i == 0:
+            print()
+        mess1 = f"current input number: {n}"
+        mess2 = f"({i+1}/{len(itf.nums)})"
+        print((BOLD+" "*(get_prompt_size()-len(mess1)-len(mess2))).join([mess1, mess2]))
+        print("-"*get_prompt_size())
         itf.load_input_data(n)
         itf.write_mcfost_conf_file()
         itf.gen_2D_arrays()
         itf.gen_3D_arrays()
         itf.write_output()
-        print(f"\nsuccess ! wrote to\n{itf.io['out'].filepath}")
+        if verbose:
+            print(f"\nsuccess ! wrote to\n{itf.io['out'].filepath}")
+
     itf.print_warnings()
 
-
-    print('=========================== end program ============================')
+    print(decorated_centered_message("end vac2fost"))
 
     # return the Interface object for inspection (tests)
     return itf
