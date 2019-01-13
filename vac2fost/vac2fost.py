@@ -753,7 +753,7 @@ class VerbatimInterface(Interface):
     def load_input_data(self) -> None:
         super().load_input_data()
 
-    @wait_for_ok('writting mcfost configuration file')
+    @wait_for_ok('writing mcfost configuration file')
     def write_mcfost_conf_file(self) -> None:
         super().write_mcfost_conf_file()
 
