@@ -798,7 +798,8 @@ def main(config_file: str,
         itf.gen_3D_arrays()
         itf.write_output()
         if verbose:
-            print(CYAN+f"\nsuccess ! wrote to\n{itf.io['out'].filepath}")
+            filepath = itf.io['out'].filepath.relative_to(Path.cwd())
+            print(CYAN+f"success! wrote {filepath}")
 
     itf.print_warnings()
 
