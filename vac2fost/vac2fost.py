@@ -275,7 +275,7 @@ class MCFOSTUtils:
         if itf.current_num == itf.nums[0]:
             assert mcfost_conf_path.exists()
             # generate a grid data file with mcfost itself and extract it
-            tmp_mcfost_dir = Path(f'TMP_VAC2FOST_MCFOST_GRID_{uuid.uuid4()}')
+            tmp_mcfost_dir = output_dir / f"TMP_VAC2FOST_MCFOST_GRID_{uuid.uuid4()}"
             os.mkdir(tmp_mcfost_dir)
             try:
                 shutil.copyfile(mcfost_conf_path.resolve(),
