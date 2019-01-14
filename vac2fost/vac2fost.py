@@ -55,7 +55,6 @@ except AssertionError:
 
 # Globals
 MINGRAINSIZE_µ = 0.1
-DEFAULTS = {'DBM': 'auto'}
 DataInfo = namedtuple(
     'DataInfo',
     ['shape', 'directory', 'filename', 'filepath']
@@ -384,16 +383,19 @@ class Interface:
     def __init__(self, config_file,
                  nums: int = None, # or any int-returning iterable
                  output_dir: Path = Path('.'),
-                 dust_bin_mode: str = DEFAULTS['DBM'],
+                 dust_bin_mode: str = "auto",
                  mcfost_verbose=False):
 
+        self.warnings = []
         # input checking
         if not isinstance(config_file, (str, Path)):
             raise TypeError(config_file)
         if not isinstance(output_dir, (str, Path)):
             raise TypeError(output_dir)
-        else:
-            self._dust_binning_mode = dust_bin_mode
+
+        self._dust_binning_mode = None
+        self.dust_binning_mode = dust_bin_mode
+        self.warnings.pop()
 
         # attribute storage
         self._base_args = {
@@ -405,7 +407,6 @@ class Interface:
 
         self._dim = 2  # no support for 3D input yet
         self.mcfost_verbose = mcfost_verbose
-        self.warnings = []
 
         # parse configuration file
         self.config = f90nml.read(config_file)
@@ -504,8 +505,8 @@ class Interface:
     def grain_micron_sizes(self) -> np.ndarray:
         '''Read grain sizes (assumed in [cm]), from AMRVAC parameters and
         convert to microns.'''
-        µm_sizes = np.empty(0)
         if self._µsizes is None:
+            µm_sizes = np.empty(0)
             if self.dust_binning_mode in {"dust-only", "mixed", "auto"}:
                 try:
                     cm_sizes = np.array(
@@ -770,7 +771,7 @@ def decorated_centered_message(mess: str, dec: str = "=") -> str:
 def main(config_file: str,
          nums: int = None, # or any in-returning interable
          output_dir: str = '.',
-         dust_bin_mode: str = DEFAULTS['DBM'],
+         dust_bin_mode: str = "auto",
          verbose=False,
          mcfost_verbose=False):
     '''Try to transform a .vtu file into a .fits'''
@@ -834,7 +835,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '-dbm', '--dustbinmode', dest='dbm', type=str,
         required=False,
-        default=DEFAULTS['DBM'],
+        default="auto",
         help="prefered bin selection mode [dust-only, gas-only, mixed, auto]"
     )
     parser.add_argument(
