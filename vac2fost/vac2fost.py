@@ -773,12 +773,8 @@ def decorated_centered_message(mess: str, dec: str = "=") -> str:
 def main(config_file: str,
          nums: int = None, # or any in-returning interable
          output_dir: str = '.',
-<<<<<<< HEAD
-         dust_bin_mode: str = DEFAULTS['DBM'],
-         read_gas_density=False,
-=======
          dust_bin_mode: str = "auto",
->>>>>>> master
+         read_gas_density=False,
          verbose=False,
          mcfost_verbose=False):
     '''Try to transform a .vtu file into a .fits'''
