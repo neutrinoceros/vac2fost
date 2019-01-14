@@ -22,8 +22,8 @@ if __name__=='__main__':
     # and exctract its first 3d array (density field)
     filepath = itf.io['out'].filepath
     data = pyfits.open(filepath)[0].data[0]
-    X = (itf.output_grid['rg'] * np.cos(itf.output_grid['phig'])).T
-    Y = (itf.output_grid['rg'] * np.sin(itf.output_grid['phig'])).T
+    X = (itf.output_grid['rg'] * np.cos(itf.output_grid['phig']))
+    Y = (itf.output_grid['rg'] * np.sin(itf.output_grid['phig']))
 
     nr, nz, nphi = data.shape
     vertical_profile = data[0,:,0]
