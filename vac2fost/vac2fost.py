@@ -414,7 +414,7 @@ class Interface:
         if isinstance(nums, int):
             self.nums = [nums]  # make it iterable
         else:
-            self.nums = tuple(nums)
+            self.nums = list(set(nums))  #make it iterable, filter out duplicates and sort them
         self.current_num = self.nums[0]
 
         hydro_data_dir = Path(self.config["amrvac_input"]["hydro_data_dir"])
