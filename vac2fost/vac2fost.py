@@ -787,7 +787,12 @@ def main(config_file: str,
         mess2 = f"({i+1}/{len(itf.nums)})"
         print((BOLD+" "*(get_prompt_size()-len(mess1)-len(mess2))).join([mess1, mess2]))
         print("-"*get_prompt_size())
-        itf.load_input_data(n)
+        try:
+            itf.load_input_data(n)
+        except FileNotFoundError as err:
+            filepath = Path(str(err)).relative_to(Path.cwd())
+            itf.warnings.append(f"file not found: {filepath}")
+            continue
         itf.write_mcfost_conf_file()
         itf.gen_2D_arrays()
         itf.gen_3D_arrays()
