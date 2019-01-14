@@ -443,7 +443,6 @@ class Interface:
             files=self.config['amrvac_input']['config'],
             origin=self.config['amrvac_input']['hydro_data_dir']
         )
-        self.small_grains_from_gas = True
 
         self._µsizes = None
 
@@ -507,7 +506,7 @@ class Interface:
         convert to microns.'''
         µm_sizes = np.empty(0)
         if self._µsizes is None:
-            if self.dust_binning_mode != 'gas-only':
+            if self.dust_binning_mode in {"dust-only", "mixed", "auto"}:
                 try:
                     cm_sizes = np.array(
                         self.sim_conf['usr_dust_list']['grain_size_cm'])
@@ -518,7 +517,7 @@ class Interface:
                     else:
                         raise
 
-            if min(µm_sizes) > MINGRAINSIZE_µ and self.dust_binning_mode == "auto":
+            if self.dust_binning_mode == "auto" and min(µm_sizes) > MINGRAINSIZE_µ:
                 self.dust_binning_mode = ["mixed",
                                           f"smallest size found > {MINGRAINSIZE_µ}µm"]
 
@@ -530,7 +529,7 @@ class Interface:
     @property
     def argsort_offset(self):
         '''Get the slice starting index when selecting arrays to be transformed'''
-        return 1 - int(self.small_grains_from_gas)
+        return 1 - int(self.dust_binning_mode in {"mixed", "gas-only"})
 
     @property
     def io(self) -> dict:
