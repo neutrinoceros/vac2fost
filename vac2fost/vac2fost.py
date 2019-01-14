@@ -385,6 +385,7 @@ class Interface:
                  nums: int = None, # or any int-returning iterable
                  output_dir: Path = Path('.'),
                  dust_bin_mode: str = DEFAULTS['DBM'],
+                 read_gas_density=False,
                  mcfost_verbose=False):
 
         # input checking
@@ -405,6 +406,7 @@ class Interface:
 
         self._dim = 2  # no support for 3D input yet
         self.mcfost_verbose = mcfost_verbose
+        self.read_gas_density = read_gas_density
         self.warnings = []
 
         # parse configuration file
@@ -644,16 +646,15 @@ class Interface:
         mcfost_keywords = {
             # automatic normalization of size-bins from mcfost param file.
             'read_n_a': 0,
-            # following keywords are too long according to fits standards !
-            # issue 19
-            # -------------------------------------------------------------
-            # 'read_gas_density': 0, #set to 1 to add gas density
+            'read_gas_density': int(self.read_gas_density),
             # required when reading gas
-            # 'gas_to_dust': sim.conf['usr_dust_list']['gas2dust_ratio'],
+            #'gas_to_dust': sim.conf['usr_dust_list']['gas2dust_ratio'],
         }
 
-        for it in mcfost_keywords.items():
-            dust_densities_HDU.header.append(it)
+        for k, v in mcfost_keywords.items():
+            if len(k) > 8:
+                k = f"HIERARCH {k}"
+            dust_densities_HDU.header.append((k, v))
 
         grain_sizes_HDU = fits.ImageHDU(
             self.grain_micron_sizes[self.grain_micron_sizes.argsort()]
@@ -772,6 +773,7 @@ def main(config_file: str,
          nums: int = None, # or any in-returning interable
          output_dir: str = '.',
          dust_bin_mode: str = DEFAULTS['DBM'],
+         read_gas_density=False,
          verbose=False,
          mcfost_verbose=False):
     '''Try to transform a .vtu file into a .fits'''
@@ -839,6 +841,11 @@ if __name__ == '__main__':
         help="prefered bin selection mode [dust-only, gas-only, mixed, auto]"
     )
     parser.add_argument(
+        "--read_gas_density",
+        action="store_true",
+        help="pass gas density to mcfost"
+    )
+    parser.add_argument(
         '-v', '--verbose',
         action='store_true',
         help='activate verbose mode'
@@ -880,6 +887,7 @@ if __name__ == '__main__':
         nums=cargs.nums,
         output_dir=cargs.output,
         dust_bin_mode=cargs.dbm,
+        read_gas_density=cargs.read_gas_density,
         verbose=cargs.verbose,
         mcfost_verbose=cargs.mcfost_verbose
     )
