@@ -55,7 +55,6 @@ except AssertionError:
 
 # Globals
 MINGRAINSIZE_µ = 0.1
-DEFAULTS = {'DBM': 'auto'}
 DataInfo = namedtuple(
     'DataInfo',
     ['shape', 'directory', 'filename', 'filepath']
@@ -384,17 +383,20 @@ class Interface:
     def __init__(self, config_file,
                  nums: int = None, # or any int-returning iterable
                  output_dir: Path = Path('.'),
-                 dust_bin_mode: str = DEFAULTS['DBM'],
+                 dust_bin_mode: str = "auto",
                  read_gas_density=False,
                  mcfost_verbose=False):
 
+        self.warnings = []
         # input checking
         if not isinstance(config_file, (str, Path)):
             raise TypeError(config_file)
         if not isinstance(output_dir, (str, Path)):
             raise TypeError(output_dir)
-        else:
-            self._dust_binning_mode = dust_bin_mode
+
+        self._dust_binning_mode = None
+        self.dust_binning_mode = dust_bin_mode
+        self.warnings.pop()
 
         # attribute storage
         self._base_args = {
@@ -406,8 +408,11 @@ class Interface:
 
         self._dim = 2  # no support for 3D input yet
         self.mcfost_verbose = mcfost_verbose
+<<<<<<< HEAD
         self.read_gas_density = read_gas_density
         self.warnings = []
+=======
+>>>>>>> master
 
         # parse configuration file
         self.config = f90nml.read(config_file)
@@ -445,7 +450,6 @@ class Interface:
             files=self.config['amrvac_input']['config'],
             origin=self.config['amrvac_input']['hydro_data_dir']
         )
-        self.small_grains_from_gas = True
 
         self._µsizes = None
 
@@ -507,9 +511,9 @@ class Interface:
     def grain_micron_sizes(self) -> np.ndarray:
         '''Read grain sizes (assumed in [cm]), from AMRVAC parameters and
         convert to microns.'''
-        µm_sizes = np.empty(0)
         if self._µsizes is None:
-            if self.dust_binning_mode != 'gas-only':
+            µm_sizes = np.empty(0)
+            if self.dust_binning_mode in {"dust-only", "mixed", "auto"}:
                 try:
                     cm_sizes = np.array(
                         self.sim_conf['usr_dust_list']['grain_size_cm'])
@@ -520,7 +524,7 @@ class Interface:
                     else:
                         raise
 
-            if min(µm_sizes) > MINGRAINSIZE_µ and self.dust_binning_mode == "auto":
+            if self.dust_binning_mode == "auto" and min(µm_sizes) > MINGRAINSIZE_µ:
                 self.dust_binning_mode = ["mixed",
                                           f"smallest size found > {MINGRAINSIZE_µ}µm"]
 
@@ -532,7 +536,7 @@ class Interface:
     @property
     def argsort_offset(self):
         '''Get the slice starting index when selecting arrays to be transformed'''
-        return 1 - int(self.small_grains_from_gas)
+        return 1 - int(self.dust_binning_mode in {"mixed", "gas-only"})
 
     @property
     def io(self) -> dict:
@@ -773,8 +777,12 @@ def decorated_centered_message(mess: str, dec: str = "=") -> str:
 def main(config_file: str,
          nums: int = None, # or any in-returning interable
          output_dir: str = '.',
+<<<<<<< HEAD
          dust_bin_mode: str = DEFAULTS['DBM'],
          read_gas_density=False,
+=======
+         dust_bin_mode: str = "auto",
+>>>>>>> master
          verbose=False,
          mcfost_verbose=False):
     '''Try to transform a .vtu file into a .fits'''
@@ -838,7 +846,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '-dbm', '--dustbinmode', dest='dbm', type=str,
         required=False,
-        default=DEFAULTS['DBM'],
+        default="auto",
         help="prefered bin selection mode [dust-only, gas-only, mixed, auto]"
     )
     parser.add_argument(
