@@ -54,6 +54,6 @@ def test_mixed_into_KeyError():
 def test_dust_only_into_KeyError():
     itf = Interface(test_dir/'sample/vac2fost_conf_quick_no_dust.nml',
                     output_dir=output_dir,
-                    dust_bin_mode="dust_only")
+                    dust_bin_mode="dust-only")
     with pytest.raises(KeyError):
         itf.grain_micron_sizes

@@ -504,8 +504,8 @@ class Interface:
     def grain_micron_sizes(self) -> np.ndarray:
         '''Read grain sizes (assumed in [cm]), from AMRVAC parameters and
         convert to microns.'''
-        µm_sizes = np.empty(0)
         if self._µsizes is None:
+            µm_sizes = np.empty(0)
             if self.dust_binning_mode in {"dust-only", "mixed", "auto"}:
                 try:
                     cm_sizes = np.array(
