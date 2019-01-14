@@ -408,11 +408,7 @@ class Interface:
 
         self._dim = 2  # no support for 3D input yet
         self.mcfost_verbose = mcfost_verbose
-<<<<<<< HEAD
         self.read_gas_density = read_gas_density
-        self.warnings = []
-=======
->>>>>>> master
 
         # parse configuration file
         self.config = f90nml.read(config_file)
