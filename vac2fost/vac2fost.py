@@ -39,10 +39,10 @@ try:
     colorama.init(autoreset=True)
     BOLD = colorama.Style.BRIGHT
     RED = BOLD + colorama.Fore.RED
+    CYAN = colorama.Fore.CYAN
 except ImportError:
     colorama = None
-    RED = ""
-    BOLD = ""
+    BOLD = RED = CYAN = ""
 
 from amrvac_pywrap import interpret_shell_path, read_amrvac_conf
 from vtk_vacreader import VacDataSorter
@@ -798,7 +798,7 @@ def main(config_file: str,
         itf.gen_3D_arrays()
         itf.write_output()
         if verbose:
-            print(f"\nsuccess ! wrote to\n{itf.io['out'].filepath}")
+            print(CYAN+f"\nsuccess ! wrote to\n{itf.io['out'].filepath}")
 
     itf.print_warnings()
 
