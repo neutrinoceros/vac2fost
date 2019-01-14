@@ -646,10 +646,12 @@ class Interface:
         mcfost_keywords = {
             # automatic normalization of size-bins from mcfost param file.
             'read_n_a': 0,
-            'read_gas_density': int(self.read_gas_density),
-            # required when reading gas
-            #'gas_to_dust': sim.conf['usr_dust_list']['gas2dust_ratio'],
         }
+        if self.read_gas_density:
+            mcfost_keywords.update({
+                'read_gas_density': 1,
+                'gas_to_dust': self.sim_conf['usr_dust_list']['gas2dust_ratio']
+            })
 
         for k, v in mcfost_keywords.items():
             if len(k) > 8:
@@ -659,11 +661,10 @@ class Interface:
         grain_sizes_HDU = fits.ImageHDU(
             self.grain_micron_sizes[self.grain_micron_sizes.argsort()]
         )
-        hdus = [
-            dust_densities_HDU,
-            grain_sizes_HDU,
-            # fits.ImageHDU(gas_density) # issue 19 related...
-        ]
+        hdus = [dust_densities_HDU, grain_sizes_HDU]
+        if self.read_gas_density:
+            hdus.append(fits.ImageHDU(gas_density))
+
         fopath = self.io['out'].filepath
         with open(fopath, 'wb') as fo:
             hdul = fits.HDUList(hdus=hdus)
