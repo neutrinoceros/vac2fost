@@ -262,7 +262,7 @@ class MCFOSTUtils:
 
     def get_mcfost_grid(itf) -> np.ndarray:
         '''Pre-run MCFOST with -disk_struct flag to get the exact grid used.'''
-        mcfost_conf_file = itf.mcfost_para_file
+        mcfost_conf_file = itf.mcfost_conf_file
         output_dir = itf.io['out'].directory
 
         output_dir = Path(output_dir).resolve()
@@ -275,7 +275,7 @@ class MCFOSTUtils:
         if itf.current_num == itf.nums[0]:
             assert mcfost_conf_path.exists()
             # generate a grid data file with mcfost itself and extract it
-            tmp_mcfost_dir = Path(f'TMP_VAC2FOST_MCFOST_GRID_{uuid.uuid4()}')
+            tmp_mcfost_dir = output_dir / f"TMP_VAC2FOST_MCFOST_GRID_{uuid.uuid4()}"
             os.mkdir(tmp_mcfost_dir)
             try:
                 shutil.copyfile(mcfost_conf_path.resolve(),
@@ -565,9 +565,9 @@ class Interface:
         return self._iodat
 
     @property
-    def mcfost_para_file(self):
+    def mcfost_conf_file(self):
         '''Locate output configuration file for mcfost'''
-        file = self.io['out'].directory/'mcfost_conf.para'
+        file = self.io['out'].directory / "mcfost_conf.para"
         return str(file)
 
     def load_input_data(self, n: int = None) -> None:
@@ -598,7 +598,7 @@ class Interface:
         '''Store info on 3D output grid specifications
         as vectors "v", and (r-phi)grids "g"'''
         if self._output_grid is None:
-            if not Path(self.mcfost_para_file).is_file():
+            if not Path(self.mcfost_conf_file).is_file():
                 self.write_mcfost_conf_file()
             target_grid = MCFOSTUtils.get_mcfost_grid(self)
             self._output_grid = {
@@ -625,7 +625,7 @@ class Interface:
 
         custom.update({'dust_mass': get_dust_mass(self.input_data)})
         MCFOSTUtils.write_mcfost_conf(
-            output_file=self.mcfost_para_file,
+            output_file=self.mcfost_conf_file,
             custom=custom,
             verbose=self.mcfost_verbose
         )
