@@ -404,11 +404,11 @@ class Interface:
             'output_dir': Path(output_dir),
             'nums': nums,
             'dust_bin_mode': dust_bin_mode,
+            'read_gas_density': read_gas_density
         }
 
         self._dim = 2  # no support for 3D input yet
         self.mcfost_verbose = mcfost_verbose
-        self.read_gas_density = read_gas_density
 
         # parse configuration file
         self.config = f90nml.read(config_file)
@@ -466,6 +466,20 @@ class Interface:
             self.conv2au = self.config['amrvac_input']['conv2au']
         except KeyError:
             self.warnings.append("could not find conv2au, distance unit assumed 1au")
+
+
+    @property
+    def read_gas_density(self) -> bool:
+        if not self._base_args["read_gas_density"]:
+            rgd = False
+        elif self.dust_binning_mode in ("gas-only", "mixed"):
+            self.warnings.append(
+                f"read_gas_density asked but redundant in '{self.dust_binning_mode}' mode, ignored")
+            rgd = False
+        else:
+            rgd = True
+        return rgd
+
 
     def print_warnings(self):
         '''Print warnings if any.'''
