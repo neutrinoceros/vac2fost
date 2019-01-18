@@ -662,7 +662,7 @@ class Interface:
         )
         hdus = [dust_densities_HDU, grain_sizes_HDU]
         if self.read_gas_density:
-            hdus.append(fits.ImageHDU(gas_density))
+            hdus.append(fits.ImageHDU(self._new_3D_arrays[0]))
 
         fopath = self.io['out'].filepath
         with open(fopath, 'wb') as fo:
