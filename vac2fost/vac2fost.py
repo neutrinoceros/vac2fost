@@ -480,7 +480,6 @@ class Interface:
             rgd = True
         return rgd
 
-
     def print_warnings(self):
         '''Print warnings if any.'''
         if self.warnings:
@@ -660,7 +659,7 @@ class Interface:
         ]
         header = {'read_n_a': 0} # automatic normalization of size-bins from mcfost param file.
         if self.read_gas_density:
-            addational_hdus.append(fits.ImageHDU(self._new_3D_arrays[0]))
+            additional_hdus.append(fits.ImageHDU(self._new_3D_arrays[0]))
             header.update({
                 "read_gas_density": 1,
                 "gas_to_dust": self.sim_conf["usr_dust_list"]["gas2dust_ratio"]
