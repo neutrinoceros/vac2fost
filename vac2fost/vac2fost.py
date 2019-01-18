@@ -780,7 +780,9 @@ def main(config_file: str,
     print(decorated_centered_message("start vac2fost"))
     InterfaceType = {True: VerbatimInterface, False: Interface}[verbose]
     itf = InterfaceType(config_file, nums=nums, output_dir=output_dir,
-                        dust_bin_mode=dust_bin_mode, mcfost_verbose=mcfost_verbose)
+                        dust_bin_mode=dust_bin_mode,
+                        read_gas_density=read_gas_density,
+                        mcfost_verbose=mcfost_verbose)
 
     for i, n in enumerate(itf.nums):
         if verbose or i == 0:
