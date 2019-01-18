@@ -467,9 +467,16 @@ class Interface:
         except KeyError:
             self.warnings.append("could not find conv2au, distance unit assumed 1au")
 
-
     @property
     def read_gas_density(self) -> bool:
+        """Named after mcfost's option. Gas density is passed to mcfost only
+        if required by user AND non-redundant.
+
+        Clarification: if no gas density is passed, mcfost assumes
+        that gas is traced by smallest grains. As "gas-only" and
+        "mixed" modes make the same assumption, they would produce
+        identical result without explicitly passing the gas density.
+        """
         if not self._base_args["read_gas_density"]:
             rgd = False
         elif self.dust_binning_mode in ("gas-only", "mixed"):
