@@ -648,39 +648,32 @@ class Interface:
         return unknowns
 
     def write_output(self) -> None:
-        '''Main method. Write a .fits file suited for MCFOST input.'''
+        """Write a .fits file suited for MCFOST input."""
         dust_bin_selector = {
             "gas-only": 0,
             "dust-only": 1 + self.grain_micron_sizes.argsort(),
             "mixed": self.grain_micron_sizes.argsort()
         }[self.dust_binning_mode]
-        dust_densities_HDU = fits.PrimaryHDU(self.new_3D_arrays[dust_bin_selector])
 
-        mcfost_keywords = {
-            # automatic normalization of size-bins from mcfost param file.
-            'read_n_a': 0,
-        }
+        additional_hdus = [
+            fits.ImageHDU(self.grain_micron_sizes[self.grain_micron_sizes.argsort()])
+        ]
+        header = {'read_n_a': 0} # automatic normalization of size-bins from mcfost param file.
         if self.read_gas_density:
-            mcfost_keywords.update({
-                'read_gas_density': 1,
-                'gas_to_dust': self.sim_conf['usr_dust_list']['gas2dust_ratio']
+            addational_hdus.append(fits.ImageHDU(self._new_3D_arrays[0]))
+            header.update({
+                "read_gas_density": 1,
+                "gas_to_dust": self.sim_conf["usr_dust_list"]["gas2dust_ratio"]
             })
 
-        for k, v in mcfost_keywords.items():
+        dust_densities_HDU = fits.PrimaryHDU(self.new_3D_arrays[dust_bin_selector])
+        for k, v in header.items():
             if len(k) > 8:
                 k = f"HIERARCH {k}"
             dust_densities_HDU.header.append((k, v))
 
-        grain_sizes_HDU = fits.ImageHDU(
-            self.grain_micron_sizes[self.grain_micron_sizes.argsort()]
-        )
-        hdus = [dust_densities_HDU, grain_sizes_HDU]
-        if self.read_gas_density:
-            hdus.append(fits.ImageHDU(self._new_3D_arrays[0]))
-
-        fopath = self.io['out'].filepath
-        with open(fopath, 'wb') as fo:
-            hdul = fits.HDUList(hdus=hdus)
+        with open(self.io["out"].filepath, mode="wb") as fo:
+            hdul = fits.HDUList(hdus=[dust_densities_HDU] + additional_hdus)
             hdul.writeto(fo)
 
     @property
