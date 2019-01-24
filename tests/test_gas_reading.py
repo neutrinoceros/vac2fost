@@ -14,7 +14,7 @@ if outdir.is_dir():
     shutil.rmtree(outdir)
 conf_file = test_dir/"sample/vac2fost_conf_quick.nml"
 itf = app(conf_file, output_dir=outdir,
-          dust_bin_mode="dust-only", read_gas_density=True)
+          dust_bin_mode="dust-only", read_gas_density=True, mcfost_verbose=True)
 
 @pytest.mark.incremental #each test is run only if the previous one passed
 class TestGasReading:
