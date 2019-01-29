@@ -31,7 +31,7 @@ run the program.
 
 It is also assumed that you have ``mcfost (>=3.0)`` properly install
 
-The recommended method relies on the package management system ``conda``.
+The recommended method relies on the package management system and environment management system ``conda``.
 
 The following assumes ``currrent working directory == vac2fost-project``.
 
@@ -51,9 +51,10 @@ They can be installed with
 
     .. code-block:: bash
 
-        conda activate vac2fost
+        source activate vac2fost
         bash install_deps.sh # this script will ask for user confirmation
 
+The first line change your working environment to the one needed to use vac2fost. The second will install the two sub-programs.
 
 Then, there are two possibilities to use ``vac2fost``:
 
@@ -61,7 +62,7 @@ Then, there are two possibilities to use ``vac2fost``:
 
     .. code-block:: bash
 
-        conda activate vac2fost
+        source activate vac2fost
         conda install .
         #or
         conda develop . # if you wish to actively modify the package as you use it
