@@ -41,8 +41,8 @@ Most of the non-standard Python dependencies can be installed with
     
         conda create --name vac2fost --file environment.yml --channel conda-forge
 
-Other parts of the program are amrvac_pywrap_ and vtk_vacreader_.
-
+This will create a specific environment for using vac2fost without modifying your usual python packages in your standard environment.
+The two sub-parts of the program are amrvac_pywrap_ and vtk_vacreader_.
 
 .. _amrvac_pywrap: https://gitlab.oca.eu/crobert/amrvac-pywrap-project
 .. _vtk_vacreader: https://gitlab.oca.eu/crobert/vtk_vacreader-project
@@ -55,7 +55,9 @@ They can be installed with
         bash install_deps.sh # this script will ask for user confirmation
 
 
-Then, if you wish to use ``vac2fost`` as a Python package, install it as
+Then, there are two possibilities to use ``vac2fost``:
+
+- if you wish to use ``vac2fost`` as a Python package, install it as
 
     .. code-block:: bash
 
@@ -65,11 +67,7 @@ Then, if you wish to use ``vac2fost`` as a Python package, install it as
         conda develop . # if you wish to actively modify the package as you use it
 
 
-Finally, if you wish to use ``vac2fost.py`` from command line, the recommended
-fashion is to create a symbolic link to the main file, as part of your ``$PATH``
-and treat it as an executable.
-
-For instance: 
+- if you wish to use ``vac2fost.py`` from command line, the recommended fashion is to create a symbolic link to the main file, as part of your ``$PATH`` and treat it as an executable. For instance: 
 
     .. code-block:: bash
         
