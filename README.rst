@@ -31,15 +31,15 @@ run the program.
 
 It is also assumed that you have ``mcfost (>=3.0)`` properly install
 
-The recommended method relies on ``conda``.
+The recommended method relies on the package management system ``conda``.
 
-The following assumes ``cwd == vac2fost-project``.
+The following assumes ``currrent working directory == vac2fost-project``.
 
 Most of the non-standard Python dependencies can be installed with
 
     .. code-block:: bash
     
-        conda create --name vac2fost --file environment.ylm --channel conda-forge
+        conda create --name vac2fost --file environment.yml --channel conda-forge
 
 Other parts of the program are amrvac_pywrap_ and vtk_vacreader_.
 
