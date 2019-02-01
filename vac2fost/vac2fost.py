@@ -73,7 +73,7 @@ class MCFOSTUtils:
                 od([('nphot_sed', '1.28e3')]),
                 od([('nphot_img', '1.28e5')])
             )),
-            ('Wavelengts', (
+            ('Wavelengths', (
                 od([('n_lambda', 50),
                     ('lambda_min', 0.1),
                     ('lambda_max', 3e3)]),
