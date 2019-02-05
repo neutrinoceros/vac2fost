@@ -133,7 +133,7 @@ The app can be used in two fashions
   .. code:: bash
 
             # provided that the num parameter is included in the configuration:&amrvac_input:nums
-            ./vac2mcfost.py <configuration_file>
+            ./vac2mcfost.py <configuration_file> --dbm <[dust-only, gas-only, mixed]>
             # otherwise
             ./vac2mcfost.py <configuration_file> --nums <input file num>
 
