@@ -76,7 +76,8 @@ Then, there are two possibilities to use ``vac2fost``:
         
         chmod +x vac2fost/vac2fost.py
         ln -s vac2fost/vac2fost.py ~/local/bin/vac2fost.py
-
+        #or a more standard solution
+        export PATH=$PATH:~/path/to/vac2fost
 
 
 
