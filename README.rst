@@ -102,11 +102,11 @@ generated from command line with ``vac2fost.py --genconf``)
  .. code:: fortran
 
            &amrvac_input
-           ! additional options
-               origin = '/path/to/mod_usr.t/parent/directory'
-               amrvac_conf = 'relative/path/to/vac/config_file/from/origin'
-               nums = 0  ! output number of the .dat file to be converted
-           /
+            config = 'relative/to/<hydro_data_dir>/path/to/amrvac/config/file[s]'
+            conv2au = 100
+            hydro_data_dir = 'path/to/output/data/directory'
+            nums = 0
+            /
 
            &mcfost_output
            ! this list describes MCFOST parameters
