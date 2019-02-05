@@ -102,7 +102,7 @@ generated from command line with ``vac2fost.py --genconf``)
  .. code:: fortran
 
            &amrvac_input
-            config = 'relative/to/<hydro_data_dir>/path/to/amrvac/config/file[s]'
+            config = 'relative/to/<hydro_data_dir>/path/to/amrvac/config/file1.par','and/file2.par'
             conv2au = 100
             hydro_data_dir = 'path/to/output/data/directory'
             nums = 0
