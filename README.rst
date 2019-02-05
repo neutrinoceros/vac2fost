@@ -33,6 +33,8 @@ It is also assumed that you have ``mcfost (>=3.0)`` properly install
 
 The recommended method relies on the package management system and environment management system ``conda``.
 
+!!!In some version of conda, the ``conda develop`` command ignore the environment python version. The root environment version must be >3. If you use modules on your computer/cluster, you should load ``python3``.
+
 The following assumes ``currrent working directory == vac2fost-project``.
 
 Most of the non-standard Python dependencies can be installed with
