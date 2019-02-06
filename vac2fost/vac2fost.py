@@ -446,7 +446,6 @@ class Interface:
             assert self.dust_binning_mode != "auto"
         else:
             self._set_dust_binning_mode(dust_bin_mode)
-        self.warnings.pop()
 
         self._µsizes = None
 
