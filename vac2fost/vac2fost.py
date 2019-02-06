@@ -497,33 +497,24 @@ class Interface:
         self._dust_binning_mode = new_dbm
 
     @property
+    def use_dust(self) -> bool:
+        return self.dust_binning_mode in {"dust-only", "mixed"}
+    @property
+    def use_gas(self) -> bool:
+        return self.dust_binning_mode in {'gas-only', 'mixed'}
+
+    @property
     def grain_micron_sizes(self) -> np.ndarray:
         '''Read grain sizes (assumed in [cm]), from AMRVAC parameters and
         convert to microns.'''
         assert self.dust_binning_mode != "auto"
         if self._µsizes is None:
             µm_sizes = np.empty(0)
-            if self.dust_binning_mode in {"dust-only", "mixed", "auto"}:
-                try:
-                    cm_sizes = np.array(
-                        self.sim_conf['usr_dust_list']['grain_size_cm'])
-                    µm_sizes = 1e4 * cm_sizes
-                except KeyError:
-                    if self.dust_binning_mode == "auto":
-                        self.set_dust_binning_mode(
-                            "gas-only",
-                            reason="could not find grain sizes"
-                        )
-                    else:
-                        raise
-
-            if self.dust_binning_mode == "auto" and min(µm_sizes) > MINGRAINSIZE_µ:
-                self.set_dust_binning_mode(
-                    "mixed",
-                    reason=f"smallest size found > {MINGRAINSIZE_µ}µm"
-                )
-
-            if self.dust_binning_mode in {'gas-only', 'mixed'}:
+            if self.use_dust:
+                cm_sizes = np.array(
+                    self.sim_conf['usr_dust_list']['grain_size_cm'])
+                µm_sizes = 1e4 * cm_sizes
+            if self.use_gas:
                 µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
             self._µsizes = µm_sizes
         return self._µsizes
@@ -537,8 +528,7 @@ class Interface:
         else:
             if smallest_gs_µm > MINGRAINSIZE_µ:
                 self.set_dust_binning_mode(
-                    "mixed",
-                    reason=f"smallest size found > {MINGRAINSIZE_µ}µm"
+                    "mixed", reason=f"smallest size found > {MINGRAINSIZE_µ}µm"
                 )
 
     @property
