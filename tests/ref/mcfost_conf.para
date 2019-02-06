@@ -5,7 +5,7 @@
   1.28e3                                nphot_sed
   1.28e5                                nphot_img
 
-# Wavelengts
+# Wavelengths
   50  0.1  3000.0                       n_lambda, lambda_min, lambda_max
   True  True  True                      compute_temp, compute_sed, use_default_wl
   wavelengths.dat                       wavelength_file
@@ -73,3 +73,6 @@
   0.0  2.2                              fUV, slope_fUV
 
 
+
+%% automatically generated with vac2fost 2.2
+%% run by crobert on calculon
