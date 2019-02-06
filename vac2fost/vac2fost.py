@@ -487,6 +487,7 @@ class Interface:
         return self._dust_binning_mode
 
     def set_dust_binning_mode(self, new_dbm: str, reason: str = None):
+        """Set value and add a warning."""
         if new_dbm not in {"dust-only", "gas-only", "mixed", "auto"}:
             raise KeyError(f'Unknown dust binning mode "{new_dbm}"')
 
@@ -496,11 +497,12 @@ class Interface:
         self.warnings.append(w)
         self._dust_binning_mode = new_dbm
 
-    @property
-    def use_dust(self) -> bool:
+    def _bin_dust(self) -> bool:
+        """Should dust fluids be passed to mcfost ?"""
         return self.dust_binning_mode in {"dust-only", "mixed"}
-    @property
-    def use_gas(self) -> bool:
+
+    def _bin_gas(self) -> bool:
+        """Should gas be passed to mcfost ?"""
         return self.dust_binning_mode in {'gas-only', 'mixed'}
 
     @property
@@ -510,11 +512,11 @@ class Interface:
         assert self.dust_binning_mode != "auto"
         if self._µsizes is None:
             µm_sizes = np.empty(0)
-            if self.use_dust:
+            if self._bin_dust():
                 cm_sizes = np.array(
                     self.sim_conf['usr_dust_list']['grain_size_cm'])
                 µm_sizes = 1e4 * cm_sizes
-            if self.use_gas:
+            if self._bin_gas():
                 µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
             self._µsizes = µm_sizes
         return self._µsizes
