@@ -85,7 +85,7 @@ class TestRegressionNonAxisym:
         reffile = test_dir/f"ref/{itf.tag}.p"
         #regold(itf, reffile)
 
-        out_ref = pickle.load(open(test_dir/'ref/main_out_non_axisym.p', 'rb'))
+        out_ref = pickle.load(open(reffile, mode="rb"))
         assert itf.dust_binning_mode == out_ref['dust_binning_mode']
         assert itf.sim_conf == out_ref['sim_conf']
         np.testing.assert_array_equal(itf.input_grid['rv'], out_ref['input_grid']['rv'])
