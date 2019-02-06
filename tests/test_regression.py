@@ -123,7 +123,7 @@ class TestRegressionAutoGasOnly:
 
     def test_out(self):
         itf = __class__.itf
-        reffile = test_dir/f"ref/{itf.tag}.p"
+        reffile = test_dir/f"ref/autogasonly/{itf.tag}.p"
         #regold(itf, reffile)
 
         out_ref = pickle.load(open(reffile, mode="rb"))
