@@ -641,9 +641,7 @@ class Interface:
 
     def write_output(self) -> None:
         '''Main method. Write a .fits file suited for MCFOST input.'''
-        argsort = self.grain_micron_sizes.argsort()
-        argsort += 1 - int(self.dust_binning_mode in {"mixed", "gas-only"})
-
+        argsort = self.grain_micron_sizes.argsort() + (1 - self._bin_gas())
         dust_densities_HDU = fits.PrimaryHDU(self.new_3D_arrays[argsort])
 
         mcfost_keywords = {
