@@ -231,6 +231,7 @@ class MCFOSTUtils:
 
     def translate_amrvac_config(itf) -> dict:
         # itf must be of type Interface (can't be parsed properly before python 3.7)
+        # devnote : this should be refactored as part of the Interface class
         '''pass amrvac parameters to mcfost'''
         parameters = {}
 
@@ -242,7 +243,7 @@ class MCFOSTUtils:
             'maps_size': 2*mesh['xprobmax1']*itf.conv2au,
         })
 
-        try:
+        if itf._bin_dust(): #devnote : using a private method outside of class...
             dl2 = itf.sim_conf['usr_dust_list']
             parameters.update({
                 'gas_to_dust_ratio': dl2['gas2dust_ratio'],
@@ -255,9 +256,6 @@ class MCFOSTUtils:
                 'sp_min': min(1e-1, min(sizes_µm)),
                 'sp_max': max(1e3, max(sizes_µm)),
             })
-        except KeyError:
-            itf.warnings.append("Could not find 'usr_dust_list' parameter, using default values")
-
         return parameters
 
     def get_mcfost_grid(itf) -> np.ndarray:
