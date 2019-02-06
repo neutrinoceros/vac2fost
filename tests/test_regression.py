@@ -1,5 +1,5 @@
 import pickle
-import pathlib
+from pathlib import Path
 import os
 import shutil
 import numpy as np
@@ -7,16 +7,18 @@ from astropy.io import fits as pyfits
 
 from vac2fost import main as app
 
-test_dir = pathlib.Path(__file__).absolute().parent
-outdir = test_dir / 'output/test_regression'
-if outdir.is_dir():
-    shutil.rmtree(outdir)
-itf = app(test_dir/'sample/vac2fost_conf.nml', output_dir=outdir)
+test_dir = Path(__file__).parent.resolve()
+OUT = test_dir/"output"
 
-outdir2 = test_dir / 'output/test_regression_non_axisym'
-if outdir2.is_dir():
-    shutil.rmtree(outdir2)
-itf2 = app(test_dir/'sample/vac2fost_conf_nonaxisym.nml', output_dir=outdir2)
+def instanciate_interface(conffile):
+    outdir = OUT / f"test_reg_{Path(conffile).stem}"
+    if outdir.is_dir():
+        shutil.rmtree(outdir)
+    itf = app(test_dir/"sample"/conffile, output_dir=outdir)
+    return itf
+
+conffiles = ["vac2fost_conf.nml", "vac2fost_conf_nonaxisym.nml", "autogasonly/rwi.nml"]
+itf, itf2, itf3 = list(map(instanciate_interface, conffiles))
 
 # to regold tests
 save_keys = ['sim_conf',
@@ -29,14 +31,14 @@ class TestRegression:
     def test_mcfost_conf(self):
         with open(test_dir/'ref/mcfost_conf.para') as fi:
             ref_lines = fi.readlines()
-        with open(outdir/'mcfost_conf.para') as fi:
+        with open(itf.io["out"].directory/'mcfost_conf.para') as fi:
             new_lines = fi.readlines()
         for n, r in zip(new_lines[:-2], ref_lines):
             assert n == r
 
     def test_target_grid(self):
         ref = pyfits.open(test_dir/'ref/mcfost_grid.fits.gz')[0].data
-        new = pyfits.open(outdir/'mcfost_grid.fits.gz')[0].data
+        new = pyfits.open(itf.io["out"].directory/'mcfost_grid.fits.gz')[0].data
         np.testing.assert_array_equal(ref, new)
 
     def test_out(self):
