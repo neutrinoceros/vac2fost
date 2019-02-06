@@ -442,10 +442,10 @@ class Interface:
         )
 
         if dust_bin_mode == "auto":
-            self.autoset_dbm()
+            self._autoset_dbm()
             assert self.dust_binning_mode != "auto"
         else:
-            self.set_dust_binning_mode(dust_bin_mode)
+            self._set_dust_binning_mode(dust_bin_mode)
         self.warnings.pop()
 
         self._µsizes = None
@@ -477,6 +477,8 @@ class Interface:
             if colorama is not None:
                 print(colorama.Style.RESET_ALL, end='')
 
+    # dust binning mode API
+    # ================================================================
     @property
     def dust_binning_mode(self):
         """Define binning strategy
@@ -486,7 +488,19 @@ class Interface:
         """
         return self._dust_binning_mode
 
-    def set_dust_binning_mode(self, new_dbm: str, reason: str = None):
+    def _autoset_dbm(self) -> None:
+        """From dust_binning_mode=="auto" mode, select the correct one"""
+        try:
+            smallest_gs_µm = 1e4* min(np.array(self.sim_conf['usr_dust_list']['grain_size_cm']))
+        except KeyError:
+            self._set_dust_binning_mode("gas-only", reason="could not find grain sizes")
+        else:
+            if smallest_gs_µm > MINGRAINSIZE_µ:
+                self._set_dust_binning_mode(
+                    "mixed", reason=f"smallest size found > {MINGRAINSIZE_µ}µm"
+                )
+
+    def _set_dust_binning_mode(self, new_dbm: str, reason: str = None):
         """Set value and add a warning."""
         if new_dbm not in {"dust-only", "gas-only", "mixed", "auto"}:
             raise KeyError(f'Unknown dust binning mode "{new_dbm}"')
@@ -521,22 +535,12 @@ class Interface:
             self._µsizes = µm_sizes
         return self._µsizes
 
-    def autoset_dbm(self) -> None:
-        """From dust_binning_mode=="auto" mode, select the correct one"""
-        try:
-            smallest_gs_µm = 1e4* min(np.array(self.sim_conf['usr_dust_list']['grain_size_cm']))
-        except KeyError:
-            self.set_dust_binning_mode("gas-only", reason="could not find grain sizes")
-        else:
-            if smallest_gs_µm > MINGRAINSIZE_µ:
-                self.set_dust_binning_mode(
-                    "mixed", reason=f"smallest size found > {MINGRAINSIZE_µ}µm"
-                )
-
     @property
     def argsort_offset(self):
         '''Get the slice starting index when selecting arrays to be transformed'''
         return 1 - int(self.dust_binning_mode in {"mixed", "gas-only"})
+
+    # ================================================================
 
     @property
     def io(self) -> dict:
