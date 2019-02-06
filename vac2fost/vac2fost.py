@@ -393,9 +393,6 @@ class Interface:
         if not isinstance(output_dir, (str, Path)):
             raise TypeError(output_dir)
 
-        self.set_dust_binning_mode(dust_bin_mode)
-        self.warnings.pop()
-
         # attribute storage
         self._base_args = {
             'config_file': Path(config_file),
@@ -443,6 +440,13 @@ class Interface:
             files=self.config['amrvac_input']['config'],
             origin=self.config['amrvac_input']['hydro_data_dir']
         )
+
+        if dust_bin_mode == "auto":
+            self.autoset_dbm()
+            assert self.dust_binning_mode != "auto"
+        else:
+            self.set_dust_binning_mode(dust_bin_mode)
+        self.warnings.pop()
 
         self._µsizes = None
 
@@ -496,6 +500,7 @@ class Interface:
     def grain_micron_sizes(self) -> np.ndarray:
         '''Read grain sizes (assumed in [cm]), from AMRVAC parameters and
         convert to microns.'''
+        assert self.dust_binning_mode != "auto"
         if self._µsizes is None:
             µm_sizes = np.empty(0)
             if self.dust_binning_mode in {"dust-only", "mixed", "auto"}:
@@ -523,22 +528,18 @@ class Interface:
             self._µsizes = µm_sizes
         return self._µsizes
 
-    # def select_dbm(self) -> None:
-    #     """From dust_binning_mode=="auto" mode, select the correct one"""
-    #     try:
-    #         cm_sizes = np.array(self.sim_conf['usr_dust_list']['grain_size_cm'])
-    #         µm_sizes = 1e4 * cm_sizes
-    #     except KeyError:
-    #         self.dust_binning_mode = ["gas-only", "could not find grain sizes"]
-    #     else:
-    #         if min(µm_sizes) > MINGRAINSIZE_µ:
-    #             self.dust_binning_mode = ["mixed",
-    #                                       f"smallest size found > {MINGRAINSIZE_µ}µm"]
-
-    #         if self.dust_binning_mode in {'gas-only', 'mixed'}:
-    #             µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
-    #         self._µsizes = µm_sizes
-    #     return self._µsizes
+    def autoset_dbm(self) -> None:
+        """From dust_binning_mode=="auto" mode, select the correct one"""
+        try:
+            smallest_gs_µm = 1e4* min(np.array(self.sim_conf['usr_dust_list']['grain_size_cm']))
+        except KeyError:
+            self.set_dust_binning_mode("gas-only", reason="could not find grain sizes")
+        else:
+            if smallest_gs_µm > MINGRAINSIZE_µ:
+                self.set_dust_binning_mode(
+                    "mixed",
+                    reason=f"smallest size found > {MINGRAINSIZE_µ}µm"
+                )
 
     @property
     def argsort_offset(self):
