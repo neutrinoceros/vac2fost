@@ -113,6 +113,8 @@ class TestShellCalling():
         ])
         exitcode = subprocess.call(comm, shell=True)
         assert exitcode == 0
+
+        # this part is in fact a regression test...
         for n in (0, 1, 2):
             out_file = output_dir / f"hd142527_dusty{str(n).zfill(4)}.fits"
             ref_file = test_dir /  f"ref/quick/hd142527_dusty{str(n).zfill(4)}.fits"

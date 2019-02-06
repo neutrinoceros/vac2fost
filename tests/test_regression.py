@@ -1,5 +1,5 @@
 import pickle
-import pathlib
+from pathlib import Path
 import os
 import shutil
 import numpy as np
@@ -7,16 +7,15 @@ from astropy.io import fits as pyfits
 
 from vac2fost import main as app
 
-test_dir = pathlib.Path(__file__).absolute().parent
-outdir = test_dir / 'output/test_regression'
-if outdir.is_dir():
-    shutil.rmtree(outdir)
-itf = app(test_dir/'sample/vac2fost_conf.nml', output_dir=outdir)
+test_dir = Path(__file__).parent.resolve()
+OUT = test_dir/"output"
 
-outdir2 = test_dir / 'output/test_regression_non_axisym'
-if outdir2.is_dir():
-    shutil.rmtree(outdir2)
-itf2 = app(test_dir/'sample/vac2fost_conf_nonaxisym.nml', output_dir=outdir2)
+def instanciate_interface(conffile):
+    outdir = OUT / f"test_reg_{Path(conffile).stem}"
+    if outdir.is_dir():
+        shutil.rmtree(outdir)
+    itf = app(test_dir/"sample"/conffile, output_dir=outdir)
+    return itf
 
 # to regold tests
 save_keys = ['sim_conf',
@@ -25,27 +24,36 @@ save_keys = ['sim_conf',
              'dust_binning_mode'
 ]
 
-class TestRegression:
+def regold(itf, reffile):
+    with open(reffile, mode="wb") as file:
+        out = {k: itf.__getattribute__(k) for k in save_keys}
+        pickle.dump(out, file)
+
+class TestRegressionMain:
+    itf = instanciate_interface(conffile="vac2fost_conf.nml")
+    itf.tag = itf._base_args['config_file'].stem
+
     def test_mcfost_conf(self):
+        itf = __class__.itf
         with open(test_dir/'ref/mcfost_conf.para') as fi:
             ref_lines = fi.readlines()
-        with open(outdir/'mcfost_conf.para') as fi:
+        with open(itf.io["out"].directory/'mcfost_conf.para') as fi:
             new_lines = fi.readlines()
         for n, r in zip(new_lines[:-2], ref_lines):
             assert n == r
 
     def test_target_grid(self):
+        itf = __class__.itf
         ref = pyfits.open(test_dir/'ref/mcfost_grid.fits.gz')[0].data
-        new = pyfits.open(outdir/'mcfost_grid.fits.gz')[0].data
+        new = pyfits.open(itf.io["out"].directory/'mcfost_grid.fits.gz')[0].data
         np.testing.assert_array_equal(ref, new)
 
     def test_out(self):
-        #use this to regold the reference file
-        # with open(test_dir/'ref/main_out.p', 'wb') as file:
-        #     out = {k: itf.__getattribute__(k) for k in save_keys}
-        #     pickle.dump(out, file)
+        itf = __class__.itf
+        reffile = test_dir/f"ref/{itf.tag}.p"
+        #regold(itf, reffile)
 
-        out_ref = pickle.load(open(test_dir/'ref/main_out.p', 'rb'))
+        out_ref = pickle.load(open(reffile, mode="rb"))
         assert itf.dust_binning_mode == out_ref['dust_binning_mode']
         assert itf.sim_conf == out_ref['sim_conf']
         np.testing.assert_array_equal(itf.input_grid['rv'], out_ref['input_grid']['rv'])
@@ -59,6 +67,7 @@ class TestRegression:
         np.testing.assert_allclose(itf.new_3D_arrays, out_ref['new_3D_arrays'], rtol=1e-15)
 
     def test_image(self):
+        itf = __class__.itf
         # get the Primary (only image available),
         # and exctract its first 3d array (density field)
         itf.write_output()
@@ -67,30 +76,65 @@ class TestRegression:
         ref = pyfits.open(test_dir/'ref/hd142527_dusty0000.fits')[0].data[0]
         np.testing.assert_array_equal(data, ref)
 
-    def test_out_non_axisym(self):
-        #use this to regold the reference file
-        # with open(test_dir/'ref/main_out_non_axisym.p', 'wb') as file:
-        #     out = {k: itf2.__getattribute__(k) for k in save_keys}
-        #     pickle.dump(out, file)
+class TestRegressionNonAxisym:
+    itf = instanciate_interface(conffile="vac2fost_conf_nonaxisym.nml")
+    itf.tag = itf._base_args['config_file'].stem
 
-        out_ref = pickle.load(open(test_dir/'ref/main_out_non_axisym.p', 'rb'))
-        assert itf2.dust_binning_mode == out_ref['dust_binning_mode']
-        assert itf2.sim_conf == out_ref['sim_conf']
-        np.testing.assert_array_equal(itf2.input_grid['rv'], out_ref['input_grid']['rv'])
-        np.testing.assert_array_equal(itf2.input_grid['phiv'], out_ref['input_grid']['phiv'])
-        np.testing.assert_array_equal(itf2.output_grid['rv'], out_ref['output_grid']['rv'])
-        np.testing.assert_array_equal(itf2.output_grid['phiv'], out_ref['output_grid']['phiv'])
-        np.testing.assert_array_equal(itf2.output_grid['rg'], out_ref['output_grid']['rg'])
-        np.testing.assert_array_equal(itf2.output_grid['phig'], out_ref['output_grid']['phig'])
-        np.testing.assert_array_equal(itf2.output_grid['zg'], out_ref['output_grid']['zg'])
-        np.testing.assert_allclose(itf2.new_2D_arrays, out_ref['new_2D_arrays'], rtol=1e-25)
-        np.testing.assert_allclose(itf2.new_3D_arrays, out_ref['new_3D_arrays'], rtol=1e-15)
+    def test_out(self):
+        itf = __class__.itf
+        reffile = test_dir/f"ref/{itf.tag}.p"
+        #regold(itf, reffile)
 
-    def test_image_non_axisym(self):
+        out_ref = pickle.load(open(reffile, mode="rb"))
+        assert itf.dust_binning_mode == out_ref['dust_binning_mode']
+        assert itf.sim_conf == out_ref['sim_conf']
+        np.testing.assert_array_equal(itf.input_grid['rv'], out_ref['input_grid']['rv'])
+        np.testing.assert_array_equal(itf.input_grid['phiv'], out_ref['input_grid']['phiv'])
+        np.testing.assert_array_equal(itf.output_grid['rv'], out_ref['output_grid']['rv'])
+        np.testing.assert_array_equal(itf.output_grid['phiv'], out_ref['output_grid']['phiv'])
+        np.testing.assert_array_equal(itf.output_grid['rg'], out_ref['output_grid']['rg'])
+        np.testing.assert_array_equal(itf.output_grid['phig'], out_ref['output_grid']['phig'])
+        np.testing.assert_array_equal(itf.output_grid['zg'], out_ref['output_grid']['zg'])
+        np.testing.assert_allclose(itf.new_2D_arrays, out_ref['new_2D_arrays'], rtol=1e-25)
+        np.testing.assert_allclose(itf.new_3D_arrays, out_ref['new_3D_arrays'], rtol=1e-15)
+
+    def test_image(self):
+        itf = __class__.itf
         # get the Primary (only image available),
         # and exctract its first 3d array (density field)
-        itf2.write_output()
-        fipath = itf2.io['out'].filepath
+        itf.write_output()
+        fipath = itf.io['out'].filepath
         data = pyfits.open(fipath)[0].data[0]
         ref = pyfits.open(test_dir/'ref/hd142527_dusty0000_nonaxisym.fits')[0].data[0]
         np.testing.assert_array_equal(data, ref)
+
+class TestRegressionAutoGasOnly:
+    itf = instanciate_interface("autogasonly/rwi.nml")
+    itf.tag = itf._base_args['config_file'].stem
+
+    def test_mcfost_conf(self):
+        itf = __class__.itf
+        with open(test_dir/"ref/autogasonly/mcfost_conf.para") as fi:
+            ref_lines = fi.readlines()
+        with open(itf.io["out"].directory/"mcfost_conf.para") as fi:
+            new_lines = fi.readlines()
+        for n, r in zip(new_lines[:-2], ref_lines):
+            assert n == r
+
+    def test_out(self):
+        itf = __class__.itf
+        reffile = test_dir/f"ref/autogasonly/{itf.tag}.p"
+        #regold(itf, reffile)
+
+        out_ref = pickle.load(open(reffile, mode="rb"))
+        assert itf.dust_binning_mode == out_ref["dust_binning_mode"]
+        assert itf.sim_conf == out_ref["sim_conf"]
+        np.testing.assert_array_equal(itf.input_grid["rv"], out_ref["input_grid"]["rv"])
+        np.testing.assert_array_equal(itf.input_grid["phiv"], out_ref["input_grid"]["phiv"])
+        np.testing.assert_array_equal(itf.output_grid["rv"], out_ref["output_grid"]["rv"])
+        np.testing.assert_array_equal(itf.output_grid["phiv"], out_ref["output_grid"]["phiv"])
+        np.testing.assert_array_equal(itf.output_grid["rg"], out_ref["output_grid"]["rg"])
+        np.testing.assert_array_equal(itf.output_grid["phig"], out_ref["output_grid"]["phig"])
+        np.testing.assert_array_equal(itf.output_grid["zg"], out_ref["output_grid"]["zg"])
+        np.testing.assert_allclose(itf.new_2D_arrays, out_ref["new_2D_arrays"], rtol=1e-25)
+        np.testing.assert_allclose(itf.new_3D_arrays, out_ref["new_3D_arrays"], rtol=1e-15)
