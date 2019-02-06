@@ -127,8 +127,8 @@ generated from command line with ``vac2fost.py --genconf``)
                 nr_in = 30  ! need to be < nr
 
                 flaring_index = 1.125
-	            ref_radius = 100.0    ! [a.u.]
-	            scale_height = 10.0   ! [a.u.] defined at ref_radius
+                ref_radius = 100.0    ! [a.u.]
+                scale_height = 10.0   ! [a.u.] defined at ref_radius
 
                 star_mass = 1.8
                 star_temp = 6550
