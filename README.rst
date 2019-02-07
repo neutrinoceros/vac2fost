@@ -53,7 +53,9 @@ Most of the non-standard Python dependencies can be installed with
 
 This will create a specific environment for using vac2fost without modifying your
 usual python packages in your base environment.
-The program relies on two sub-porjects, amrvac_pywrap_ and vtk_vacreader_.
+
+The program also relies on two sub-projects (same author),
+amrvac_pywrap_ and vtk_vacreader_.
 
 .. _amrvac_pywrap: https://gitlab.oca.eu/crobert/amrvac-pywrap-project
 .. _vtk_vacreader: https://gitlab.oca.eu/crobert/vtk_vacreader-project
