@@ -430,7 +430,7 @@ class Interface:
                 raise FileNotFoundError(errmess)
 
             elif not any(found):
-                raise FileNotFoundError(hydro_data_dir)
+                raise FileNotFoundError(hydro_data_dir/options['config'][0])
             else:
                 p = (p1, p2)[found.index(True)]
             self.config['amrvac_input'].update({'hydro_data_dir': p.resolve()})
