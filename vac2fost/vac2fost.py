@@ -20,7 +20,7 @@ Known limitations
 '''
 __version__ = "2.2"
 mcfost_major_version = "3.0"
-mcfost_minor_version = "34"
+mcfost_minor_version = "35"
 
 from collections import OrderedDict as od, namedtuple
 import os

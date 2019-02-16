@@ -49,7 +49,7 @@ class TestRegressionMain:
             ref_lines = fi.readlines()
         with open(itf.io["out"].directory / "mcfost_conf.para") as fi:
             new_lines = fi.readlines()
-        for n, r in zip(new_lines[:-2], ref_lines):
+        for n, r in zip(new_lines[2:-2], ref_lines[2:]):
             assert n == r
 
     def test_target_grid(self):
@@ -130,7 +130,7 @@ class TestRegressionAutoGasOnly:
             ref_lines = fi.readlines()
         with open(itf.io["out"].directory/"mcfost_conf.para") as fi:
             new_lines = fi.readlines()
-        for n, r in zip(new_lines[:-2], ref_lines):
+        for n, r in zip(new_lines[2:-2], ref_lines[2:]):
             assert n == r
 
     def test_out(self):
