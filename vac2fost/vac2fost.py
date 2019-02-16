@@ -20,10 +20,11 @@ Known limitations
 '''
 __version__ = "2.2"
 mcfost_major_version = "3.0"
-mcfost_minor_version = "34"
+mcfost_minor_version = "35"
 
 from collections import OrderedDict as od, namedtuple
 import os
+from warnings import warn
 from socket import gethostname
 import sys
 import shutil
@@ -54,6 +55,27 @@ try:
     assert 'not found' not in res
 except AssertionError:
     raise EnvironmentError('Installation of MCFOST not found.')
+
+# Detect mcfost version
+bout = subprocess.check_output(["mcfost", "-version"])
+out = "".join(map(chr, bout))
+version_tag = out.split("\n")[0].split()[-1]
+
+verx, very, verz = map(int, version_tag.split("."))
+
+if float(f"{verx}.{very}") < float(mcfost_major_version):
+    raise EnvironmentError("mcfost version must be >= {mcfost_major_version}")
+
+EXPECTED_ZSHAPE_INCREMENT = 0
+if f"{verx}.{very}" == "3.0":
+    if verz < 32:
+        warn("vac2fost has not been tested for mcfost < 3.0.32")
+    if verz < 35:
+        EXPECTED_ZSHAPE_INCREMENT = 1
+
+DETECTED_MCFOST_VERSION = verx, very, verz
+del bout, out, version_tag, verx, very, verz
+
 
 # Globals
 MINGRAINSIZE_µ = 0.1
@@ -720,12 +742,12 @@ class Interface:
         nz_out, nr2 = self.output_grid['zg'].shape
         nz_in = self.config['mcfost_output']['nz']
         assert nr2 == nr
-        assert nz_out == 2*nz_in+1
+        assert nz_out == 2*nz_in + EXPECTED_ZSHAPE_INCREMENT
 
         nbins = len(self.new_2D_arrays)
         self._new_3D_arrays = np.zeros((nbins, nphi, nz_in, nr))
         for ir, r in enumerate(self.output_grid['rv']):
-            z_vect = self.output_grid['zg'][nz_in+1:, ir].reshape(1, nz_in)
+            z_vect = self.output_grid['zg'][nz_in+EXPECTED_ZSHAPE_INCREMENT:, ir].reshape(1, nz_in)
             local_height = r * self.aspect_ratio
             gaussian = np.exp(-z_vect**2/ (2*local_height**2)) / (np.sqrt(2*np.pi) * local_height)
             for i_bin, surface_density in enumerate(self.new_2D_arrays[:, ir, :]):

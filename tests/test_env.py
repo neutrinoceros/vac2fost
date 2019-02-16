@@ -2,7 +2,7 @@
 import pathlib
 import vac2fost
 from vac2fost import main as app
-from vac2fost.vac2fost import mcfost_major_version, mcfost_minor_version
+from vac2fost.vac2fost import mcfost_major_version, mcfost_minor_version, DETECTED_MCFOST_VERSION
 import pytest
 import subprocess
 
@@ -11,10 +11,7 @@ output_dir = testdir/'output/test_env'
 
 def test_mcfost_version():
     """Check consistency with recommended mcfost version"""
-    bout = subprocess.check_output(["mcfost", "-version"])
-    out = "".join(map(chr, bout))
-    version_tag = out.split("\n")[0].split()[-1]
-    x, y, z = map(int, version_tag.split("."))
+    x, y, z = DETECTED_MCFOST_VERSION
     detected_major = float(f"{x}.{y}")
     assert detected_major >= float(mcfost_major_version)
     if detected_major > float(mcfost_major_version):
