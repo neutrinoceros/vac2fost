@@ -291,14 +291,15 @@ class MCFOSTUtils:
                 )
                 shutil.move("data_disk/grid.fits.gz", grid_file_name)
             except subprocess.CalledProcessError as exc:
-                errtip = f'\nError in MCFOST, exited with exitcode {exc.returncode}'
+                errtip = f"\nError in MCFOST, exited with exitcode {exc.returncode}"
                 if exc.returncode == 174:
                     errtip += (
-                        '\nThis is probably a memory issue. '
-                        'Try reducing the target resolution or,'
-                        ' alternatively, give more cpu memory to this task.'
+                        "\nThis is probably a memory issue. "
+                        "Try reducing the target resolution or,"
+                        " alternatively, give more cpu memory to this task."
                     )
-                    raise RuntimeError(errtip)
+                print(errtip)
+                raise
             finally:
                 os.chdir(pile)
                 shutil.rmtree(tmp_mcfost_dir)
