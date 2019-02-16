@@ -19,6 +19,8 @@ Known limitations
      as a tracer for smallest dust grains
 '''
 __version__ = "2.2"
+mcfost_major_version = "3.0"
+mcfost_minor_version = "34"
 
 from collections import OrderedDict as od, namedtuple
 import os
@@ -208,7 +210,8 @@ class MCFOSTUtils:
         if Path(output_file).exists() and verbose:
             print(f'Warning: {output_file} already exists, and will be overwritten.')
         with open(output_file, 'wt') as fi:
-            fi.write('3.0'.ljust(10) + 'mcfost minimal version\n\n')
+            fi.write(mcfost_major_version.ljust(10) +
+                     f"mcfost minimal version. Recommended minor {mcfost_minor_version}\n\n")
             for block, lines in __class__.blocks_descriptors.items():
                 fi.write(f'# {block}\n')
                 for line in lines:
