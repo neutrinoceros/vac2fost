@@ -116,7 +116,7 @@ class TestRegressionNonAxisym:
         itf.write_output()
         fipath = itf.io['out'].filepath
         data = pyfits.open(fipath)[0].data[0]
-        ref = pyfits.open(__class__.subrefdir / "hd142527_dusty0000_nonaxisym.fits")[0].data[0]
+        ref = pyfits.open(__class__.subrefdir / "hd142527_rphi0020.fits")[0].data[0]
         np.testing.assert_array_equal(data, ref)
 
 class TestRegressionAutoGasOnly:
