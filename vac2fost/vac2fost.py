@@ -706,6 +706,7 @@ class Interface:
 
         dust_densities_HDU = fits.PrimaryHDU(self.new_3D_arrays[dust_bin_selector])
         for k, v in header.items():
+            # this is the canonical way to avoid HIERARCH-related warnings from astropy
             if len(k) > 8:
                 k = f"HIERARCH {k}"
             dust_densities_HDU.header.append((k, v))
