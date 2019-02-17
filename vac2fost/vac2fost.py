@@ -408,6 +408,7 @@ class Interface:
                  nums: int = None, # or any int-returning iterable
                  output_dir: Path = Path('.'),
                  dust_bin_mode: str = "auto",
+                 read_gas_density=False,
                  mcfost_verbose=False):
 
         self.warnings = []
@@ -423,6 +424,7 @@ class Interface:
             'output_dir': Path(output_dir),
             'nums': nums,
             'dust_bin_mode': dust_bin_mode,
+            'read_gas_density': read_gas_density
         }
 
         self._dim = 2  # no support for 3D input yet
@@ -491,6 +493,26 @@ class Interface:
         except KeyError:
             self.warnings.append("could not find conv2au, distance unit assumed 1au")
 
+    @property
+    def read_gas_density(self) -> bool:
+        """Named after mcfost's option. Gas density is passed to mcfost only
+        if required by user AND non-redundant.
+
+        Clarification: if no gas density is passed, mcfost assumes
+        that gas is traced by smallest grains. As "gas-only" and
+        "mixed" modes make the same assumption, they would produce
+        identical result without explicitly passing the gas density.
+        """
+        if not self._base_args["read_gas_density"]:
+            rgd = False
+        elif self._bin_gas():
+            self.warnings.append(
+                f"read_gas_density asked but redundant in '{self.dust_binning_mode}' mode, ignored")
+            rgd = False
+        else:
+            rgd = True
+        return rgd
+
     def print_warnings(self):
         '''Print warnings if any.'''
         if self.warnings:
@@ -557,9 +579,6 @@ class Interface:
                 µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
             self._µsizes = µm_sizes
         return self._µsizes
-
-
-    # ================================================================
 
     @property
     def io(self) -> dict:
@@ -667,35 +686,32 @@ class Interface:
         return unknowns
 
     def write_output(self) -> None:
-        '''Main method. Write a .fits file suited for MCFOST input.'''
-        argsort = self.grain_micron_sizes.argsort() + (1 - self._bin_gas())
-        dust_densities_HDU = fits.PrimaryHDU(self.new_3D_arrays[argsort])
+        """Write a .fits file suited for MCFOST input."""
+        dust_bin_selector = {
+            "gas-only": 0,
+            "dust-only": 1 + self.grain_micron_sizes.argsort(),
+            "mixed": self.grain_micron_sizes.argsort()
+        }[self.dust_binning_mode]
 
-        mcfost_keywords = {
-            # automatic normalization of size-bins from mcfost param file.
-            'read_n_a': 0,
-            # following keywords are too long according to fits standards !
-            # issue 19
-            # -------------------------------------------------------------
-            # 'read_gas_density': 0, #set to 1 to add gas density
-            # required when reading gas
-            # 'gas_to_dust': sim.conf['usr_dust_list']['gas2dust_ratio'],
-        }
-
-        for it in mcfost_keywords.items():
-            dust_densities_HDU.header.append(it)
-
-        grain_sizes_HDU = fits.ImageHDU(
-            self.grain_micron_sizes[self.grain_micron_sizes.argsort()]
-        )
-        hdus = [
-            dust_densities_HDU,
-            grain_sizes_HDU,
-            # fits.ImageHDU(gas_density) # issue 19 related...
+        additional_hdus = [
+            fits.ImageHDU(self.grain_micron_sizes[self.grain_micron_sizes.argsort()])
         ]
-        fopath = self.io['out'].filepath
-        with open(fopath, 'wb') as fo:
-            hdul = fits.HDUList(hdus=hdus)
+        header = {'read_n_a': 0} # automatic normalization of size-bins from mcfost param file.
+        if self.read_gas_density:
+            additional_hdus.append(fits.ImageHDU(self._new_3D_arrays[0]))
+            header.update(dict(read_gas_density=1))
+
+            #devnote: add try statement here ?
+            header.update(dict(gas_to_dust=self.sim_conf["usr_dust_list"]["gas2dust_ratio"]))
+
+        dust_densities_HDU = fits.PrimaryHDU(self.new_3D_arrays[dust_bin_selector])
+        for k, v in header.items():
+            if len(k) > 8:
+                k = f"HIERARCH {k}"
+            dust_densities_HDU.header.append((k, v))
+
+        with open(self.io["out"].filepath, mode="wb") as fo:
+            hdul = fits.HDUList(hdus=[dust_densities_HDU] + additional_hdus)
             hdul.writeto(fo)
 
     @property
@@ -802,13 +818,16 @@ def main(config_file: str,
          nums: int = None, # or any in-returning interable
          output_dir: str = '.',
          dust_bin_mode: str = "auto",
+         read_gas_density=False,
          verbose=False,
          mcfost_verbose=False):
     '''Try to transform a .vtu file into a .fits'''
     print(decorated_centered_message("start vac2fost"))
     InterfaceType = {True: VerbatimInterface, False: Interface}[verbose]
     itf = InterfaceType(config_file, nums=nums, output_dir=output_dir,
-                        dust_bin_mode=dust_bin_mode, mcfost_verbose=mcfost_verbose)
+                        dust_bin_mode=dust_bin_mode,
+                        read_gas_density=read_gas_density,
+                        mcfost_verbose=mcfost_verbose)
 
     for i, n in enumerate(itf.nums):
         if verbose or i == 0:
@@ -869,6 +888,11 @@ if __name__ == '__main__':
         help="prefered bin selection mode [dust-only, gas-only, mixed, auto]"
     )
     parser.add_argument(
+        "--read_gas_density",
+        action="store_true",
+        help="pass gas density to mcfost"
+    )
+    parser.add_argument(
         '-v', '--verbose',
         action='store_true',
         help='activate verbose mode'
@@ -910,6 +934,7 @@ if __name__ == '__main__':
         nums=cargs.nums,
         output_dir=cargs.output,
         dust_bin_mode=cargs.dbm,
+        read_gas_density=cargs.read_gas_density,
         verbose=cargs.verbose,
         mcfost_verbose=cargs.mcfost_verbose
     )
