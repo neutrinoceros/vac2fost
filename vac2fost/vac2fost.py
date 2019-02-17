@@ -505,7 +505,7 @@ class Interface:
         """
         if not self._base_args["read_gas_density"]:
             rgd = False
-        elif self.dust_binning_mode in ("gas-only", "mixed"):
+        elif self._bin_gas():
             self.warnings.append(
                 f"read_gas_density asked but redundant in '{self.dust_binning_mode}' mode, ignored")
             rgd = False
@@ -698,10 +698,10 @@ class Interface:
         header = {'read_n_a': 0} # automatic normalization of size-bins from mcfost param file.
         if self.read_gas_density:
             additional_hdus.append(fits.ImageHDU(self._new_3D_arrays[0]))
-            header.update({
-                "read_gas_density": 1,
-                "gas_to_dust": self.sim_conf["usr_dust_list"]["gas2dust_ratio"]
-            })
+            header.update(dict(read_gas_density=1))
+
+            #devnote: add try statement here ?
+            header.update(dict(gas_to_dust=self.sim_conf["usr_dust_list"]["gas2dust_ratio"]))
 
         dust_densities_HDU = fits.PrimaryHDU(self.new_3D_arrays[dust_bin_selector])
         for k, v in header.items():
