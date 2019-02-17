@@ -650,7 +650,8 @@ class Interface:
             raise KeyError(f'Unrecognized MCFOST argument(s): {unknown_args}')
         custom.update(self.config['mcfost_output'])
 
-        custom.update({'dust_mass': get_dust_mass(self.input_data)})
+        if self._bin_dust():
+            custom.update({'dust_mass': get_dust_mass(self.input_data)})
         MCFOSTUtils.write_mcfost_conf(
             output_file=self.mcfost_conf_file,
             custom=custom,
