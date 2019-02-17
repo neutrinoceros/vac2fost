@@ -848,7 +848,10 @@ def main(config_file: str,
         itf.gen_3D_arrays()
         itf.write_output()
 
-        filepath = itf.io['out'].filepath.relative_to(Path.cwd())
+        try:
+            filepath = itf.io['out'].filepath.relative_to(Path.cwd())
+        except ValueError:
+            filepath = itf.io['out'].filepath
         print(CYAN + f" >>> wrote {filepath}")
 
     itf.print_warnings()
