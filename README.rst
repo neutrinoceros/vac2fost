@@ -1,3 +1,5 @@
+.. image:: http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat
+
 VAC2FOST
 ========
 
@@ -31,18 +33,29 @@ run the program.
 
 It is also assumed that you have ``mcfost (>=3.0)`` properly install
 
-The recommended method relies on ``conda``.
+The recommended method relies on the Python package/environment manager ``conda``.
 
-The following assumes ``cwd == vac2fost-project``.
+.. todo:: gekki
+
+**warning: Currently, conda has a bug where `conda develop` ignores the 
+environment's Python version.
+The base environment must have python>=3.6. 
+If you use modules on your computer/cluster, you should load python3.**
+
+
+The following assumes ``currrent working directory == vac2fost-project``.
 
 Most of the non-standard Python dependencies can be installed with
 
     .. code-block:: bash
     
-        conda create --name vac2fost --file environment.ylm --channel conda-forge
+        conda create --name vac2fost --file environment.yml --channel conda-forge
 
-Other parts of the program are amrvac_pywrap_ and vtk_vacreader_.
+This will create a specific environment for using vac2fost without modifying your
+usual python packages in your base environment.
 
+The program also relies on two sub-projects (same author),
+amrvac_pywrap_ and vtk_vacreader_.
 
 .. _amrvac_pywrap: https://gitlab.oca.eu/crobert/amrvac-pywrap-project
 .. _vtk_vacreader: https://gitlab.oca.eu/crobert/vtk_vacreader-project
@@ -51,31 +64,34 @@ They can be installed with
 
     .. code-block:: bash
 
-        conda activate vac2fost
+        source activate vac2fost # some systems accept "conda" instead of "source" here
         bash install_deps.sh # this script will ask for user confirmation
 
+The first line change your working environment to the one needed to use 
+``vac2fost``. The second will install the two specific dependencies.
 
-Then, if you wish to use ``vac2fost`` as a Python package, install it as
+Then, there are two ways you can use ``vac2fost``:
+
+- as a Python package. Install with
 
     .. code-block:: bash
 
-        conda activate vac2fost
+        source activate vac2fost
         conda install .
         #or
         conda develop . # if you wish to actively modify the package as you use it
 
 
-Finally, if you wish to use ``vac2fost.py`` from command line, the recommended
-fashion is to create a symbolic link to the main file, as part of your ``$PATH``
-and treat it as an executable.
-
-For instance: 
+- from command line. the recommended fashion is to create a symbolic link to the
+  main file, as part of your ``$PATH`` and treat it as an executable.
+  For instance
 
     .. code-block:: bash
         
         chmod +x vac2fost/vac2fost.py
         ln -s vac2fost/vac2fost.py ~/local/bin/vac2fost.py
-
+        #or a more standard solution
+        export PATH=$PATH:~/path/to/vac2fost
 
 
 
@@ -100,38 +116,38 @@ generated from command line with ``vac2fost.py --genconf``)
  .. code:: fortran
 
            &amrvac_input
-           ! additional options
-               origin = '/path/to/mod_usr.t/parent/directory'
-               amrvac_conf = 'relative/path/to/vac/config_file/from/origin'
-               nums = 0  ! output number of the .dat file to be converted
-           /
+                config = 'relative/to/<hydro_data_dir>/path/to/amrvac/config/file1.par','and/file2.par'
+                conv2au = 100
+                hydro_data_dir = 'path/to/output/data/directory'
+                nums = 0
+            /
 
            &mcfost_output
            ! this list describes MCFOST parameters
            ! named according to vac2fost.MCFOSTUtils.blocks_descriptors
-               nr   = 150
-               nphi = 100
-               nz   = 50
-               nr_in = 30  ! need to be < nr
+                nr   = 150
+                nphi = 100
+                nz   = 50
+                nr_in = 30  ! need to be < nr
 
-	       flaring_index = 1.125
-	       ref_radius = 100.0    ! [a.u.]
-	       scale_height = 10.0   ! [a.u.] defined at ref_radius
+                flaring_index = 1.125
+                ref_radius = 100.0    ! [a.u.]
+                scale_height = 10.0   ! [a.u.] defined at ref_radius
 
-               star_mass = 1.8
-               star_temp = 6550
-               distance  = 157
+                star_mass = 1.8
+                star_temp = 6550
+                distance  = 157
            /
 
 
-The app can be used in two fashions
+The progam can be used in two fashions
 
 * directly from command-line:
 
   .. code:: bash
 
             # provided that the num parameter is included in the configuration:&amrvac_input:nums
-            ./vac2mcfost.py <configuration_file>
+            ./vac2mcfost.py <configuration_file> --dbm <[dust-only, gas-only, mixed]>
             # otherwise
             ./vac2mcfost.py <configuration_file> --nums <input file num>
 

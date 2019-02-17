@@ -19,9 +19,12 @@ Known limitations
      as a tracer for smallest dust grains
 '''
 __version__ = "2.2"
+mcfost_major_version = "3.0"
+mcfost_minor_version = "35"
 
 from collections import OrderedDict as od, namedtuple
 import os
+from warnings import warn
 from socket import gethostname
 import sys
 import shutil
@@ -53,6 +56,27 @@ try:
 except AssertionError:
     raise EnvironmentError('Installation of MCFOST not found.')
 
+# Detect mcfost version
+bout = subprocess.check_output(["mcfost", "-version"])
+out = "".join(map(chr, bout))
+version_tag = out.split("\n")[0].split()[-1]
+
+verx, very, verz = map(int, version_tag.split("."))
+
+if float(f"{verx}.{very}") < float(mcfost_major_version):
+    raise EnvironmentError("mcfost version must be >= {mcfost_major_version}")
+
+EXPECTED_ZSHAPE_INCREMENT = 0
+if f"{verx}.{very}" == "3.0":
+    if verz < 32:
+        warn("vac2fost has not been tested for mcfost < 3.0.32")
+    if verz < 35:
+        EXPECTED_ZSHAPE_INCREMENT = 1
+
+DETECTED_MCFOST_VERSION = verx, very, verz
+del bout, out, version_tag, verx, very, verz
+
+
 # Globals
 MINGRAINSIZE_µ = 0.1
 DataInfo = namedtuple(
@@ -73,7 +97,7 @@ class MCFOSTUtils:
                 od([('nphot_sed', '1.28e3')]),
                 od([('nphot_img', '1.28e5')])
             )),
-            ('Wavelengts', (
+            ('Wavelengths', (
                 od([('n_lambda', 50),
                     ('lambda_min', 0.1),
                     ('lambda_max', 3e3)]),
@@ -208,7 +232,8 @@ class MCFOSTUtils:
         if Path(output_file).exists() and verbose:
             print(f'Warning: {output_file} already exists, and will be overwritten.')
         with open(output_file, 'wt') as fi:
-            fi.write('3.0'.ljust(10) + 'mcfost minimal version\n\n')
+            fi.write(mcfost_major_version.ljust(10) +
+                     f"mcfost minimal version. Recommended minor {mcfost_minor_version}\n\n")
             for block, lines in __class__.blocks_descriptors.items():
                 fi.write(f'# {block}\n')
                 for line in lines:
@@ -231,6 +256,7 @@ class MCFOSTUtils:
 
     def translate_amrvac_config(itf) -> dict:
         # itf must be of type Interface (can't be parsed properly before python 3.7)
+        # devnote : this should be refactored as part of the Interface class
         '''pass amrvac parameters to mcfost'''
         parameters = {}
 
@@ -242,7 +268,7 @@ class MCFOSTUtils:
             'maps_size': 2*mesh['xprobmax1']*itf.conv2au,
         })
 
-        try:
+        if itf._bin_dust(): #devnote : using a private method outside of class...
             dl2 = itf.sim_conf['usr_dust_list']
             parameters.update({
                 'gas_to_dust_ratio': dl2['gas2dust_ratio'],
@@ -255,9 +281,6 @@ class MCFOSTUtils:
                 'sp_min': min(1e-1, min(sizes_µm)),
                 'sp_max': max(1e3, max(sizes_µm)),
             })
-        except KeyError:
-            itf.warnings.append("Could not find 'usr_dust_list' parameter, using default values")
-
         return parameters
 
     def get_mcfost_grid(itf) -> np.ndarray:
@@ -293,14 +316,15 @@ class MCFOSTUtils:
                 )
                 shutil.move("data_disk/grid.fits.gz", grid_file_name)
             except subprocess.CalledProcessError as exc:
-                errtip = f'\nError in MCFOST, exited with exitcode {exc.returncode}'
+                errtip = f"\nError in MCFOST, exited with exitcode {exc.returncode}"
                 if exc.returncode == 174:
                     errtip += (
-                        '\nThis is probably a memory issue. '
-                        'Try reducing the target resolution or,'
-                        ' alternatively, give more cpu memory to this task.'
+                        "\nThis is probably a memory issue. "
+                        "Try reducing the target resolution or,"
+                        " alternatively, give more cpu memory to this task."
                     )
-                    raise RuntimeError(errtip)
+                print(errtip)
+                raise
             finally:
                 os.chdir(pile)
                 shutil.rmtree(tmp_mcfost_dir)
@@ -394,10 +418,6 @@ class Interface:
         if not isinstance(output_dir, (str, Path)):
             raise TypeError(output_dir)
 
-        self._dust_binning_mode = None
-        self.dust_binning_mode = dust_bin_mode
-        self.warnings.pop()
-
         # attribute storage
         self._base_args = {
             'config_file': Path(config_file),
@@ -438,7 +458,7 @@ class Interface:
                 raise FileNotFoundError(errmess)
 
             elif not any(found):
-                raise FileNotFoundError(hydro_data_dir)
+                raise FileNotFoundError(hydro_data_dir/options['config'][0])
             else:
                 p = (p1, p2)[found.index(True)]
             self.config['amrvac_input'].update({'hydro_data_dir': p.resolve()})
@@ -446,6 +466,12 @@ class Interface:
             files=self.config['amrvac_input']['config'],
             origin=self.config['amrvac_input']['hydro_data_dir']
         )
+
+        if dust_bin_mode == "auto":
+            self._autoset_dbm()
+            assert self.dust_binning_mode != "auto"
+        else:
+            self._set_dust_binning_mode(dust_bin_mode)
 
         self._µsizes = None
 
@@ -496,6 +522,8 @@ class Interface:
             if colorama is not None:
                 print(colorama.Style.RESET_ALL, end='')
 
+    # dust binning mode API
+    # ================================================================
     @property
     def dust_binning_mode(self):
         """Define binning strategy
@@ -505,46 +533,49 @@ class Interface:
         """
         return self._dust_binning_mode
 
-    @dust_binning_mode.setter
-    def dust_binning_mode(self, args: list):
-        known_dbms = {"dust-only", "gas-only", "mixed", "auto"}
-        if isinstance(args, str):
-            dbm = args
-            reason = None
+    def _autoset_dbm(self) -> None:
+        """From dust_binning_mode=="auto" mode, select the correct one"""
+        try:
+            smallest_gs_µm = 1e4* min(np.array(self.sim_conf['usr_dust_list']['grain_size_cm']))
+        except KeyError:
+            self._set_dust_binning_mode("gas-only", reason="could not find grain sizes")
         else:
-            assert isinstance(args, list) and len(args) == 2
-            dbm, reason = args
-        if dbm not in known_dbms:
-            raise KeyError(f'Unknown dust binning mode "{dbm}"')
+            if smallest_gs_µm > MINGRAINSIZE_µ:
+                self._set_dust_binning_mode(
+                    "mixed", reason=f"smallest size found > {MINGRAINSIZE_µ}µm"
+                )
 
-        w = f'dust-binning mode was switched to "{args[0]}"'
-        if reason:
+    def _set_dust_binning_mode(self, new_dbm: str, reason: str = None):
+        """Set value and add a warning."""
+        if new_dbm not in {"dust-only", "gas-only", "mixed", "auto"}:
+            raise KeyError(f'Unknown dust binning mode "{new_dbm}"')
+
+        w = f'dust-binning mode was switched to "{new_dbm}"'
+        if reason is not None:
             w += f'; reason: {reason}'
         self.warnings.append(w)
-        self._dust_binning_mode = dbm
+        self._dust_binning_mode = new_dbm
+
+    def _bin_dust(self) -> bool:
+        """Should dust fluids be passed to mcfost ?"""
+        return self.dust_binning_mode in {"dust-only", "mixed"}
+
+    def _bin_gas(self) -> bool:
+        """Should gas be passed to mcfost ?"""
+        return self.dust_binning_mode in {'gas-only', 'mixed'}
 
     @property
     def grain_micron_sizes(self) -> np.ndarray:
         '''Read grain sizes (assumed in [cm]), from AMRVAC parameters and
         convert to microns.'''
+        assert self.dust_binning_mode != "auto"
         if self._µsizes is None:
             µm_sizes = np.empty(0)
-            if self.dust_binning_mode in {"dust-only", "mixed", "auto"}:
-                try:
-                    cm_sizes = np.array(
-                        self.sim_conf['usr_dust_list']['grain_size_cm'])
-                    µm_sizes = 1e4 * cm_sizes
-                except KeyError:
-                    if self.dust_binning_mode == "auto":
-                        self.dust_binning_mode = ["gas-only", "could not find grain sizes"]
-                    else:
-                        raise
-
-            if self.dust_binning_mode == "auto" and min(µm_sizes) > MINGRAINSIZE_µ:
-                self.dust_binning_mode = ["mixed",
-                                          f"smallest size found > {MINGRAINSIZE_µ}µm"]
-
-            if self.dust_binning_mode in {'gas-only', 'mixed'}:
+            if self._bin_dust():
+                cm_sizes = np.array(
+                    self.sim_conf['usr_dust_list']['grain_size_cm'])
+                µm_sizes = 1e4 * cm_sizes
+            if self._bin_gas():
                 µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
             self._µsizes = µm_sizes
         return self._µsizes
@@ -727,12 +758,12 @@ class Interface:
         nz_out, nr2 = self.output_grid['zg'].shape
         nz_in = self.config['mcfost_output']['nz']
         assert nr2 == nr
-        assert nz_out == 2*nz_in+1
+        assert nz_out == 2*nz_in + EXPECTED_ZSHAPE_INCREMENT
 
         nbins = len(self.new_2D_arrays)
         self._new_3D_arrays = np.zeros((nbins, nphi, nz_in, nr))
         for ir, r in enumerate(self.output_grid['rv']):
-            z_vect = self.output_grid['zg'][nz_in+1:, ir].reshape(1, nz_in)
+            z_vect = self.output_grid['zg'][nz_in+EXPECTED_ZSHAPE_INCREMENT:, ir].reshape(1, nz_in)
             local_height = r * self.aspect_ratio
             gaussian = np.exp(-z_vect**2/ (2*local_height**2)) / (np.sqrt(2*np.pi) * local_height)
             for i_bin, surface_density in enumerate(self.new_2D_arrays[:, ir, :]):
