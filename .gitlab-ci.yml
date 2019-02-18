@@ -25,7 +25,7 @@ stages:
   - finish_install
   - validate_install
   - unit_tests
-  - tests
+  - misc_tests
 
 clear_env:
   stage: cleanup
@@ -101,17 +101,17 @@ dust_binning_mode:
     - source activate $PYENV
     - pytest tests/test_dust_binning_mode.py
 
-# code_quality:
-#   stage: tests
-#   script:
-#     - source activate $PYENV
-#     - pytest tests/test_code_quality.py
+code_quality:
+  stage: misc_tests
+  script:
+    - source activate $PYENV
+    - pytest tests/test_code_quality.py
 
-# test_env:
-#   stage: tests
-#   script:
-#     - source activate $PYENV
-#     - pytest tests/test_env.py
+test_env:
+  stage: misc_tests
+  script:
+    - source activate $PYENV
+    - pytest tests/test_env.py
 
 # mcfost_grid:
 #   stage: tests
