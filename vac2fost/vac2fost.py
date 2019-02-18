@@ -57,7 +57,7 @@ except AssertionError:
     raise EnvironmentError('Installation of MCFOST not found.')
 
 # Detect mcfost version
-bout = subprocess.check_output(["mcfost", "-version"])
+bout = subprocess.check_output("yes | mcfost -version", shell=True)
 out = "".join(map(chr, bout))
 version_tag = out.split("\n")[0].split()[-1]
 

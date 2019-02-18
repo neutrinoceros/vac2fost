@@ -15,19 +15,19 @@ setup(
     license = 'GNU',
     classifiers = [
         'Development Status :: 3 - Alpha',
-        'Programming Language :: Python :: 3.6'
+        'Programming Language :: Python :: 3.7'
     ],
     keywords = 'interface data-analysis',
-    install_requires = [
-        'scipy>=1.1',
-        'numpy>=1.15',
-        'astropy>=3.1.1'
-        'vtk>=8.1',
-        'f90nml>=1.0.2',
-        #'amrvac-pywrap>=0.0.6',
-        #'vtk_vacreader>=1.0.0'
-    ],
-    python_requires = '=3.6',
+    # install_requires = [
+    #     'scipy>=1.1',
+    #     'numpy>=1.15',
+    #     'astropy>=3.1.1'
+    #     'vtk>=8.1.2',
+    #     'f90nml>=1.0.2',
+    #     'amrvac-pywrap>=0.0.8',
+    #     'vtk_vacreader>=1.0.1'
+    # ],
+    #python_requires = ">=3.7",
     packages = find_packages(),
     package_data = {'vac2fost': ['data/default_mcfost_conf.para']},
 )
