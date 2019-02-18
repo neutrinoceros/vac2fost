@@ -26,5 +26,5 @@ case $choice in
 	conda develop vtk_vacreader-project
 	;;
     *)
-	echo "\ndeps were downloaded but not installed !"
+	echo "deps were downloaded but not installed !"
 esac
