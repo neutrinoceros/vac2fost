@@ -8,7 +8,7 @@ rcfile = test_dir.parent/".pylintrc"
 MINIMAL_MARK = 10.0 #perfect score or nothing
 
 def test_style_standard():
-    subprocess.call(f"pylint {mainfile} --rcfile {rcfile} > {output_file}", shell=True)
+    subprocess.check_call(f"pylint {mainfile} --rcfile {rcfile} > {output_file}", shell=True)
     with open(output_file, mode='r') as log:
         lines = log.readlines()
     sumup_line = lines[-2]
