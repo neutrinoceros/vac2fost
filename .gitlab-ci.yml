@@ -22,7 +22,6 @@ stages:
   - build
   - install
   - finish_install
-  - validate_install
   - unit_tests
   - mcfost_integration_tests
   - integration_tests
@@ -71,15 +70,6 @@ install_vac2fost:
     - source activate $PYENV
     - export PATH=$PATH:`pwd`/deps
     - $SLURM_CMD pip install .
-
-check:
-  stage: validate_install
-  tags:
-    - python3
-    - slurm
-  script:
-    - source activate $PYENV
-    - python -c "import vac2fost"
 
 params:
   stage: unit_tests
