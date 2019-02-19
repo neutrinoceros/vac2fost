@@ -27,7 +27,7 @@ stages:
   - unit_tests
   - mcfost_integration_tests
   - integration_tests
-  - valitation_tests
+  - validation_tests
 
 clear_env:
   stage: cleanup
