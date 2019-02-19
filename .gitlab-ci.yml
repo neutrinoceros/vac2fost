@@ -19,7 +19,6 @@ before_script:
   - export MCFOST_UTILS=`pwd`/deps/mcfost_utils
 
 stages:
-  - cleanup
   - build
   - install
   - finish_install
@@ -30,17 +29,11 @@ stages:
   - validation_tests
   - final
 
-clear_env:
-  stage: cleanup
-  script:
-    - $SLURM_CMD conda remove --name $PYENV --all --yes
-    - rm -fr `pwd`/deps
-
 create_env:
   stage: build
   script:
     - export CONDA_INST="--name $PYENV --file environment.yml --channel conda-forge --yes"
-    - $SLURM_CMD conda create $CONDA_INST
+    - $SLURM_CMD conda create $CONDA_INST || $SLURM_CMD conda install $CONDA_INST
     - $SLURM_CMD conda install pip --name $PYENV --yes
 
 download_deps:
