@@ -1,6 +1,6 @@
 variables:
   PYENV: "vac2fost-test-env"
-
+  SLURM_CMD: "srun --exclusive=user -p gitlab --cpus-per-task 1"
 cache:
   paths:
     - deps/
@@ -15,52 +15,48 @@ before_script:
   - echo $GITLAB_USER_LOGIN
   - module load userspace/170135
   - module load python/3.6.3_anaconda3
-  - export PATH=$PATH:deps/
+  - export PATH=$PATH:`pwd`/deps
   - export MCFOST_UTILS=`pwd`/deps/mcfost_utils
 
 stages:
-  - cleanup
   - build
   - install
   - finish_install
-  - validate_install
   - unit_tests
-  - tests
+  - mcfost_integration_tests
+  - integration_tests
+  - validation_tests
+  - final
 
-clear_env:
-  stage: cleanup
-  script:
-    - conda remove --name $PYENV --all --yes
-    - rm -fr `pwd`/deps
-
-create_env:
+update_pyenv:
   stage: build
   script:
-    - conda create --name $PYENV --file environment.yml --channel conda-forge --yes
-    - conda install pip --name $PYENV --yes
+    - export CONDA_INST="--name $PYENV --file environment.yml --channel conda-forge --yes"
+    - $SLURM_CMD conda create $CONDA_INST || $SLURM_CMD conda install $CONDA_INST
+    - $SLURM_CMD conda install pip --name $PYENV --yes
 
 download_deps:
   stage: build
   script:
-    - bash dl_deps.sh
+    - $SLURM_CMD bash dl_deps.sh
 
 install_mcfost:
   stage: build
   script:
     - mkdir deps || echo "skip mkdir"
     - cd deps/
-    - wget http://ipag.osug.fr/public/pintec/mcfost/linux/mcfost.tgz
+    - $SLURM_CMD wget http://ipag.osug.fr/public/pintec/mcfost/linux/mcfost.tgz
     - tar xvzf mcfost.tgz
     - chmod +x mcfost
     - mkdir -p $MCFOST_UTILS || echo "skip mkdir"
-    - ./mcfost -setup
+    - $SLURM_CMD ./mcfost -setup
 
 install_deps:
   stage: install
   script:
     - source activate $PYENV
-    - pip install `pwd`/deps/vtk_vacreader-project
-    - pip install `pwd`/deps/amrvac-pywrap-project
+    - $SLURM_CMD pip install `pwd`/deps/vtk_vacreader-project
+    - $SLURM_CMD pip install `pwd`/deps/amrvac-pywrap-project
 
 validate_mcfost:
   stage: install
@@ -73,78 +69,69 @@ install_vac2fost:
   script:
     - source activate $PYENV
     - export PATH=$PATH:`pwd`/deps
-    - pip install .
-
-check:
-  stage: validate_install
-  tags:
-    - python3
-    - slurm
-  script:
-    - source activate $PYENV
-    - python -c "import vac2fost"
+    - $SLURM_CMD pip install .
 
 params:
   stage: unit_tests
   script:
     - source activate $PYENV
-    - pytest tests/test_params.py
+    - $SLURM_CMD pytest tests/test_params.py
 io:
   stage: unit_tests
   script:
     - source activate $PYENV
-    - pytest tests/test_io.py
+    - $SLURM_CMD pytest tests/test_io.py
 
 dust_binning_mode:
   stage: unit_tests
   script:
     - source activate $PYENV
-    - pytest tests/test_dust_binning_mode.py
+    - $SLURM_CMD pytest tests/test_dust_binning_mode.py
 
-# code_quality:
-#   stage: tests
-#   script:
-#     - source activate $PYENV
-#     - pytest tests/test_code_quality.py
+code_quality:
+  stage: final
+  script:
+    - source activate $PYENV
+    - pylint --rcfile .pylintrc vac2fost/vac2fost.py
 
 # test_env:
-#   stage: tests
+#   stage: integration_tests
 #   script:
 #     - source activate $PYENV
-#     - pytest tests/test_env.py
+#     - $SLURM_CMD pytest tests/test_env.py
 
 # mcfost_grid:
-#   stage: tests
+#   stage: mcfost_integration_tests
 #   script:
 #     - source activate $PYENV
-#     - pytest tests/test_mcfost_grid.py
+#     - $SLURM_CMD pytest tests/test_mcfost_grid.py
 
 # mcfost_writter:
-#   stage: tests
+#   stage: mcfost_integration_tests
 #   script:
 #     - source activate $PYENV
-#     - pytest tests/test_mcfost_writter.py
+#     - $SLURM_CMD pytest tests/test_mcfost_writter.py
 
 # shell:
-#   stage: tests
+#   stage: integration_tests
 #   script:
 #     - source activate $PYENV
-#     - pytest tests/test_shell.py
+#     - $SLURM_CMD pytest tests/test_shell.py
 
 # scripting:
-#   stage: tests
+#   stage: integration_tests
 #   script:
 #     - source activate $PYENV
-#     - pytest tests/test_scripting.py
+#     - $SLURM_CMD pytest tests/test_scripting.py
 
 # gas_reading:
-#   stage: tests
+#   stage: integration_tests
 #   script:
 #     - source activate $PYENV
-#     - pytest tests/test_gas_reading.py
+#     - $SLURM_CMD pytest tests/test_gas_reading.py
 
 # regression:
-#   stage: tests
+#   stage: validation_tests
 #   script:
 #     - source activate $PYENV
-#     - pytest tests/test_regression.py
+#     - $SLURM_CMD pytest tests/test_regression.py
