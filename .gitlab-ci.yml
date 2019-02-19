@@ -25,7 +25,9 @@ stages:
   - finish_install
   - validate_install
   - unit_tests
-  - misc_tests
+  - mcfost_integration_tests
+  - integration_tests
+  - valitation_tests
 
 clear_env:
   stage: cleanup
@@ -102,49 +104,49 @@ dust_binning_mode:
     - pytest tests/test_dust_binning_mode.py
 
 code_quality:
-  stage: misc_tests
+  stage: validate_install
   script:
     - source activate $PYENV
     - pytest tests/test_code_quality.py
 
 test_env:
-  stage: misc_tests
+  stage: integration_tests
   script:
     - source activate $PYENV
     - pytest tests/test_env.py
 
-# mcfost_grid:
-#   stage: tests
-#   script:
-#     - source activate $PYENV
-#     - pytest tests/test_mcfost_grid.py
+mcfost_grid:
+  stage: mcfost_integration_tests
+  script:
+    - source activate $PYENV
+    - pytest tests/test_mcfost_grid.py
 
-# mcfost_writter:
-#   stage: tests
-#   script:
-#     - source activate $PYENV
-#     - pytest tests/test_mcfost_writter.py
+mcfost_writter:
+  stage: mcfost_integration_tests
+  script:
+    - source activate $PYENV
+    - pytest tests/test_mcfost_writter.py
 
-# shell:
-#   stage: tests
-#   script:
-#     - source activate $PYENV
-#     - pytest tests/test_shell.py
+shell:
+  stage: integration_tests
+  script:
+    - source activate $PYENV
+    - pytest tests/test_shell.py
 
-# scripting:
-#   stage: tests
-#   script:
-#     - source activate $PYENV
-#     - pytest tests/test_scripting.py
+scripting:
+  stage: integration_tests
+  script:
+    - source activate $PYENV
+    - pytest tests/test_scripting.py
 
-# gas_reading:
-#   stage: tests
-#   script:
-#     - source activate $PYENV
-#     - pytest tests/test_gas_reading.py
+gas_reading:
+  stage: integration_tests
+  script:
+    - source activate $PYENV
+    - pytest tests/test_gas_reading.py
 
-# regression:
-#   stage: tests
-#   script:
-#     - source activate $PYENV
-#     - pytest tests/test_regression.py
+regression:
+  stage: validation_tests
+  script:
+    - source activate $PYENV
+    - pytest tests/test_regression.py
