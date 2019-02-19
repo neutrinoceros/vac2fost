@@ -15,31 +15,24 @@ before_script:
   - echo $GITLAB_USER_LOGIN
   - module load userspace/170135
   - module load python/3.6.3_anaconda3
-  - export PATH=$PATH:deps/
+  - export PATH=$PATH:`pwd`/deps
   - export MCFOST_UTILS=`pwd`/deps/mcfost_utils
 
 stages:
-  - cleanup
   - build
   - install
   - finish_install
-  - validate_install
   - unit_tests
   - mcfost_integration_tests
   - integration_tests
   - validation_tests
   - final
 
-clear_env:
-  stage: cleanup
-  script:
-    - $SLURM_CMD conda remove --name $PYENV --all --yes
-    - rm -fr `pwd`/deps
-
-create_env:
+update_pyenv:
   stage: build
   script:
-    - $SLURM_CMD conda create --name $PYENV --file environment.yml --channel conda-forge --yes
+    - export CONDA_INST="--name $PYENV --file environment.yml --channel conda-forge --yes"
+    - $SLURM_CMD conda create $CONDA_INST || $SLURM_CMD conda install $CONDA_INST
     - $SLURM_CMD conda install pip --name $PYENV --yes
 
 download_deps:
@@ -77,15 +70,6 @@ install_vac2fost:
     - source activate $PYENV
     - export PATH=$PATH:`pwd`/deps
     - $SLURM_CMD pip install .
-
-check:
-  stage: validate_install
-  tags:
-    - python3
-    - slurm
-  script:
-    - source activate $PYENV
-    - python -c "import vac2fost"
 
 params:
   stage: unit_tests
