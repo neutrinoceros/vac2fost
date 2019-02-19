@@ -107,8 +107,8 @@ code_quality:
   stage: validate_install
   script:
     - source activate $PYENV
-    - pylint vac2fost/vac2fost.py
-    - pytest tests/test_code_quality.py
+    - pylint --rcfile .pylintrc vac2fost/vac2fost.py
+    #- pytest tests/test_code_quality.py
 
 test_env:
   stage: integration_tests
