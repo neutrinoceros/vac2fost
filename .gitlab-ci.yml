@@ -39,7 +39,8 @@ clear_env:
 create_env:
   stage: build
   script:
-    - $SLURM_CMD conda create --name $PYENV --file environment.yml --channel conda-forge --yes
+    - export CONDA_INST="--name $PYENV --file environment.yml --channel conda-forge --yes"
+    - $SLURM_CMD conda create $CONDA_INST
     - $SLURM_CMD conda install pip --name $PYENV --yes
 
 download_deps:
