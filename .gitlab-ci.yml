@@ -94,44 +94,44 @@ code_quality:
     - source activate $PYENV
     - pylint --rcfile .pylintrc vac2fost/vac2fost.py
 
-# test_env:
-#   stage: integration_tests
-#   script:
-#     - source activate $PYENV
-#     - $SLURM_CMD pytest tests/test_env.py
+test_env:
+  stage: integration_tests
+  script:
+    - source activate $PYENV
+    - $SLURM_CMD pytest tests/test_env.py
 
-# mcfost_grid:
-#   stage: mcfost_integration_tests
-#   script:
-#     - source activate $PYENV
-#     - $SLURM_CMD pytest tests/test_mcfost_grid.py
+mcfost_grid:
+  stage: mcfost_integration_tests
+  script:
+    - source activate $PYENV
+    - $SLURM_CMD pytest tests/test_mcfost_grid.py
 
-# mcfost_writter:
-#   stage: mcfost_integration_tests
-#   script:
-#     - source activate $PYENV
-#     - $SLURM_CMD pytest tests/test_mcfost_writter.py
+mcfost_writter:
+  stage: mcfost_integration_tests
+  script:
+    - source activate $PYENV
+    - $SLURM_CMD pytest tests/test_mcfost_writter.py
 
-# shell:
-#   stage: integration_tests
-#   script:
-#     - source activate $PYENV
-#     - $SLURM_CMD pytest tests/test_shell.py
+shell:
+  stage: integration_tests
+  script:
+    - source activate $PYENV
+    - $SLURM_CMD pytest tests/test_shell.py
 
-# scripting:
-#   stage: integration_tests
-#   script:
-#     - source activate $PYENV
-#     - $SLURM_CMD pytest tests/test_scripting.py
+scripting:
+  stage: integration_tests
+  script:
+    - source activate $PYENV
+    - $SLURM_CMD pytest tests/test_scripting.py
 
-# gas_reading:
-#   stage: integration_tests
-#   script:
-#     - source activate $PYENV
-#     - $SLURM_CMD pytest tests/test_gas_reading.py
+gas_reading:
+  stage: integration_tests
+  script:
+    - source activate $PYENV
+    - $SLURM_CMD pytest tests/test_gas_reading.py
 
-# regression:
-#   stage: validation_tests
-#   script:
-#     - source activate $PYENV
-#     - $SLURM_CMD pytest tests/test_regression.py
+regression:
+  stage: validation_tests
+  script:
+    - source activate $PYENV
+    - $SLURM_CMD pytest tests/test_regression.py
