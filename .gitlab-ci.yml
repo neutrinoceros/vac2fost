@@ -28,6 +28,7 @@ stages:
   - mcfost_integration_tests
   - integration_tests
   - validation_tests
+  - final
 
 clear_env:
   stage: cleanup
@@ -104,50 +105,49 @@ dust_binning_mode:
     - $SLURM_CMD pytest tests/test_dust_binning_mode.py
 
 code_quality:
-  stage: validate_install
+  stage: final
   script:
     - source activate $PYENV
     - pylint --rcfile .pylintrc vac2fost/vac2fost.py
-    #- pytest tests/test_code_quality.py
 
-test_env:
-  stage: integration_tests
-  script:
-    - source activate $PYENV
-    - $SLURM_CMD pytest tests/test_env.py
+# test_env:
+#   stage: integration_tests
+#   script:
+#     - source activate $PYENV
+#     - $SLURM_CMD pytest tests/test_env.py
 
-mcfost_grid:
-  stage: mcfost_integration_tests
-  script:
-    - source activate $PYENV
-    - $SLURM_CMD pytest tests/test_mcfost_grid.py
+# mcfost_grid:
+#   stage: mcfost_integration_tests
+#   script:
+#     - source activate $PYENV
+#     - $SLURM_CMD pytest tests/test_mcfost_grid.py
 
-mcfost_writter:
-  stage: mcfost_integration_tests
-  script:
-    - source activate $PYENV
-    - $SLURM_CMD pytest tests/test_mcfost_writter.py
+# mcfost_writter:
+#   stage: mcfost_integration_tests
+#   script:
+#     - source activate $PYENV
+#     - $SLURM_CMD pytest tests/test_mcfost_writter.py
 
-shell:
-  stage: integration_tests
-  script:
-    - source activate $PYENV
-    - $SLURM_CMD pytest tests/test_shell.py
+# shell:
+#   stage: integration_tests
+#   script:
+#     - source activate $PYENV
+#     - $SLURM_CMD pytest tests/test_shell.py
 
-scripting:
-  stage: integration_tests
-  script:
-    - source activate $PYENV
-    - $SLURM_CMD pytest tests/test_scripting.py
+# scripting:
+#   stage: integration_tests
+#   script:
+#     - source activate $PYENV
+#     - $SLURM_CMD pytest tests/test_scripting.py
 
-gas_reading:
-  stage: integration_tests
-  script:
-    - source activate $PYENV
-    - $SLURM_CMD pytest tests/test_gas_reading.py
+# gas_reading:
+#   stage: integration_tests
+#   script:
+#     - source activate $PYENV
+#     - $SLURM_CMD pytest tests/test_gas_reading.py
 
-regression:
-  stage: validation_tests
-  script:
-    - source activate $PYENV
-    - $SLURM_CMD pytest tests/test_regression.py
+# regression:
+#   stage: validation_tests
+#   script:
+#     - source activate $PYENV
+#     - $SLURM_CMD pytest tests/test_regression.py
