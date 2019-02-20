@@ -36,10 +36,10 @@ class TestShellCalling():
         output_dir = OUT / "test_command_line_call"
         if output_dir.is_dir():
             shutil.rmtree(output_dir)
-        check_call([
+        run([
             "python", f"{root}/vac2fost.py",
             f"{test_dir}/sample/vac2fost_conf.nml", f"--output {output_dir}"
-        ])
+        ], shell=True, check=True)
 
     def test_command_line_call_w_number(self):
         output_dir = OUT / "test_command_line_call_w_number_1"
