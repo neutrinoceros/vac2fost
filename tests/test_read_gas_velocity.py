@@ -15,4 +15,4 @@ def test1():
 def test3():
     from subprocess import check_call, CalledProcessError
     with pytest.raises(CalledProcessError):
-        check_call([f"{root}/vac2fost.py", f"{testconf}", "--read_gas_velocity"])
+        check_call([f"python {root}/vac2fost.py", f"{testconf}", "--read_gas_velocity"])
