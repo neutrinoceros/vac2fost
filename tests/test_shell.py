@@ -25,7 +25,7 @@ def test_genconf():
     if not output_dir.exists(): os.mkdir(output_dir)
     outfile = output_dir / "template_vac2fost.nml"
     with open(outfile, mode="wt") as file:
-        run(["python", f"{root}/vac2fost.py", "--genconf"], stdout=file, shell=True, check=True)
+        check_call(["python", f"{root}/vac2fost.py", "--genconf"], stdout=file)
     with open(outfile, mode="rt") as file:
         assert f90nml.read(file)
 
