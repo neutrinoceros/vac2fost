@@ -23,7 +23,6 @@ stages:
   - install
   - unit_tests
   - integration_tests
-  - validation_tests
   - final
 
 update_pyenv:
@@ -96,11 +95,11 @@ test_env:
     - source activate $PYENV
     - $SLURM_CMD pytest tests/test_env.py
 
-# shell:
-#   stage: integration_tests
-#   script:
-#     - source activate $PYENV
-#     - $SLURM_CMD pytest tests/test_shell.py
+shell:
+  stage: integration_tests
+  script:
+    - source activate $PYENV
+    - $SLURM_CMD pytest tests/test_shell.py
 
 scripting:
   stage: integration_tests
@@ -115,7 +114,7 @@ gas_reading:
     - $SLURM_CMD pytest tests/test_gas_reading.py
 
 # regression:
-#   stage: validation_tests
+#   stage: integration_tests
 #   script:
 #     - source activate $PYENV
 #     - $SLURM_CMD pytest tests/test_regression.py
