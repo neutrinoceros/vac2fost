@@ -409,6 +409,7 @@ class Interface:
                  output_dir: Path = Path('.'),
                  dust_bin_mode: str = "auto",
                  read_gas_density=False,
+                 read_gas_velocity=False,
                  mcfost_verbose=False):
 
         self.warnings = []
@@ -424,11 +425,13 @@ class Interface:
             'output_dir': Path(output_dir),
             'nums': nums,
             'dust_bin_mode': dust_bin_mode,
-            'read_gas_density': read_gas_density
+            'read_gas_density': read_gas_density,
+            'read_gas_velocity': read_gas_velocity
         }
 
         self._dim = 2  # no support for 3D input yet
         self.mcfost_verbose = mcfost_verbose
+        self.read_gas_velocity = read_gas_velocity
 
         # parse configuration file
         self.config = f90nml.read(config_file)
@@ -704,6 +707,9 @@ class Interface:
             #devnote: add try statement here ?
             header.update(dict(gas_to_dust=self.sim_conf["usr_dust_list"]["gas2dust_ratio"]))
 
+        if self.read_gas_velocity:
+            raise NotImplementedError("coming feature : read_gas_velocity")
+
         dust_densities_HDU = fits.PrimaryHDU(self.new_3D_arrays[dust_bin_selector])
         for k, v in header.items():
             # this is the canonical way to avoid HIERARCH-related warnings from astropy
@@ -820,6 +826,7 @@ def main(config_file: str,
          output_dir: str = '.',
          dust_bin_mode: str = "auto",
          read_gas_density=False,
+         read_gas_velocity=False,
          verbose=False,
          mcfost_verbose=False):
     '''Try to transform a .vtu file into a .fits'''
@@ -828,6 +835,7 @@ def main(config_file: str,
     itf = InterfaceType(config_file, nums=nums, output_dir=output_dir,
                         dust_bin_mode=dust_bin_mode,
                         read_gas_density=read_gas_density,
+                        read_gas_velocity=read_gas_velocity,
                         mcfost_verbose=mcfost_verbose)
 
     for i, n in enumerate(itf.nums):
@@ -897,6 +905,11 @@ if __name__ == '__main__':
         help="pass gas density to mcfost"
     )
     parser.add_argument(
+        "--read_gas_velocity",
+        action="store_true",
+        help="pass gas velocity to mcfost (keplerian velocity is assumed otherwise)"
+    )
+    parser.add_argument(
         '-v', '--verbose',
         action='store_true',
         help='activate verbose mode'
@@ -939,6 +952,7 @@ if __name__ == '__main__':
         output_dir=cargs.output,
         dust_bin_mode=cargs.dbm,
         read_gas_density=cargs.read_gas_density,
+        read_gas_velocity=cargs.read_gas_velocity,
         verbose=cargs.verbose,
         mcfost_verbose=cargs.mcfost_verbose
     )

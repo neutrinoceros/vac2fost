@@ -108,11 +108,17 @@ scripting:
     - source activate $PYENV
     - $SLURM_CMD pytest tests/test_scripting.py
 
-gas_reading:
+read_gas_dens:
   stage: integration_tests
   script:
     - source activate $PYENV
     - $SLURM_CMD pytest tests/test_gas_reading.py
+
+read_gas_vel:
+  stage: integration_tests
+  script:
+    - source activate $PYENV
+    - $SLURM_CMD pytest tests/test_read_gas_velocity.py
 
 # regression:
 #   stage: validation_tests
