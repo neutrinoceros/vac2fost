@@ -3,7 +3,7 @@ from vac2fost.vac2fost import Interface
 import pytest
 from pathlib import Path
 
-root = Path(v2ffile).parent
+root = Path(__file__).parent / "vac2fost"
 testconf = "tests/sample/vac2fost_conf.nml"
 def test2():
     Interface(testconf, read_gas_velocity=True)
@@ -15,4 +15,4 @@ def test1():
 def test3():
     from subprocess import check_call, CalledProcessError
     with pytest.raises(CalledProcessError):
-        check_call([f"python", "{root}/vac2fost.py", f"{testconf}", "--read_gas_velocity"])
+        check_call([f"python", f"{root}/vac2fost.py", f"{testconf}", "--read_gas_velocity"])
