@@ -15,8 +15,6 @@ Known limitations
   2) portability is not guaranted
   3) interpolation does not account for the curvature of polar cells
   4) only r-phi input grids are currently supported
-  5) gas density is never passed to MCFOST as is but only
-     as a tracer for smallest dust grains
 '''
 __version__ = "2.2"
 mcfost_major_version = "3.0"
