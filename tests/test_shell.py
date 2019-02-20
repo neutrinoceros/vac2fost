@@ -79,12 +79,16 @@ class TestShellCalling():
         output_dir = OUT / "test_command_line_call_wo_number"
         if output_dir.is_dir():
             shutil.rmtree(output_dir)
+        os.mkdir(output_dir)
+        executable = output_dir/"v2f.py"
+        shutil.copyfile(f"{root}/vac2fost.py", executable)
+        os.chmod(executable, mode=0o664)
         with pytest.raises(CalledProcessError):
-            check_call([
-                "python", f"{root}/vac2fost.py",
+            run([
+                f"{executable}",
                 f"{test_dir}/sample/vac2fost_conf_quick_no_number.nml",
                 f"--output {output_dir}",
-            ], shell=True)
+            ], shell=True, check=True)
 
     def test_command_line_call_w_multiple_numbers(self):
         output_dir = OUT / "test_command_line_w_multiple_numbers"
