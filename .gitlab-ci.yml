@@ -21,7 +21,6 @@ before_script:
 stages:
   - build
   - install
-  - finish_install
   - unit_tests
   - integration_tests
   - validation_tests
@@ -49,25 +48,16 @@ install_mcfost:
     - chmod +x mcfost
     - mkdir -p $MCFOST_UTILS || echo "skip mkdir"
     - $SLURM_CMD ./mcfost -setup
+    - cd ../
+    - which mcfost
+    - mcfost -version
 
-install_deps:
+install_pymodules:
   stage: install
   script:
     - source activate $PYENV
     - $SLURM_CMD pip install `pwd`/deps/vtk_vacreader-project
     - $SLURM_CMD pip install `pwd`/deps/amrvac-pywrap-project
-
-validate_mcfost:
-  stage: install
-  script:
-    - which mcfost
-    - mcfost -version
-
-install_vac2fost:
-  stage: finish_install
-  script:
-    - source activate $PYENV
-    - export PATH=$PATH:`pwd`/deps
     - $SLURM_CMD pip install .
 
 params:
