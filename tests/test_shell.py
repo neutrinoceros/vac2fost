@@ -8,11 +8,12 @@ import pytest
 
 import f90nml
 
-from vac2fost import __file__ as v2cfile
+#from vac2fost import __file__ as v2cfile
+#root = Path(v2cfile).parent
 
-root = Path(v2cfile).parent
 test_dir = Path(__file__).absolute().parent
 OUT = test_dir/"output"
+root = test_dir.parent / "vac2fost"
 
 if not OUT.is_dir():
     os.mkdir(OUT)
@@ -22,8 +23,9 @@ def test_genconf():
     """check that --genconf outputs a NameList compliant string"""
     output_dir = OUT / "test_genconf"
     if not output_dir.exists(): os.mkdir(output_dir)
-    outfile = output_dir / 'template_vac2fost.nml'
-    subprocess.check_call(["python", f"{root}/vac2fost.py", "--genconf", f"> {outfile.resolve()}"])
+    outfile = output_dir / "template_vac2fost.nml"
+    with open(outfile, mode="wt") as file:
+        subprocess.check_call(["python", f"{root}/vac2fost.py", "--genconf"], stdout=file)
     with open(outfile, mode="rt") as file:
         assert f90nml.read(file)
 
