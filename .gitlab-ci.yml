@@ -23,7 +23,6 @@ stages:
   - install
   - finish_install
   - unit_tests
-  - mcfost_integration_tests
   - integration_tests
   - validation_tests
   - final
@@ -76,6 +75,7 @@ params:
   script:
     - source activate $PYENV
     - $SLURM_CMD pytest tests/test_params.py
+
 io:
   stage: unit_tests
   script:
@@ -88,11 +88,17 @@ dust_binning_mode:
     - source activate $PYENV
     - $SLURM_CMD pytest tests/test_dust_binning_mode.py
 
-code_quality:
-  stage: final
+mcfost_grid:
+  stage: unit_tests
   script:
     - source activate $PYENV
-    - pylint --rcfile .pylintrc vac2fost/vac2fost.py
+    - $SLURM_CMD pytest tests/test_mcfost_grid.py
+
+mcfost_writter:
+  stage: unit_tests
+  script:
+    - source activate $PYENV
+    - $SLURM_CMD pytest tests/test_mcfost_writter.py
 
 test_env:
   stage: integration_tests
@@ -100,23 +106,11 @@ test_env:
     - source activate $PYENV
     - $SLURM_CMD pytest tests/test_env.py
 
-mcfost_grid:
-  stage: mcfost_integration_tests
-  script:
-    - source activate $PYENV
-    - $SLURM_CMD pytest tests/test_mcfost_grid.py
-
-mcfost_writter:
-  stage: mcfost_integration_tests
-  script:
-    - source activate $PYENV
-    - $SLURM_CMD pytest tests/test_mcfost_writter.py
-
-shell:
-  stage: integration_tests
-  script:
-    - source activate $PYENV
-    - $SLURM_CMD pytest tests/test_shell.py
+# shell:
+#   stage: integration_tests
+#   script:
+#     - source activate $PYENV
+#     - $SLURM_CMD pytest tests/test_shell.py
 
 scripting:
   stage: integration_tests
@@ -130,8 +124,14 @@ gas_reading:
     - source activate $PYENV
     - $SLURM_CMD pytest tests/test_gas_reading.py
 
-regression:
-  stage: validation_tests
+# regression:
+#   stage: validation_tests
+#   script:
+#     - source activate $PYENV
+#     - $SLURM_CMD pytest tests/test_regression.py
+
+code_quality:
+  stage: final
   script:
     - source activate $PYENV
-    - $SLURM_CMD pytest tests/test_regression.py
+    - pylint --rcfile .pylintrc vac2fost/vac2fost.py
