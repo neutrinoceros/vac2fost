@@ -80,11 +80,11 @@ class TestShellCalling():
         if output_dir.is_dir():
             shutil.rmtree(output_dir)
         with pytest.raises(CalledProcessError):
-            run([
+            check_call([
                 "python", f"{root}/vac2fost.py",
                 f"{test_dir}/sample/vac2fost_conf_quick_no_number.nml",
                 f"--output {output_dir}",
-            ], shell=True, check=True)
+            ], shell=True)
 
     def test_command_line_call_w_multiple_numbers(self):
         output_dir = OUT / "test_command_line_w_multiple_numbers"
