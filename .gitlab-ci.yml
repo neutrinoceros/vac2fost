@@ -124,3 +124,10 @@ code_quality:
   script:
     - source activate $PYENV
     - pylint --rcfile .pylintrc vac2fost/vac2fost.py
+
+run_demo:
+  stage: final
+  script:
+    - source activate $PYENV
+    - $SLURM_CMD python docs/diagnostic.py
+
