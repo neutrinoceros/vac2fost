@@ -5,11 +5,7 @@ import shutil
 from pathlib import Path
 from subprocess import check_call, run, CalledProcessError
 import pytest
-
 import f90nml
-
-#from vac2fost import __file__ as v2cfile
-#root = Path(v2cfile).parent
 
 test_dir = Path(__file__).absolute().parent
 OUT = test_dir/"output"
