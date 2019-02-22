@@ -14,7 +14,6 @@ root = test_dir.parent / "vac2fost"
 if not OUT.is_dir():
     os.mkdir(OUT)
 
-
 def test_genconf():
     """check that --genconf outputs a NameList compliant string"""
     output_dir = OUT / "test_genconf"

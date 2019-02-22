@@ -22,6 +22,7 @@ mcfost_minor_version = "35"
 
 from collections import OrderedDict as od, namedtuple
 import os
+import re
 from warnings import warn
 from socket import gethostname
 import sys
@@ -81,19 +82,18 @@ DataInfo = namedtuple(
     ['shape', 'directory', 'filename', 'filepath']
 )
 
-def interpret_shell_path(shell_path: str) -> str:
-    """todo: use regexp to check input is correctly formatted"""
-    if isinstance(shell_path, Path):
-        shell_path = str(shell_path)
-    def myfilter(word: str) -> str:
-        if word.startswith("$"):
-            res = os.environ[word[1:]]
-        else:
-            res = word
-        return res
-    splitted = shell_path.split("/")
-    res = "/".join([myfilter(word) for word in splitted])
-    return res
+def shell_path(pin: os.PathLike) -> Path:
+    """Replace shell variables ("$" tokens) with their
+    string value in a PathLike object.
+
+    todo: use regexp to check input is correctly formatted
+
+    """
+    exp = re.compile("\$[a-zA-Z0-9_]*")
+    pstr = str(pin)
+    for match in exp.findall(pstr):
+        pstr = pstr.replace(match, os.environ[match.strip("$")], 1)
+    return Path(pstr)
 
 class AMRVACUtils:
     """Some code specific utilities (special method to read parfiles)"""
@@ -109,7 +109,7 @@ class AMRVACUtils:
         tconf = f90nml.Namelist()
         cumulated_base_filename = ""
         for c in confs:
-            if isinstance(c, (str, Path)):
+            if isinstance(c, (str, os.PathLike)):
                 try:
                     c = f90nml.read(c)
                 except FileNotFoundError:
@@ -127,9 +127,8 @@ class AMRVACUtils:
         return tconf
 
     def read_parfiles(parfiles: list, origin: str) -> f90nml.Namelist:
-        """todo: rename this into read_parfile"""
-        origin = interpret_shell_path(origin)
-        if isinstance(parfiles, (str, Path)):
+        origin = str(shell_path(origin))
+        if isinstance(parfiles, (str, os.PathLike)):
             parfiles = [parfiles]
         namelist = AMRVACUtils._merge_configs(parfiles, origin)
         return namelist
@@ -640,9 +639,7 @@ class Interface:
                                     '.vtu'])
             self._iodat = {}
             basein = dict(
-                directory=Path(interpret_shell_path(
-                    self.config['amrvac_input']['hydro_data_dir']
-                )).resolve(),
+                directory=shell_path(self.config['amrvac_input']['hydro_data_dir']).resolve(),
                 filename=vtu_filename,
                 shape=tuple(
                     [self.sim_conf['meshlist'][f'domain_nx{n}']
