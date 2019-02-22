@@ -65,6 +65,12 @@ params:
     - source activate $PYENV
     - $SLURM_CMD pytest tests/test_params.py
 
+utils:
+  stage: unit_tests
+  script:
+    - source activate $PYENV
+    - $SLURM_CMD pytest tests/test_utils.py
+
 io:
   stage: unit_tests
   script:
