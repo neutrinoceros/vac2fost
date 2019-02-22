@@ -22,6 +22,7 @@ mcfost_minor_version = "35"
 
 from collections import OrderedDict as od, namedtuple
 import os
+import re
 from warnings import warn
 from socket import gethostname
 import sys
@@ -45,7 +46,6 @@ except ImportError:
     colorama = None
     BOLD = RED = CYAN = ""
 
-from amrvac_pywrap import interpret_shell_path, read_amrvac_conf
 from vtk_vacreader import VacDataSorter
 
 try:
@@ -81,6 +81,57 @@ DataInfo = namedtuple(
     'DataInfo',
     ['shape', 'directory', 'filename', 'filepath']
 )
+
+def shell_path(pin: os.PathLike) -> Path:
+    """Replace shell variables ("$" tokens) with their
+    string value in a PathLike object.
+    """
+    exp = re.compile(r"\$[a-zA-Z0-9_]*")
+    pstr = str(pin)
+    for match in exp.findall(pstr):
+        pstr = pstr.replace(match, os.environ[match.strip("$")], 1)
+    return Path(pstr)
+
+class AMRVACUtils:
+    """Some code specific utilities (special method to read parfiles)"""
+
+    def _merge(parfiles: list, origin: str = "") -> f90nml.Namelist:
+        """Build a namelist configuration by successive updates.
+
+        By construction, when a parameter is being defined multiple times,
+        only its last definition remains.
+        An exception to that rule is implemented for 'base_filename' for
+        compatibility with MPI-AMRVAC.
+        """
+        files = parfiles
+        if isinstance(files, (str, os.PathLike)):
+            files = [parfiles]
+        conf_tot = f90nml.Namelist()
+        cumulated_base_filename = ""
+        for pf in files:
+            if isinstance(pf, (str, os.PathLike)):
+                try:
+                    conf = f90nml.read(pf)
+                except FileNotFoundError:
+                    conf = f90nml.read(Path(origin) / pf)
+            for sublist in conf.keys():
+                if sublist not in conf_tot.keys():
+                    conf_tot.update({sublist: conf[sublist]})
+                else:
+                    conf_tot[sublist].update(conf[sublist])
+            try:
+                cumulated_base_filename += conf["filelist"]["base_filename"]
+            except KeyError:
+                pass
+        conf_tot["filelist"]["base_filename"] = cumulated_base_filename
+        return conf_tot
+
+    def read_parfiles(parfiles: list, origin: str) -> f90nml.Namelist:
+        """Read a sorted list of MPI-AMRVAC parfiles, updating redundant
+        parameters as we go"""
+        origin = str(shell_path(origin))
+        namelist = AMRVACUtils._merge(parfiles, origin)
+        return namelist
 
 class MCFOSTUtils:
     """Utility functions to call MCFOST in vac2fost.main()
@@ -460,8 +511,8 @@ class Interface:
             else:
                 p = (p1, p2)[found.index(True)]
             self.config['amrvac_input'].update({'hydro_data_dir': p.resolve()})
-        self.sim_conf = read_amrvac_conf(
-            files=self.config['amrvac_input']['config'],
+        self.sim_conf = AMRVACUtils.read_parfiles(
+            parfiles=self.config['amrvac_input']['config'],
             origin=self.config['amrvac_input']['hydro_data_dir']
         )
 
@@ -588,9 +639,7 @@ class Interface:
                                     '.vtu'])
             self._iodat = {}
             basein = dict(
-                directory=Path(interpret_shell_path(
-                    self.config['amrvac_input']['hydro_data_dir']
-                )).resolve(),
+                directory=shell_path(self.config['amrvac_input']['hydro_data_dir']).resolve(),
                 filename=vtu_filename,
                 shape=tuple(
                     [self.sim_conf['meshlist'][f'domain_nx{n}']

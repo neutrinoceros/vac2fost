@@ -56,7 +56,6 @@ install_pymodules:
   script:
     - source activate $PYENV
     - $SLURM_CMD pip install `pwd`/deps/vtk_vacreader-project
-    - $SLURM_CMD pip install `pwd`/deps/amrvac-pywrap-project
     - $SLURM_CMD pip install .
 
 params:
@@ -64,6 +63,12 @@ params:
   script:
     - source activate $PYENV
     - $SLURM_CMD pytest tests/test_params.py
+
+utils:
+  stage: unit_tests
+  script:
+    - source activate $PYENV
+    - $SLURM_CMD pytest tests/test_utils.py
 
 io:
   stage: unit_tests
@@ -124,3 +129,10 @@ code_quality:
   script:
     - source activate $PYENV
     - pylint --rcfile .pylintrc vac2fost/vac2fost.py
+
+run_demo:
+  stage: final
+  script:
+    - source activate $PYENV
+    - $SLURM_CMD python docs/diagnostic.py
+
