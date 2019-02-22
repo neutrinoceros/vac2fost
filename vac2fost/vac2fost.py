@@ -16,7 +16,7 @@ Known limitations
   3) interpolation does not account for the curvature of polar cells
   4) only r-phi input grids are currently supported
 '''
-__version__ = "2.2"
+__version__ = "2.2.1"
 mcfost_major_version = "3.0"
 mcfost_minor_version = "35"
 
