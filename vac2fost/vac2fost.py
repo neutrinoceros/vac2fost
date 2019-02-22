@@ -45,7 +45,6 @@ except ImportError:
     colorama = None
     BOLD = RED = CYAN = ""
 
-from amrvac_pywrap import interpret_shell_path, read_amrvac_conf
 from vtk_vacreader import VacDataSorter
 
 try:
@@ -81,6 +80,59 @@ DataInfo = namedtuple(
     'DataInfo',
     ['shape', 'directory', 'filename', 'filepath']
 )
+
+def interpret_shell_path(shell_path: str) -> str:
+    """todo: use regexp to check input is correctly formatted"""
+    if isinstance(shell_path, Path):
+        shell_path = str(shell_path)
+    def myfilter(word: str) -> str:
+        if word.startswith("$"):
+            res = os.environ[word[1:]]
+        else:
+            res = word
+        return res
+    splitted = shell_path.split("/")
+    res = "/".join([myfilter(word) for word in splitted])
+    return res
+
+class AMRVACUtils:
+    """Some code specific utilities (special method to read parfiles)"""
+
+    def _merge_configs(confs: list, origin: str = "") -> f90nml.Namelist:
+        """Build a namelist configuration by successive updates.
+
+        By construction, when a parameter is being defined multiple times,
+        only its last definition remains.
+        An exception to that rule is implemented for 'base_filename' for
+        compatibility with MPI-AMRVAC.
+        """
+        tconf = f90nml.Namelist()
+        cumulated_base_filename = ""
+        for c in confs:
+            if isinstance(c, (str, Path)):
+                try:
+                    c = f90nml.read(c)
+                except FileNotFoundError:
+                    c = f90nml.read(Path(origin) / c)
+            for liist in c.keys():
+                if liist not in tconf.keys():
+                    tconf.update({liist: c[liist]})
+                else:
+                    tconf[liist].update(c[liist])
+            try:
+                cumulated_base_filename += c["filelist"]["base_filename"]
+            except KeyError:
+                pass
+        tconf["filelist"]["base_filename"] = cumulated_base_filename
+        return tconf
+
+    def read_parfiles(parfiles: list, origin: str) -> f90nml.Namelist:
+        """todo: rename this into read_parfile"""
+        origin = interpret_shell_path(origin)
+        if isinstance(parfiles, (str, Path)):
+            parfiles = [parfiles]
+        namelist = AMRVACUtils._merge_configs(parfiles, origin)
+        return namelist
 
 class MCFOSTUtils:
     """Utility functions to call MCFOST in vac2fost.main()
@@ -460,8 +512,8 @@ class Interface:
             else:
                 p = (p1, p2)[found.index(True)]
             self.config['amrvac_input'].update({'hydro_data_dir': p.resolve()})
-        self.sim_conf = read_amrvac_conf(
-            files=self.config['amrvac_input']['config'],
+        self.sim_conf = AMRVACUtils.read_parfiles(
+            parfiles=self.config['amrvac_input']['config'],
             origin=self.config['amrvac_input']['hydro_data_dir']
         )
 
