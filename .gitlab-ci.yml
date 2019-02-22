@@ -56,7 +56,6 @@ install_pymodules:
   script:
     - source activate $PYENV
     - $SLURM_CMD pip install `pwd`/deps/vtk_vacreader-project
-    - $SLURM_CMD pip install `pwd`/deps/amrvac-pywrap-project
     - $SLURM_CMD pip install .
 
 params:
