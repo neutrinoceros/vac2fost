@@ -1,7 +1,6 @@
 '''Test basic consistency of main() called through python.'''
 import shutil
 import multiprocessing as mp
-from os import mkdir
 from pathlib import Path
 
 import pytest
@@ -29,9 +28,9 @@ def gen_mcfost_grid(output_dir):
     """
     if output_dir.exists():
         shutil.rmtree(output_dir)
-    itf = Interface(config_file=test_dir/'sample/vac2fost_conf.nml',
-                    output_dir=output_dir, mcfost_verbose=True)
-    return itf.output_grid
+    myitf = Interface(config_file=test_dir/'sample/vac2fost_conf.nml',
+                      output_dir=output_dir, mcfost_verbose=True)
+    return myitf.output_grid
 
 def test_dry_grid_gen():
     """Check that the output grid can be retrieved simply by calling it at the interface level."""
@@ -40,7 +39,7 @@ def test_dry_grid_gen():
         shutil.rmtree(output_dir)
     gen_mcfost_grid(output_dir/"dry_grid")
 
-@pytest.mark.skipif(mp.cpu_count()==1, reason="parallel computation only with Ncpus>=2")
+@pytest.mark.skipif(mp.cpu_count() == 1, reason="parallel computation only with Ncpus>=2")
 def test_parallel_instanciation():
     """Check that instanciating multiple Interface class object at same
     time and location doesn't create collisions"""

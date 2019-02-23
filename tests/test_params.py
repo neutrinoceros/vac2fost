@@ -16,7 +16,7 @@ if gridfile.exists():
     os.remove(gridfile)
 
 def test_dust_mass_estimation():
-    data = VDS(str(here/'sample/flat_rphi0000.vtu'), shape=(512,128))
+    data = VDS(str(here/'sample/flat_rphi0000.vtu'), shape=(512, 128))
     estimate = get_dust_mass(data)
     conf = f90nml.read(here / 'sample/flat_rphi.nml')
     rmin = conf['meshlist']['xprobmin1']
@@ -29,7 +29,7 @@ def test_dust_mass_estimation():
 
 def test_unrecognized_mcfost_parameter():
     with pytest.raises(KeyError):
-        itf = app(
+        app(
             str(here/'sample/vac2fost_conf_fake_params.nml'),
             output_dir=outdir
         )

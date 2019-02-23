@@ -4,7 +4,6 @@ import vac2fost
 from vac2fost import main as app
 from vac2fost.vac2fost import mcfost_major_version, mcfost_minor_version, DETECTED_MCFOST_VERSION
 import pytest
-import subprocess
 
 testdir = pathlib.Path(__file__).absolute().parent
 output_dir = testdir/'output/test_env'

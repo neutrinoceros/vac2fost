@@ -9,9 +9,9 @@ output_dir = test_dir / "test_dust_binning_mode"
 
 def test_unknown_dbm():
     with pytest.raises(KeyError):
-        itf = Interface(test_dir/'sample/vac2fost_conf_quick_no_dust.nml',
-                        output_dir=output_dir,
-                        dust_bin_mode="blblblblblblblb")
+        Interface(test_dir/'sample/vac2fost_conf_quick_no_dust.nml',
+                  output_dir=output_dir,
+                  dust_bin_mode="blblblblblblblb")
 
 def test_gas_only():
     itf = Interface(test_dir/'sample/vac2fost_conf_quick.nml',
@@ -36,9 +36,9 @@ def test_mixed():
 
 def test_unrecognized_dbm():
     with pytest.raises(KeyError):
-        itf = Interface(test_dir/'sample/vac2fost_conf_quick.nml',
-                        output_dir=output_dir,
-                        dust_bin_mode="not-a-real-dbm-option")
+        Interface(test_dir/'sample/vac2fost_conf_quick.nml',
+                  output_dir=output_dir,
+                  dust_bin_mode="not-a-real-dbm-option")
 
 def test_auto_into_mixed():
     itf = Interface(test_dir/'sample/vac2fost_conf_quick.nml',
@@ -58,11 +58,11 @@ def test_mixed_into_KeyError():
                     output_dir=output_dir,
                     dust_bin_mode="mixed")
     with pytest.raises(KeyError):
-        itf.grain_micron_sizes
+        gms = itf.grain_micron_sizes
 
 def test_dust_only_into_KeyError():
     itf = Interface(test_dir/'sample/vac2fost_conf_quick_no_dust.nml',
                     output_dir=output_dir,
                     dust_bin_mode="dust-only")
     with pytest.raises(KeyError):
-        itf.grain_micron_sizes
+        gms = itf.grain_micron_sizes
