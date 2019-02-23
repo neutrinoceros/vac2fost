@@ -16,7 +16,7 @@ Known limitations
   3) interpolation does not account for the curvature of polar cells
   4) only r-phi input grids are currently supported
 '''
-__version__ = "2.2"
+__version__ = "2.2.1"
 mcfost_major_version = "3.0"
 mcfost_minor_version = "35"
 
@@ -45,7 +45,6 @@ except ImportError:
     colorama = None
     BOLD = RED = CYAN = ""
 
-from amrvac_pywrap import interpret_shell_path, read_amrvac_conf
 from vtk_vacreader import VacDataSorter
 
 try:
@@ -81,6 +80,40 @@ DataInfo = namedtuple(
     'DataInfo',
     ['shape', 'directory', 'filename', 'filepath']
 )
+
+def shell_path(pin: str) -> Path:
+    """Transform <pin> to a Path, expanding included env variables."""
+    return Path(os.path.expandvars(str(pin)))
+
+def read_amrvac_parfiles(parfiles: list, location: str = "") -> f90nml.Namelist:
+    """Parse one, or a list of MPI-AMRVAC parfiles into a consistent
+    configuration.
+
+    <location> : path of the directory where parfiles are found.
+    Can be either a PathLike object or a str. The later can include
+    "$" shell env variables such as "$HOME".
+
+    This function replicates that of MPI-AMRVAC, with a patching logic:
+    for parameters redundant across parfiles, only last values are kept,
+    except "&filelist:base_filename", for which values are cumulated.
+    """
+    pathloc = shell_path(location)
+
+    if isinstance(parfiles, (str, os.PathLike)):
+        pfs = [parfiles]
+    else:
+        pfs = parfiles
+    assert all([isinstance(pf, (str, os.PathLike)) for pf in pfs])
+
+    confs = [f90nml.read(pathloc / pf) for pf in pfs]
+    conf_tot = f90nml.Namelist()
+    for c in confs:
+        conf_tot.patch(c)
+
+    base_filename = "".join([c.get("filelist", {}).get("base_filename", "") for c in confs])
+    assert base_filename != ""
+    conf_tot["filelist"]["base_filename"] = base_filename
+    return conf_tot
 
 class MCFOSTUtils:
     """Utility functions to call MCFOST in vac2fost.main()
@@ -460,9 +493,9 @@ class Interface:
             else:
                 p = (p1, p2)[found.index(True)]
             self.config['amrvac_input'].update({'hydro_data_dir': p.resolve()})
-        self.sim_conf = read_amrvac_conf(
-            files=self.config['amrvac_input']['config'],
-            origin=self.config['amrvac_input']['hydro_data_dir']
+        self.sim_conf = read_amrvac_parfiles(
+            parfiles=self.config['amrvac_input']['config'],
+            location=self.config['amrvac_input']['hydro_data_dir']
         )
 
         if dust_bin_mode == "auto":
@@ -588,9 +621,7 @@ class Interface:
                                     '.vtu'])
             self._iodat = {}
             basein = dict(
-                directory=Path(interpret_shell_path(
-                    self.config['amrvac_input']['hydro_data_dir']
-                )).resolve(),
+                directory=shell_path(self.config['amrvac_input']['hydro_data_dir']).resolve(),
                 filename=vtu_filename,
                 shape=tuple(
                     [self.sim_conf['meshlist'][f'domain_nx{n}']

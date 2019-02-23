@@ -5,11 +5,7 @@ import shutil
 from pathlib import Path
 from subprocess import check_call, run, CalledProcessError
 import pytest
-
 import f90nml
-
-#from vac2fost import __file__ as v2cfile
-#root = Path(v2cfile).parent
 
 test_dir = Path(__file__).absolute().parent
 OUT = test_dir/"output"
@@ -17,7 +13,6 @@ root = test_dir.parent / "vac2fost"
 
 if not OUT.is_dir():
     os.mkdir(OUT)
-
 
 def test_genconf():
     """check that --genconf outputs a NameList compliant string"""

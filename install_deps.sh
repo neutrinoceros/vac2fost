@@ -15,14 +15,12 @@ fi
 
 mkdir deps
 cd deps
-git clone https://gitlab.oca.eu/crobert/amrvac-pywrap-project.git
 git clone https://gitlab.oca.eu/crobert/vtk_vacreader-project.git
 
 read -p "Do you wish to install deps within current conda env ? y/[n]    " choice
 
 case $choice in
     [yY]*) 
-	conda develop amrvac-pywrap-project
 	conda develop vtk_vacreader-project
 	;;
     *)
