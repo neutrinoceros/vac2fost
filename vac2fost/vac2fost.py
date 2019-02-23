@@ -22,7 +22,6 @@ mcfost_minor_version = "35"
 
 from collections import OrderedDict as od, namedtuple
 import os
-import re
 from warnings import warn
 from socket import gethostname
 import sys
@@ -82,56 +81,39 @@ DataInfo = namedtuple(
     ['shape', 'directory', 'filename', 'filepath']
 )
 
-def shell_path(pin: os.PathLike) -> Path:
-    """Replace shell variables ("$" tokens) with their
-    string value in a PathLike object.
+def shell_path(pin: str) -> Path:
+    """Transform <pin> to a Path, expanding included env variables."""
+    return Path(os.path.expandvars(str(pin)))
+
+def read_amrvac_parfiles(parfiles: list, location: str = "") -> f90nml.Namelist:
+    """Parse one, or a list of MPI-AMRVAC parfiles into a consistent
+    configuration.
+
+    <location> : path of the directory where parfiles are found.
+    Can be either a PathLike object or a str. The later can include
+    "$" shell env variables such as "$HOME".
+
+    This function replicates that of MPI-AMRVAC, with a patching logic:
+    for parameters redundant across parfiles, only last values are kept,
+    except "&filelist:base_filename", for which values are cumulated.
     """
-    exp = re.compile(r"\$[a-zA-Z0-9_]*")
-    pstr = str(pin)
-    for match in exp.findall(pstr):
-        pstr = pstr.replace(match, os.environ[match.strip("$")], 1)
-    return Path(pstr)
+    pathloc = shell_path(location)
 
-class AMRVACUtils:
-    """Some code specific utilities (special method to read parfiles)"""
+    if isinstance(parfiles, (str, os.PathLike)):
+        pfs = [parfiles]
+    else:
+        pfs = parfiles
+    assert all([isinstance(pf, (str, os.PathLike)) for pf in pfs])
 
-    def _merge(parfiles: list, origin: str = "") -> f90nml.Namelist:
-        """Build a namelist configuration by successive updates.
+    confs = [f90nml.read(pathloc / pf) for pf in pfs]
+    conf_tot = f90nml.Namelist()
+    for c in confs:
+        conf_tot.patch(c)
 
-        By construction, when a parameter is being defined multiple times,
-        only its last definition remains.
-        An exception to that rule is implemented for 'base_filename' for
-        compatibility with MPI-AMRVAC.
-        """
-        files = parfiles
-        if isinstance(files, (str, os.PathLike)):
-            files = [parfiles]
-        conf_tot = f90nml.Namelist()
-        cumulated_base_filename = ""
-        for pf in files:
-            if isinstance(pf, (str, os.PathLike)):
-                try:
-                    conf = f90nml.read(pf)
-                except FileNotFoundError:
-                    conf = f90nml.read(Path(origin) / pf)
-            for sublist in conf.keys():
-                if sublist not in conf_tot.keys():
-                    conf_tot.update({sublist: conf[sublist]})
-                else:
-                    conf_tot[sublist].update(conf[sublist])
-            try:
-                cumulated_base_filename += conf["filelist"]["base_filename"]
-            except KeyError:
-                pass
-        conf_tot["filelist"]["base_filename"] = cumulated_base_filename
-        return conf_tot
-
-    def read_parfiles(parfiles: list, origin: str) -> f90nml.Namelist:
-        """Read a sorted list of MPI-AMRVAC parfiles, updating redundant
-        parameters as we go"""
-        origin = str(shell_path(origin))
-        namelist = AMRVACUtils._merge(parfiles, origin)
-        return namelist
+    base_filename = "".join([c.get("filelist", {}).get("base_filename", "") for c in confs])
+    assert base_filename != ""
+    conf_tot["filelist"]["base_filename"] = base_filename
+    return conf_tot
 
 class MCFOSTUtils:
     """Utility functions to call MCFOST in vac2fost.main()
@@ -511,9 +493,9 @@ class Interface:
             else:
                 p = (p1, p2)[found.index(True)]
             self.config['amrvac_input'].update({'hydro_data_dir': p.resolve()})
-        self.sim_conf = AMRVACUtils.read_parfiles(
+        self.sim_conf = read_amrvac_parfiles(
             parfiles=self.config['amrvac_input']['config'],
-            origin=self.config['amrvac_input']['hydro_data_dir']
+            location=self.config['amrvac_input']['hydro_data_dir']
         )
 
         if dust_bin_mode == "auto":
