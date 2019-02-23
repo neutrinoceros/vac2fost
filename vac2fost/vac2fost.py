@@ -901,11 +901,11 @@ if __name__ == '__main__':
         help='configuration file (namelist) for this script'
     )
     parser.add_argument(
-        '-n', dest='nums', type=int,
+        "-n", "--nums", dest="nums", type=int,
         required=False,
         default=None,
         nargs="*",
-        help='output number(s) of the target .vtu VAC output file to be converted'
+        help="output number(s) of the target .vtu VAC output file to be converted"
     )
     parser.add_argument(
         '-o', '--output', dest='output', type=str,
