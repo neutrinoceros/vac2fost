@@ -14,4 +14,3 @@ def test_style_standard():
     sumup_line = lines[-2]
     mark = float(sumup_line.split()[6].split('/')[0])
     assert mark >= MINIMAL_MARK
-

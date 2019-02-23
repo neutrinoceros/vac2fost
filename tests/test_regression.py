@@ -1,15 +1,13 @@
 import pickle
 from pathlib import Path
-import os
 import shutil
-import subprocess
 import numpy as np
-from astropy.io import fits as fits
+from astropy.io import fits
 
 from vac2fost import main as app
 from vac2fost.vac2fost import DETECTED_MCFOST_VERSION
 
-x,y,z = DETECTED_MCFOST_VERSION
+x, y, z = DETECTED_MCFOST_VERSION
 assert x == 3 and y == 0
 if z < 35:
     REFVER = "3.0.34"
@@ -28,13 +26,13 @@ def instanciate_interface(conffile, **kwargs):
     return itf
 
 # to regold tests
-save_keys = ['sim_conf',
-             'input_grid', 'output_grid',
-             'new_2D_arrays', 'new_3D_arrays',
-             'dust_binning_mode'
-]
-
 def regold(itf, reffile):
+    save_keys = [
+        'sim_conf',
+        'input_grid', 'output_grid',
+        'new_2D_arrays', 'new_3D_arrays',
+        'dust_binning_mode'
+    ]
     with open(reffile, mode="wb") as file:
         out = {k: itf.__getattribute__(k) for k in save_keys}
         pickle.dump(out, file)
@@ -89,7 +87,7 @@ class TestRegressionMain:
 
 class TestRegressionMutliNums:
     subrefdir = REFOUT_DIR / "multinums"
-    itf = instanciate_interface(conffile="vac2fost_conf_quick.nml", nums=[0, 1 ,2])
+    itf = instanciate_interface(conffile="vac2fost_conf_quick.nml", nums=[0, 1, 2])
     itf.tag = itf._base_args['config_file'].stem + "multinums"
 
     def test_multinums_output(self):

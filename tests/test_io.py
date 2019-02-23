@@ -10,7 +10,6 @@ test_dir = Path(__file__).absolute().parent
 
 sampledir = test_dir / 'sample'
 
-import pdb
 class Test_IO:
     def test_input_fromloc(self):
         with secure_chdir(sampledir):
@@ -21,17 +20,18 @@ class Test_IO:
         with secure_chdir(os.environ["HOME"]):
             itf = Interface(sampledir/'vac2fost_conf.nml')
         assert itf.io['in'].directory == Path(sampledir).resolve()
-    
+
     def test_input_fromhome_fakedata(self):
         with pytest.raises(FileNotFoundError):
             with secure_chdir(os.environ["HOME"]):
-                itf = Interface('vac2fost_conf.nml')
+                Interface('vac2fost_conf.nml')
 
     def test_output_fromloc(self):
         with secure_chdir(sampledir):
             itf = Interface('vac2fost_conf.nml')
-        print( itf.io['out'].directory )
+        print(itf.io['out'].directory)
 
     def test_path_reading(self):
-        """Check that AMRVAC config file can be correctly assessed with a relative "origin" argument"""
+        """Check that AMRVAC config file can be correctly assessed with a
+        relative "origin" argument"""
         Interface(config_file=test_dir/'sample/vac2fost_conf_nonaxisym.nml', mcfost_verbose=True)

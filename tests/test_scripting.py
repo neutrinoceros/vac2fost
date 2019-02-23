@@ -1,8 +1,5 @@
 '''Test basic consistency of main() called through python.'''
-
-import os
 import pathlib
-import subprocess
 import shutil
 import pytest
 
@@ -32,10 +29,10 @@ class TestPyScripting():
 
     def test_python_call_multiple(self):
         app(
-            str(here/'sample/vac2fost_conf.nml'),
+            str(here/"sample/vac2fost_conf.nml"),
             output_dir=__class__.output_dir,
             mcfost_verbose=True,
-            nums=[0,1,2]
+            nums=[0, 1, 2]
         )
-        for n in (0,1,2):
+        for n in (0, 1, 2):
             assert (__class__.output_dir / f"hd142527_dusty{str(n).zfill(4)}.fits").exists()

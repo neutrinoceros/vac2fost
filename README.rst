@@ -54,13 +54,11 @@ Most of the non-standard Python dependencies can be installed with
 This will create a specific environment for using vac2fost without modifying your
 usual python packages in your base environment.
 
-The program also relies on two sub-projects (same author),
-amrvac_pywrap_ and vtk_vacreader_.
+The program also relies on a derived project, vtk_vacreader_: a small module to read vtk files from MPI-AMRVAC (restricted to non-AMR files atm).
 
-.. _amrvac_pywrap: https://gitlab.oca.eu/crobert/amrvac-pywrap-project
 .. _vtk_vacreader: https://gitlab.oca.eu/crobert/vtk_vacreader-project
 
-They can be installed with
+It can can be installed as
 
     .. code-block:: bash
 
@@ -68,7 +66,8 @@ They can be installed with
         bash install_deps.sh # this script will ask for user confirmation
 
 The first line change your working environment to the one needed to use 
-``vac2fost``. The second will install the two specific dependencies.
+``vac2fost``. The second will install vtk_vacreader.
+Alternatively, one can run `bash dl_deps.sh` to download the package without installing it.
 
 Then, there are two ways you can use ``vac2fost``:
 

@@ -23,7 +23,6 @@ stages:
   - install
   - unit_tests
   - integration_tests
-  - validation_tests
   - final
 
 update_pyenv:
@@ -57,26 +56,13 @@ install_pymodules:
   script:
     - source activate $PYENV
     - $SLURM_CMD pip install `pwd`/deps/vtk_vacreader-project
-    - $SLURM_CMD pip install `pwd`/deps/amrvac-pywrap-project
     - $SLURM_CMD pip install .
 
-params:
+misc_unitests:
   stage: unit_tests
   script:
     - source activate $PYENV
-    - $SLURM_CMD pytest tests/test_params.py
-
-io:
-  stage: unit_tests
-  script:
-    - source activate $PYENV
-    - $SLURM_CMD pytest tests/test_io.py
-
-dust_binning_mode:
-  stage: unit_tests
-  script:
-    - source activate $PYENV
-    - $SLURM_CMD pytest tests/test_dust_binning_mode.py
+    - $SLURM_CMD pytest tests/test_{params,io,dust_binning_mode,mcfost_writter,utils}.py
 
 mcfost_grid:
   stage: unit_tests
@@ -84,44 +70,21 @@ mcfost_grid:
     - source activate $PYENV
     - $SLURM_CMD pytest tests/test_mcfost_grid.py
 
-mcfost_writter:
-  stage: unit_tests
-  script:
-    - source activate $PYENV
-    - $SLURM_CMD pytest tests/test_mcfost_writter.py
-
-test_env:
+misc_intest:
   stage: integration_tests
   script:
     - source activate $PYENV
-    - $SLURM_CMD pytest tests/test_env.py
+    - $SLURM_CMD pytest tests/test_{env,gas_reading,read_gas_velocity,scripting}.py
 
-# shell:
-#   stage: integration_tests
-#   script:
-#     - source activate $PYENV
-#     - $SLURM_CMD pytest tests/test_shell.py
-
-scripting:
+shell:
   stage: integration_tests
   script:
     - source activate $PYENV
-    - $SLURM_CMD pytest tests/test_scripting.py
-
-read_gas_dens:
-  stage: integration_tests
-  script:
-    - source activate $PYENV
-    - $SLURM_CMD pytest tests/test_gas_reading.py
-
-read_gas_vel:
-  stage: integration_tests
-  script:
-    - source activate $PYENV
-    - $SLURM_CMD pytest tests/test_read_gas_velocity.py
+    - export ROOTDIR=`pwd`
+    - $SLURM_CMD bash tests/test_shell.sh
 
 # regression:
-#   stage: validation_tests
+#   stage: integration_tests
 #   script:
 #     - source activate $PYENV
 #     - $SLURM_CMD pytest tests/test_regression.py
@@ -131,3 +94,10 @@ code_quality:
   script:
     - source activate $PYENV
     - pylint --rcfile .pylintrc vac2fost/vac2fost.py
+
+run_demo:
+  stage: final
+  script:
+    - source activate $PYENV
+    - $SLURM_CMD python docs/diagnostic.py
+

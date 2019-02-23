@@ -15,10 +15,8 @@ Known limitations
   2) portability is not guaranted
   3) interpolation does not account for the curvature of polar cells
   4) only r-phi input grids are currently supported
-  5) gas density is never passed to MCFOST as is but only
-     as a tracer for smallest dust grains
 '''
-__version__ = "2.2"
+__version__ = "2.2.1"
 mcfost_major_version = "3.0"
 mcfost_minor_version = "35"
 
@@ -47,7 +45,6 @@ except ImportError:
     colorama = None
     BOLD = RED = CYAN = ""
 
-from amrvac_pywrap import interpret_shell_path, read_amrvac_conf
 from vtk_vacreader import VacDataSorter
 
 try:
@@ -83,6 +80,40 @@ DataInfo = namedtuple(
     'DataInfo',
     ['shape', 'directory', 'filename', 'filepath']
 )
+
+def shell_path(pin: str) -> Path:
+    """Transform <pin> to a Path, expanding included env variables."""
+    return Path(os.path.expandvars(str(pin)))
+
+def read_amrvac_parfiles(parfiles: list, location: str = "") -> f90nml.Namelist:
+    """Parse one, or a list of MPI-AMRVAC parfiles into a consistent
+    configuration.
+
+    <location> : path of the directory where parfiles are found.
+    Can be either a PathLike object or a str. The later can include
+    "$" shell env variables such as "$HOME".
+
+    This function replicates that of MPI-AMRVAC, with a patching logic:
+    for parameters redundant across parfiles, only last values are kept,
+    except "&filelist:base_filename", for which values are cumulated.
+    """
+    pathloc = shell_path(location)
+
+    if isinstance(parfiles, (str, os.PathLike)):
+        pfs = [parfiles]
+    else:
+        pfs = parfiles
+    assert all([isinstance(pf, (str, os.PathLike)) for pf in pfs])
+
+    confs = [f90nml.read(pathloc / pf) for pf in pfs]
+    conf_tot = f90nml.Namelist()
+    for c in confs:
+        conf_tot.patch(c)
+
+    base_filename = "".join([c.get("filelist", {}).get("base_filename", "") for c in confs])
+    assert base_filename != ""
+    conf_tot["filelist"]["base_filename"] = base_filename
+    return conf_tot
 
 class MCFOSTUtils:
     """Utility functions to call MCFOST in vac2fost.main()
@@ -223,15 +254,15 @@ class MCFOSTUtils:
         for di in descriptor[1]:
             known_args += list(di.keys())
 
-    def write_mcfost_conf(output_file: str, custom: dict = None, verbose=False):
-        '''Write a configuration file for mcfost using values from <custom>,
+    def write_mcfost_conf(output_file: Path, custom: dict = None, verbose=False):
+        """Write a configuration file for mcfost using values from <custom>,
         and falling back to defaults found in block_descriptor defined above
-        '''
+        """
         if custom is None:
             custom = {}
-        if Path(output_file).exists() and verbose:
+        if output_file.exists() and verbose:
             print(f'Warning: {output_file} already exists, and will be overwritten.')
-        with open(output_file, 'wt') as fi:
+        with open(output_file, mode="wt") as fi:
             fi.write(mcfost_major_version.ljust(10) +
                      f"mcfost minimal version. Recommended minor {mcfost_minor_version}\n\n")
             for block, lines in __class__.blocks_descriptors.items():
@@ -465,9 +496,9 @@ class Interface:
             else:
                 p = (p1, p2)[found.index(True)]
             self.config['amrvac_input'].update({'hydro_data_dir': p.resolve()})
-        self.sim_conf = read_amrvac_conf(
-            files=self.config['amrvac_input']['config'],
-            origin=self.config['amrvac_input']['hydro_data_dir']
+        self.sim_conf = read_amrvac_parfiles(
+            parfiles=self.config['amrvac_input']['config'],
+            location=self.config['amrvac_input']['hydro_data_dir']
         )
 
         if dust_bin_mode == "auto":
@@ -593,9 +624,7 @@ class Interface:
                                     '.vtu'])
             self._iodat = {}
             basein = dict(
-                directory=Path(interpret_shell_path(
-                    self.config['amrvac_input']['hydro_data_dir']
-                )).resolve(),
+                directory=shell_path(self.config['amrvac_input']['hydro_data_dir']).resolve(),
                 filename=vtu_filename,
                 shape=tuple(
                     [self.sim_conf['meshlist'][f'domain_nx{n}']
@@ -614,10 +643,9 @@ class Interface:
         return self._iodat
 
     @property
-    def mcfost_conf_file(self):
-        '''Locate output configuration file for mcfost'''
-        file = self.io['out'].directory / "mcfost_conf.para"
-        return str(file)
+    def mcfost_conf_file(self) -> Path:
+        """Locate output configuration file for mcfost"""
+        return self.io['out'].directory / "mcfost_conf.para"
 
     def load_input_data(self, n: int = None) -> None:
         '''Use vtkvacreader.VacDataSorter to load AMRVAC data'''
@@ -647,7 +675,7 @@ class Interface:
         '''Store info on 3D output grid specifications
         as vectors "v", and (r-phi)grids "g"'''
         if self._output_grid is None:
-            if not Path(self.mcfost_conf_file).is_file():
+            if not self.mcfost_conf_file.is_file():
                 self.write_mcfost_conf_file()
             target_grid = MCFOSTUtils.get_mcfost_grid(self)
             self._output_grid = {
@@ -881,11 +909,11 @@ if __name__ == '__main__':
         help='configuration file (namelist) for this script'
     )
     parser.add_argument(
-        '-n', dest='nums', type=int,
+        "-n", "--nums", dest="nums", type=int,
         required=False,
         default=None,
         nargs="*",
-        help='output number(s) of the target .vtu VAC output file to be converted'
+        help="output number(s) of the target .vtu VAC output file to be converted"
     )
     parser.add_argument(
         '-o', '--output', dest='output', type=str,
@@ -949,7 +977,7 @@ if __name__ == '__main__':
     main(
         config_file=cargs.configuration,
         nums=cargs.nums,
-        output_dir=cargs.output,
+        output_dir=cargs.output.strip(),
         dust_bin_mode=cargs.dbm,
         read_gas_density=cargs.read_gas_density,
         read_gas_velocity=cargs.read_gas_velocity,
