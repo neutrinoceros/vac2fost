@@ -254,15 +254,15 @@ class MCFOSTUtils:
         for di in descriptor[1]:
             known_args += list(di.keys())
 
-    def write_mcfost_conf(output_file: str, custom: dict = None, verbose=False):
-        '''Write a configuration file for mcfost using values from <custom>,
+    def write_mcfost_conf(output_file: Path, custom: dict = None, verbose=False):
+        """Write a configuration file for mcfost using values from <custom>,
         and falling back to defaults found in block_descriptor defined above
-        '''
+        """
         if custom is None:
             custom = {}
-        if Path(output_file).exists() and verbose:
+        if output_file.exists() and verbose:
             print(f'Warning: {output_file} already exists, and will be overwritten.')
-        with open(output_file, 'wt') as fi:
+        with open(output_file, mode="wt") as fi:
             fi.write(mcfost_major_version.ljust(10) +
                      f"mcfost minimal version. Recommended minor {mcfost_minor_version}\n\n")
             for block, lines in __class__.blocks_descriptors.items():
@@ -640,10 +640,9 @@ class Interface:
         return self._iodat
 
     @property
-    def mcfost_conf_file(self):
-        '''Locate output configuration file for mcfost'''
-        file = self.io['out'].directory / "mcfost_conf.para"
-        return str(file)
+    def mcfost_conf_file(self) -> Path:
+        """Locate output configuration file for mcfost"""
+        return self.io['out'].directory / "mcfost_conf.para"
 
     def load_input_data(self, n: int = None) -> None:
         '''Use vtkvacreader.VacDataSorter to load AMRVAC data'''
@@ -673,7 +672,7 @@ class Interface:
         '''Store info on 3D output grid specifications
         as vectors "v", and (r-phi)grids "g"'''
         if self._output_grid is None:
-            if not Path(self.mcfost_conf_file).is_file():
+            if not self.mcfost_conf_file.is_file():
                 self.write_mcfost_conf_file()
             target_grid = MCFOSTUtils.get_mcfost_grid(self)
             self._output_grid = {
@@ -902,11 +901,11 @@ if __name__ == '__main__':
         help='configuration file (namelist) for this script'
     )
     parser.add_argument(
-        '-n', dest='nums', type=int,
+        "-n", "--nums", dest="nums", type=int,
         required=False,
         default=None,
         nargs="*",
-        help='output number(s) of the target .vtu VAC output file to be converted'
+        help="output number(s) of the target .vtu VAC output file to be converted"
     )
     parser.add_argument(
         '-o', '--output', dest='output', type=str,
@@ -965,7 +964,7 @@ if __name__ == '__main__':
     main(
         config_file=cargs.configuration,
         nums=cargs.nums,
-        output_dir=cargs.output,
+        output_dir=cargs.output.strip(),
         dust_bin_mode=cargs.dbm,
         read_gas_density=cargs.read_gas_density,
         verbose=cargs.verbose,

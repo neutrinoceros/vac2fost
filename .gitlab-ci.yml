@@ -80,7 +80,8 @@ shell:
   stage: integration_tests
   script:
     - source activate $PYENV
-    - $SLURM_CMD pytest tests/test_shell.py
+    - export ROOTDIR=`pwd`
+    - $SLURM_CMD bash tests/test_shell.sh
 
 # regression:
 #   stage: integration_tests
