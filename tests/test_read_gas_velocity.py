@@ -4,8 +4,7 @@ import pytest
 from pathlib import Path
 
 
-root = Path(__file__).parent / "vac2fost"
-testdir = root.parent/"tests"
+testdir = Path(__file__).parent
 
 testconf = testdir/"sample/vac2fost_conf.nml"
 def test1():

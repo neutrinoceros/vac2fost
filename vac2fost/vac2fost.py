@@ -736,6 +736,14 @@ class Interface:
             header.update(dict(gas_to_dust=self.sim_conf["usr_dust_list"]["gas2dust_ratio"]))
 
         if self.read_gas_velocity:
+            rho, mr, mphi = map(self._interpolate2D, ["rho", "m1", "m2"])
+            vr, vphi = map(lambda x: x/rho, [mr, mphi])
+            phig = self.output_grid["phig"].transpose() # todo: get rid of this transposition
+            vx = vr * np.cos(phig) + vphi * np.sin(phig)
+            vy = vr * np.sin(phig) + vphi * np.cos(phig)
+
+            # those are still 2D...
+            #additional_hds.append(...)
             raise NotImplementedError("coming feature : read_gas_velocity")
 
         dust_densities_HDU = fits.PrimaryHDU(self.new_3D_arrays[dust_bin_selector])
