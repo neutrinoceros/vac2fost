@@ -754,7 +754,7 @@ class Interface:
             # todo: check shape...
             # assert ...
             header.update(dict(read_gas_velocity=1))
-            #raise NotImplementedError("coming feature : read_gas_velocity")
+            raise NotImplementedError("coming feature : read_gas_velocity")
 
         dust_densities_HDU = fits.PrimaryHDU(self.new_3D_arrays[dust_bin_selector])
         for k, v in header.items():
