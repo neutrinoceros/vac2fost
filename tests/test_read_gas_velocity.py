@@ -3,8 +3,10 @@ from vac2fost.vac2fost import Interface
 import pytest
 from pathlib import Path
 
+
 root = Path(__file__).parent / "vac2fost"
-testconf = "tests/sample/vac2fost_conf.nml"
+testdir = root.parent/"tests"
+testconf = testdir/"sample/vac2fost_conf.nml"
 def test1():
     Interface(testconf, read_gas_velocity=True)
 

@@ -760,6 +760,7 @@ class Interface:
         return ig
 
     def _interpolate2D(self, datakey:str) -> np.ndarray:
+        """Transform a polar field from MPI-AMRVAC coords to mcfost coords"""
         interpolator = interp2d(
             self.input_grid['phiv'],
             self.input_grid['rv'],
@@ -767,21 +768,15 @@ class Interface:
         )
         return interpolator(self.output_grid["phiv"], self.output_grid["rv"])
 
-    def gen_2D_arrays(self):
-        '''Interpolate input data onto r-phi grid
-        with output grid specifications'''
-        n_phi_new, n_rad_new = self.output_grid['rg'].shape
-        assert n_rad_new == self.config['mcfost_output']['nr']
-        assert n_phi_new == self.config['mcfost_output']['nphi']
+    def gen_2D_arrays(self) -> None:
+        """Interpolate input data density fields from input coords to output coords"""
+        n_phi_new, n_rad_new = self.output_grid["rg"].shape
+        assert n_rad_new == self.config["mcfost_output"]["nr"]
+        assert n_phi_new == self.config["mcfost_output"]["nphi"]
 
-        density_keys = sorted(filter(
-            lambda k: 'rho' in k, self.input_data.fields.keys()))
-        #todo : make this a comprehension list
-        interpolated_arrays = []
-        for k in density_keys:
-            interpolated_arrays.append(self._interpolate2D(datakey=k))
-        assert interpolated_arrays[0].shape == (n_rad_new, n_phi_new)
-        self._new_2D_arrays = np.array(interpolated_arrays)
+        density_keys = sorted(filter(lambda k: "rho" in k, self.input_data.fields.keys()))
+        self._new_2D_arrays = np.array([self._interpolate2D(datakey=k) for k in density_keys])
+        assert self._new_2D_arrays[0].shape == (n_rad_new, n_phi_new)
 
     @property
     def aspect_ratio(self):
