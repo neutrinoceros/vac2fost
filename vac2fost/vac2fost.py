@@ -762,9 +762,9 @@ class Interface:
     def _interpolate2D(self, datakey:str) -> np.ndarray:
         """Transform a polar field from MPI-AMRVAC coords to mcfost coords"""
         interpolator = interp2d(
-            self.input_grid['phiv'],
-            self.input_grid['rv'],
-            self.input_data[datakey], kind='cubic'
+            self.input_grid["phiv"],
+            self.input_grid["rv"],
+            self.input_data[datakey], kind="cubic"
         )
         return interpolator(self.output_grid["phiv"], self.output_grid["rv"])
 
