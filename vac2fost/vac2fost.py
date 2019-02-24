@@ -753,7 +753,8 @@ class Interface:
             additional_hdus.append(fits.ImageHDU(np.stack([vx, vy, vz], axis=3)))
             # todo: check shape...
             # assert ...
-            raise NotImplementedError("coming feature : read_gas_velocity")
+            header.update(dict(read_gas_velocity=1))
+            #raise NotImplementedError("coming feature : read_gas_velocity")
 
         dust_densities_HDU = fits.PrimaryHDU(self.new_3D_arrays[dust_bin_selector])
         for k, v in header.items():
