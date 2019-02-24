@@ -742,8 +742,17 @@ class Interface:
             vx = vr * np.cos(phig) + vphi * np.sin(phig)
             vy = vr * np.sin(phig) + vphi * np.cos(phig)
 
-            # those are still 2D...
-            #additional_hds.append(...)
+            # transform to 3D
+            nz, _ = self.output_grid["zg"].shape
+            vx, vy = map(lambda a: np.stack([a]*nz, axis=2), [vx, vy])
+            # todo: convert to km/s
+            # ...
+
+            # append
+            vz = np.zeros(vx.shape)
+            additional_hdus.append(fits.ImageHDU(np.stack([vx, vy, vz], axis=3)))
+            # todo: check shape...
+            # assert ...
             raise NotImplementedError("coming feature : read_gas_velocity")
 
         dust_densities_HDU = fits.PrimaryHDU(self.new_3D_arrays[dust_bin_selector])
