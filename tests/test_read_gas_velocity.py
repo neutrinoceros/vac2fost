@@ -5,14 +5,9 @@ from pathlib import Path
 
 root = Path(__file__).parent / "vac2fost"
 testconf = "tests/sample/vac2fost_conf.nml"
-def test2():
+def test1():
     Interface(testconf, read_gas_velocity=True)
 
-def test1():
+def test2():
     with pytest.raises(NotImplementedError):
         app(testconf, read_gas_velocity=True)
-
-def test3():
-    from subprocess import check_call, CalledProcessError
-    with pytest.raises(CalledProcessError):
-        check_call([f"python", f"{root}/vac2fost.py", f"{testconf}", "--read_gas_velocity"])

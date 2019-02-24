@@ -759,6 +759,14 @@ class Interface:
         }
         return ig
 
+    def _interpolate2D(self, datakey:str) -> np.ndarray:
+        interpolator = interp2d(
+            self.input_grid['phiv'],
+            self.input_grid['rv'],
+            self.input_data[datakey], kind='cubic'
+        )
+        return interpolator(self.output_grid["phiv"], self.output_grid["rv"])
+
     def gen_2D_arrays(self):
         '''Interpolate input data onto r-phi grid
         with output grid specifications'''
@@ -768,17 +776,10 @@ class Interface:
 
         density_keys = sorted(filter(
             lambda k: 'rho' in k, self.input_data.fields.keys()))
+        #todo : make this a comprehension list
         interpolated_arrays = []
         for k in density_keys:
-            interpolator = interp2d(
-                self.input_grid['phiv'],
-                self.input_grid['rv'],
-                self.input_data[k], kind='cubic'
-            )
-            interpolated_arrays.append(
-                interpolator(self.output_grid['phiv'],
-                             self.output_grid['rv'])
-            )
+            interpolated_arrays.append(self._interpolate2D(datakey=k))
         assert interpolated_arrays[0].shape == (n_rad_new, n_phi_new)
         self._new_2D_arrays = np.array(interpolated_arrays)
 
