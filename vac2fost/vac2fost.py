@@ -725,13 +725,13 @@ class Interface:
         ]
         header = {'read_n_a': 0} # automatic normalization of size-bins from mcfost param file.
         if self.read_gas_density:
+            #devnote: add try statement here ?
+            header.update(dict(gas_to_dust=self.sim_conf["usr_dust_list"]["gas2dust_ratio"]))
             additional_hdus.append(fits.ImageHDU(self._new_3D_arrays[0]))
             header.update(dict(read_gas_density=1))
 
-            #devnote: add try statement here ?
-            header.update(dict(gas_to_dust=self.sim_conf["usr_dust_list"]["gas2dust_ratio"]))
-
         if self.read_gas_velocity:
+            header.update(dict(read_gas_velocity=1))
             rho, mr, mphi = map(self._interpolate2D, ["rho", "m1", "m2"])
             vr, vphi = map(lambda x: x/rho, [mr, mphi])
             phig = self.output_grid["phig"].transpose() # todo: get rid of this transposition
@@ -750,9 +750,6 @@ class Interface:
                 np.testing.assert_array_equal(v.shape, self.io["out"].shape)
 
             additional_hdus.append(fits.ImageHDU(np.stack([vx, vy, vz], axis=3).T))
-
-            header.update(dict(read_gas_velocity=1))
-            #raise NotImplementedError("coming feature : read_gas_velocity")
 
         dust_densities_HDU = fits.PrimaryHDU(self.new_3D_arrays[dust_bin_selector])
         for k, v in header.items():
