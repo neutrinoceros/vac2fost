@@ -26,7 +26,7 @@ from warnings import warn
 from socket import gethostname
 import sys
 import shutil
-import subprocess
+from subprocess import run, CalledProcessError
 from argparse import ArgumentParser
 from pathlib import Path
 import uuid
@@ -48,13 +48,12 @@ except ImportError:
 from vtk_vacreader import VacDataSorter
 
 try:
-    res = subprocess.check_output('which mcfost', shell=True).decode('utf-8')
-    assert 'not found' not in res
-except AssertionError:
-    raise EnvironmentError('Installation of MCFOST not found.')
+    run(["which", "mcfost"], check=True, capture_output=True)
+except CalledProcessError:
+    print(RED+"Critical: could not find mcfost. Please install mcfost before using vac2fost")
 
 # Detect mcfost version
-bout = subprocess.check_output("yes | mcfost -version", shell=True)
+bout = run("yes | mcfost -version", shell=True, capture_output=True).stdout
 out = "".join(map(chr, bout))
 version_tag = out.split("\n")[0].split()[-1]
 
@@ -322,7 +321,7 @@ class MCFOSTUtils:
         output_dir = Path(output_dir).resolve()
         mcfost_conf_path = Path(mcfost_conf_file)
         if not output_dir.exists():
-            subprocess.call(f'mkdir -p {output_dir}', shell=True)
+            os.makedirs(output_dir)
 
         grid_file_name = output_dir / 'mcfost_grid.fits.gz'
 
@@ -330,7 +329,7 @@ class MCFOSTUtils:
             assert mcfost_conf_path.exists()
             # generate a grid data file with mcfost itself and extract it
             tmp_mcfost_dir = output_dir / f"TMP_VAC2FOST_MCFOST_GRID_{uuid.uuid4()}"
-            os.mkdir(tmp_mcfost_dir)
+            os.makedirs(tmp_mcfost_dir)
             try:
                 shutil.copyfile(mcfost_conf_path.resolve(),
                                 tmp_mcfost_dir/mcfost_conf_path.name)
@@ -340,13 +339,11 @@ class MCFOSTUtils:
             pile = Path.cwd()
             os.chdir(tmp_mcfost_dir)
             try:
-                subprocess.check_call(
-                    f"mcfost mcfost_conf.para -disk_struct",
-                    shell=True,
-                    stdout={True: None, False: subprocess.PIPE}[itf.mcfost_verbose]
-                )
+                run(["mcfost", "mcfost_conf.para", "-disk_struct"], check=True,
+                    capture_output=(not itf.mcfost_verbose))
+
                 shutil.move("data_disk/grid.fits.gz", grid_file_name)
-            except subprocess.CalledProcessError as exc:
+            except CalledProcessError as exc:
                 errtip = f"\nError in MCFOST, exited with exitcode {exc.returncode}"
                 if exc.returncode == 174:
                     errtip += (
@@ -513,8 +510,7 @@ class Interface:
         self._new_3D_arrays = None
 
         if not self.io['out'].directory.exists():
-            subprocess.call(f"mkdir -p {self.io['out'].directory}",
-                            shell=True)
+            os.makedirs(self.io['out'].directory)
             self.warnings.append(f"rep {self.io['out'].directory} was created")
 
         # optional definition of the distance unit
