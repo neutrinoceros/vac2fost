@@ -26,7 +26,9 @@ from warnings import warn
 from socket import gethostname
 import sys
 import shutil
-import subprocess
+import subprocess# tmp
+from subprocess import run, CalledProcessError
+
 from argparse import ArgumentParser
 from pathlib import Path
 import uuid
@@ -48,10 +50,9 @@ except ImportError:
 from vtk_vacreader import VacDataSorter
 
 try:
-    res = subprocess.check_output('which mcfost', shell=True).decode('utf-8')
-    assert 'not found' not in res
-except AssertionError:
-    raise EnvironmentError('Installation of MCFOST not found.')
+    run(["which", "mcfsost"], check=True, capture_output=True)
+except CalledProcessError:
+    print(RED+"Critical: could not find mcfost. Please install mcfost before using vac2fost")
 
 # Detect mcfost version
 bout = subprocess.check_output("yes | mcfost -version", shell=True)
