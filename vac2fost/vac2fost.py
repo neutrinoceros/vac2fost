@@ -26,9 +26,7 @@ from warnings import warn
 from socket import gethostname
 import sys
 import shutil
-import subprocess# tmp
 from subprocess import run, CalledProcessError
-
 from argparse import ArgumentParser
 from pathlib import Path
 import uuid
@@ -55,7 +53,7 @@ except CalledProcessError:
     print(RED+"Critical: could not find mcfost. Please install mcfost before using vac2fost")
 
 # Detect mcfost version
-bout = subprocess.check_output("yes | mcfost -version", shell=True)
+bout = run("yes | mcfost -version", shell=True, capture_output=True).stdout
 out = "".join(map(chr, bout))
 version_tag = out.split("\n")[0].split()[-1]
 
