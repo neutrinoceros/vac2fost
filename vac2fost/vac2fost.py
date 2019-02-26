@@ -282,7 +282,7 @@ class MCFOSTUtils:
                     ('profile_width', 15.)]),
                 od([('v_turb', 0.2)]),
                 od([('nmol', 1)]),
-                od([('mol_data_file', 'co@xplot.dat'),
+                od([("mol_data_file", "13co.dat"),
                     ('level_max', 6)]),
                 od([('vmax', 1.0),
                     ('n_speed', 20)]),
