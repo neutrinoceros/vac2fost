@@ -750,7 +750,7 @@ class Interface:
             additional_hdus.append(fits.ImageHDU(velarray))
 
             #breakpoint()
-            #assert velarray.shape == (128, 10, 64, 3)
+            #assert velarray.shape == self.io["out"].shape
             header.update(dict(read_gas_velocity=1))
             raise NotImplementedError("coming feature : read_gas_velocity")
 
@@ -787,8 +787,7 @@ class Interface:
     def gen_2D_arrays(self) -> None:
         """Interpolate input data density fields from input coords to output coords"""
         n_phi_new, n_rad_new = self.output_grid["rg"].shape
-        assert n_rad_new == self.config["mcfost_output"]["nr"]
-        assert n_phi_new == self.config["mcfost_output"]["nphi"]
+        assert n_rad_new, n_phi_new == self.io["out"].shape[0, 2]
 
         density_keys = sorted(filter(lambda k: "rho" in k, self.input_data.fields.keys()))
         self._new_2D_arrays = np.array([self._interpolate2D(datakey=k) for k in density_keys])
