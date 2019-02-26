@@ -746,10 +746,11 @@ class Interface:
 
             # append
             vz = np.zeros(vx.shape)
-            additional_hdus.append(fits.ImageHDU(np.stack([vx, vy, vz], axis=3)))
-
             for v in (vx, vy, vz):
                 np.testing.assert_array_equal(v.shape, self.io["out"].shape)
+
+            additional_hdus.append(fits.ImageHDU(np.stack([vx, vy, vz], axis=3).T))
+
             header.update(dict(read_gas_velocity=1))
             #raise NotImplementedError("coming feature : read_gas_velocity")
 
