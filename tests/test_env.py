@@ -24,7 +24,7 @@ def test_with_colorama():
         str(testdir/'sample/vac2fost_conf_quick.nml'),
         output_dir=output_dir
     )
-    itf.print_warnings()
+    itf.display_warnings()
 
 def test_without_colorama():
     vac2fost.vac2fost.colorama = None
@@ -32,4 +32,4 @@ def test_without_colorama():
         str(testdir/'sample/vac2fost_conf_quick.nml'),
         output_dir=output_dir
     )
-    itf.print_warnings()
+    itf.display_warnings()
