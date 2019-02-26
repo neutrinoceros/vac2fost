@@ -1,6 +1,6 @@
 .. image:: http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat
 
-warning: this work has seen very little usage outside of his author's
+warning: this work has seen very little usage outside of its author's
 laptop, any user feedback is therefor essential to making this program
 more reliable. Please do report bugs on sight, thanks.
 
