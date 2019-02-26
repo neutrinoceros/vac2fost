@@ -50,7 +50,7 @@ except ImportError:
 from vtk_vacreader import VacDataSorter
 
 try:
-    run(["which", "mcfsost"], check=True, capture_output=True)
+    run(["which", "mcfost"], check=True, capture_output=True)
 except CalledProcessError:
     print(RED+"Critical: could not find mcfost. Please install mcfost before using vac2fost")
 
@@ -323,7 +323,7 @@ class MCFOSTUtils:
         output_dir = Path(output_dir).resolve()
         mcfost_conf_path = Path(mcfost_conf_file)
         if not output_dir.exists():
-            subprocess.call(f'mkdir -p {output_dir}', shell=True)
+            run(["mkdir", "-p", f"{output_dir}"], shell=True)
 
         grid_file_name = output_dir / 'mcfost_grid.fits.gz'
 
@@ -341,10 +341,9 @@ class MCFOSTUtils:
             pile = Path.cwd()
             os.chdir(tmp_mcfost_dir)
             try:
-                subprocess.check_call(
-                    f"mcfost mcfost_conf.para -disk_struct",
-                    shell=True,
-                    stdout={True: None, False: subprocess.PIPE}[itf.mcfost_verbose]
+                run(["mcfost", "mcfost_conf.para", "-disk_struct"],
+                    check=True,
+                    capture_output=(not itf.mcfost_verbose)
                 )
                 shutil.move("data_disk/grid.fits.gz", grid_file_name)
             except subprocess.CalledProcessError as exc:
