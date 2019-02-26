@@ -612,8 +612,7 @@ class Interface:
 
     @property
     def io(self) -> dict:
-        '''Store general info on input/output file locations
-        and data array shapes.'''
+        """Store general info on i/o file locations and data array shapes."""
         if self._iodat is None:
             vtu_filename = ''.join([self.sim_conf['filelist']['base_filename'],
                                     str(self.current_num).zfill(4),
@@ -627,10 +626,11 @@ class Interface:
                      for n in range(1, self._dim+1)]
                 )
             )
+            outshape = self.config["mcfost_output"]
             baseout = dict(
                 directory=Path(self._base_args['output_dir']),
                 filename=basein['filename'].replace('.vtu', '.fits'),
-                shape=None  # not used: don't write bugs when you don't need to
+                shape=(outshape["nr"], outshape["nz"], outshape["nphi"])
             )
             for d, k in zip([basein, baseout], ['in', 'out']):
                 d.update(
@@ -746,9 +746,11 @@ class Interface:
 
             # append
             vz = np.zeros(vx.shape)
-            additional_hdus.append(fits.ImageHDU(np.stack([vx, vy, vz], axis=3)))
-            # todo: check shape...
-            # assert ...
+            velarray = np.stack([vx, vy, vz], axis=3)
+            additional_hdus.append(fits.ImageHDU(velarray))
+
+            #breakpoint()
+            #assert velarray.shape == (128, 10, 64, 3)
             header.update(dict(read_gas_velocity=1))
             raise NotImplementedError("coming feature : read_gas_velocity")
 
