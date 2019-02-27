@@ -85,6 +85,8 @@ del bout, out, version_tag, verx, very, verz
 
 # Globals ===============================================================================
 MINGRAINSIZE_µ = 0.1
+S2YR = 1/(365*24*3600)
+AU2KM = 149597870.700
 
 
 
@@ -754,18 +756,22 @@ class Interface:
             header.update(dict(read_gas_velocity=1))
             rho, mr, mphi = map(self._interpolate2D, ["rho", "m1", "m2"])
             vr, vphi = map(lambda x: x/rho, [mr, mphi])
-            phig = self.output_grid["phig"].transpose() # todo: get rid of this transposition
+            phig = self.output_grid["phig"].transpose()
             vx = vr * np.cos(phig) + vphi * np.sin(phig)
             vy = vr * np.sin(phig) + vphi * np.cos(phig)
 
             # transform to 3D
             nz = self.io["out"].shape[1]
             vx, vy = map(lambda a: np.stack([a]*nz, axis=1), [vx, vy])
-            # todo: convert to km/s
-            # ...
+            vz = np.zeros(vx.shape)
+
+            # unit conversion
+            units = self.config["units"]
+            vel2km_per_s = units["distance2au"]*AU2KM / (units["time2yr"]*S2YR)
+            vx *= vel2km_per_s
+            vy *= vel2km_per_s
 
             # append
-            vz = np.zeros(vx.shape)
             for v in (vx, vy, vz):
                 np.testing.assert_array_equal(v.shape, self.io["out"].shape)
 

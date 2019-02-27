@@ -7,9 +7,8 @@ from pathlib import Path
 testdir = Path(__file__).parent
 
 testconf = testdir/"sample/vac2fost_conf.nml"
-def test1():
+def test_init_interface():
     Interface(testconf, read_gas_velocity=True)
 
-def test2():
-    with pytest.raises(NotImplementedError):
-        app(testconf, read_gas_velocity=True)
+def test_run_wihtout_crash():
+    app(testconf, read_gas_velocity=True)
