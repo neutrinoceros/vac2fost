@@ -526,10 +526,10 @@ class Interface:
                 errmess += "is relative to cwd or configuration file"
                 raise FileNotFoundError(errmess)
 
-            elif not any(found):
+            if not any(found):
                 raise FileNotFoundError(hydro_data_dir/options['config'][0])
-            else:
-                p = (p1, p2)[found.index(True)]
+
+            p = (p1, p2)[found.index(True)]
             self.config['amrvac_input'].update({'hydro_data_dir': p.resolve()})
         self.sim_conf = read_amrvac_parfiles(
             parfiles=self.config['amrvac_input']['config'],
