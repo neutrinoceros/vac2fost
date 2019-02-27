@@ -46,7 +46,7 @@ class TestRegressionMain:
         itf = __class__.itf
         with open(__class__.subrefdir / "mcfost_conf.para") as fi:
             ref_lines = fi.readlines()
-        with open(itf.io["out"].directory / "mcfost_conf.para") as fi:
+        with open(itf.io.OUT.directory / "mcfost_conf.para") as fi:
             new_lines = fi.readlines()
         for n, r in zip(new_lines[2:-2], ref_lines[2:]):
             assert n == r
@@ -54,7 +54,7 @@ class TestRegressionMain:
     def test_target_grid(self):
         itf = __class__.itf
         ref = fits.open(__class__.subrefdir / "mcfost_grid.fits.gz")[0].data
-        new = fits.open(itf.io["out"].directory/'mcfost_grid.fits.gz')[0].data
+        new = fits.open(itf.io.OUT.directory/'mcfost_grid.fits.gz')[0].data
         np.testing.assert_array_equal(ref, new)
 
     def test_out(self):
@@ -80,7 +80,7 @@ class TestRegressionMain:
         # get the Primary (only image available),
         # and exctract its first 3d array (density field)
         itf.write_output()
-        fipath = itf.io['out'].filepath
+        fipath = itf.io.OUT.filepath
         data = fits.open(fipath)[0].data[0]
         ref = fits.open(__class__.subrefdir / "hd142527_dusty0000.fits")[0].data[0]
         np.testing.assert_array_equal(data, ref)
@@ -91,9 +91,9 @@ class TestRegressionMutliNums:
     itf.tag = itf._base_args['config_file'].stem + "multinums"
 
     def test_multinums_output(self):
-        filename = __class__.itf.io["out"].filepath.stem[:-4]
+        filename = __class__.itf.io.OUT.filepath.stem[:-4]
         for n in (0, 1, 2):
-            out_file = __class__.itf.io["out"].directory / f"{filename}{str(n).zfill(4)}.fits"
+            out_file = __class__.itf.io.OUT.directory / f"{filename}{str(n).zfill(4)}.fits"
             ref_file = test_dir / f"ref/{REFVER}/multinums/hd142527_dusty{str(n).zfill(4)}.fits"
             assert out_file.exists()
             np.testing.assert_array_equal(fits.open(out_file)[0].data, fits.open(ref_file)[0].data)
@@ -126,7 +126,7 @@ class TestRegressionNonAxisym:
         # get the Primary (only image available),
         # and exctract its first 3d array (density field)
         itf.write_output()
-        fipath = itf.io['out'].filepath
+        fipath = itf.io.OUT.filepath
         data = fits.open(fipath)[0].data[0]
         ref = fits.open(__class__.subrefdir / "hd142527_rphi0020.fits")[0].data[0]
         np.testing.assert_array_equal(data, ref)
@@ -140,7 +140,7 @@ class TestRegressionAutoGasOnly:
         itf = __class__.itf
         with open(__class__.subrefdir / "mcfost_conf.para") as fi:
             ref_lines = fi.readlines()
-        with open(itf.io["out"].directory/"mcfost_conf.para") as fi:
+        with open(itf.io.OUT.directory/"mcfost_conf.para") as fi:
             new_lines = fi.readlines()
         for n, r in zip(new_lines[2:-2], ref_lines[2:]):
             assert n == r
