@@ -533,7 +533,7 @@ class Interface:
 
         default_units = dict(distance2au=1.0, time2yr=1.0)
         if not self.config.get("units"):
-            self.warnings.append("&units parameter list not found. Assuming {default_units}")
+            self.warnings.append(f"&units parameter list not found. Assuming {default_units}")
             self.config["units"] = f90nml.Namelist(default_units)
         else:
             for k, v in default_units.items():
