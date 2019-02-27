@@ -91,7 +91,7 @@ class TestRegressionMutliNums:
     itf.tag = itf._base_args['config_file'].stem + "multinums"
 
     def test_multinums_output(self):
-        filename = Path(__class__.itf.io["out"].filename).stem[:-4]
+        filename = __class__.itf.io["out"].filepath.stem[:-4]
         for n in (0, 1, 2):
             out_file = __class__.itf.io["out"].directory / f"{filename}{str(n).zfill(4)}.fits"
             ref_file = test_dir / f"ref/{REFVER}/multinums/hd142527_dusty{str(n).zfill(4)}.fits"

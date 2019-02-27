@@ -36,7 +36,7 @@ class TestGasReading:
         """check that mcfost doesn't crash when passed gas density."""
         os.chdir(itf.io["out"].directory)
         subprocess.check_call(
-            f"mcfost mcfost_conf.para -density_file {itf.io['out'].filename} -3D",
+            f"mcfost mcfost_conf.para -density_file {itf.io['out'].filepath.name} -3D",
             shell=True,
         )
 

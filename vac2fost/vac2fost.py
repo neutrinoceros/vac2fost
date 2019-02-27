@@ -92,7 +92,7 @@ AU2KM = 149597870.700
 
 # Defintions ============================================================================
 #devnote : use a DataClass here ?
-DataInfo = namedtuple("DataInfo", ["shape", "directory", "filename", "filepath"])
+DataInfo = namedtuple("DataInfo", ["shape", "directory", "filepath"])
 
 def generate_conf_template() -> f90nml.Namelist:
     """Generate a template namelist object with comments instead of default values"""
@@ -636,9 +636,11 @@ class Interface:
     def io(self) -> dict:
         """Store general info on i/o file locations and data array shapes."""
         if self._iodat is None:
+            # todo: use read_amrvac_parfiles() here !
             vtu_filename = ''.join([self.sim_conf['filelist']['base_filename'],
                                     str(self.current_num).zfill(4),
                                     '.vtu'])
+            # ========================================
             self._iodat = {}
             basein = dict(
                 directory=shell_path(self.config['amrvac_input']['hydro_data_dir']).resolve(),
@@ -655,8 +657,8 @@ class Interface:
                 shape=(outshape["nr"], outshape["nz"], outshape["nphi"])
             )
             for d, k in zip([basein, baseout], ['in', 'out']):
-                d.update(
-                    {'filepath': (d['directory'] / d['filename']).resolve()})
+                d.update({'filepath': (d['directory']/d['filename']).resolve()})
+                d.pop("filename")
                 self._iodat.update({k: DataInfo(**d)})
         return self._iodat
 
