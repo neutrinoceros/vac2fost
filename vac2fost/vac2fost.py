@@ -645,7 +645,7 @@ class Interface:
         old = self._dust_binning_mode
         if old is not None:
             w.append(f'''from "{old}"''')
-        w.append('''to "{new_dbm}"''')
+        w.append(f'''to "{new_dbm}"''')
         if reason is not None:
             w.append(f"\n   REASON: {reason}")
         self.warnings.append(" ".join(w))
