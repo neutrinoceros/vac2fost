@@ -509,7 +509,7 @@ class Interface:
             self.nums = list(set(nums))  #make it iterable, filter out duplicates and sort them
         self.current_num = self.nums[0]
 
-        hydro_data_dir = Path(self.config["amrvac_input"]["hydro_data_dir"])
+        hydro_data_dir = shell_path(self.config["amrvac_input"]["hydro_data_dir"])
         if not hydro_data_dir.is_absolute():
             options = self.config['amrvac_input']
             p1 = Path.cwd()
