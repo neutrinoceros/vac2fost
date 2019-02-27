@@ -543,7 +543,7 @@ class Interface:
         self._new_3D_arrays = None
         self._dust_binning_mode = None
 
-        self._set_dust_binning_mode(dust_bin_mode)
+        self._set_dust_binning_mode(dust_bin_mode, warning=False)
         if dust_bin_mode == "auto":
             self._autoset_dbm()
             assert self.dust_binning_mode != "auto"
@@ -636,19 +636,20 @@ class Interface:
                     "mixed", reason=f"smallest size found > {MINGRAINSIZE_µ}µm"
                 )
 
-    def _set_dust_binning_mode(self, new_dbm: str, reason: str = None):
+    def _set_dust_binning_mode(self, new_dbm: str, reason: str = None, warning=True):
         """Set value and add a warning."""
         if new_dbm not in {"dust-only", "gas-only", "mixed", "auto"}:
             raise KeyError(f'Unknown dust binning mode "{new_dbm}"')
 
-        w = ["dust-binning mode was switched"]
-        old = self._dust_binning_mode
-        if old is not None:
-            w.append(f'''from "{old}"''')
-        w.append(f'''to "{new_dbm}"''')
-        if reason is not None:
-            w.append(f"\n   REASON: {reason}")
-        self.warnings.append(" ".join(w))
+        if warning:
+            w = ["dust-binning mode was switched"]
+            old = self._dust_binning_mode
+            if old is not None:
+                w.append(f'''from "{old}"''')
+            w.append(f'''to "{new_dbm}"''')
+            if reason is not None:
+                w.append(f"\n   REASON: {reason}")
+            self.warnings.append(" ".join(w))
         self._dust_binning_mode = new_dbm
 
     def _bin_dust(self) -> bool:
