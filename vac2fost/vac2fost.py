@@ -540,7 +540,7 @@ class Interface:
             self._autoset_dbm()
             assert self.dust_binning_mode != "auto"
         else:
-            self._set_dust_binning_mode(dust_bin_mode)
+            self._set_dust_binning_mode(dust_bin_mode, silent=True)
 
         self._µsizes = None
 
@@ -637,15 +637,16 @@ class Interface:
                     "mixed", reason=f"smallest size found > {MINGRAINSIZE_µ}µm"
                 )
 
-    def _set_dust_binning_mode(self, new_dbm: str, reason: str = None):
+    def _set_dust_binning_mode(self, new_dbm: str, reason: str = None, silent=False):
         """Set value and add a warning."""
         if new_dbm not in {"dust-only", "gas-only", "mixed", "auto"}:
             raise KeyError(f'Unknown dust binning mode "{new_dbm}"')
 
         w = f'dust-binning mode was switched to "{new_dbm}"'
         if reason is not None:
-            w += f'; reason: {reason}'
-        self.warnings.append(w)
+            w += f"; reason: {reason}"
+        if not silent:
+            self.warnings.append(w)
         self._dust_binning_mode = new_dbm
 
     def _bin_dust(self) -> bool:
