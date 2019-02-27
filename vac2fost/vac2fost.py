@@ -551,7 +551,7 @@ class Interface:
 
         if not self.io.OUT.directory.exists():
             os.makedirs(self.io.OUT.directory)
-            self.warnings.append(f"rep {self.io.OUT.directory} was created")
+            self.warnings.append(f"dir {self.io.OUT.directory} was created")
 
         # optional definition of the distance unit
         default_units = dict(distance2au=1.0, time2yr=1.0)
