@@ -60,7 +60,7 @@
   True  True  True  15.0                lpop, laccurate_pop, LTE, profile_width
   0.2                                   v_turb
   1                                     nmol
-  co@xplot.dat  6                       mol_data_file, level_max
+  13co.dat  6                           mol_data_file, level_max
   1.0  20                               vmax, n_speed
   True  1e-6  abundance.fits.gz         cst_mol_abund, abund, abund_file
   True  3                               ray_tracing, n_lines_rt
@@ -74,5 +74,5 @@
 
 
 
-%% automatically generated with vac2fost 2.2
+%% automatically generated with vac2fost 2.2.1
 %% run by crobert on calculon

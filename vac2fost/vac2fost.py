@@ -16,7 +16,7 @@ Known limitations
   3) interpolation does not account for the curvature of polar cells
   4) only r-phi input grids are currently supported
 '''
-__version__ = "2.2.1"
+__version__ = "2.3.0"
 mcfost_major_version = "3.0"
 mcfost_minor_version = "35"
 
@@ -85,6 +85,8 @@ del bout, out, version_tag, verx, very, verz
 
 # Globals ===============================================================================
 MINGRAINSIZE_µ = 0.1
+S2YR = 1/(365*24*3600)
+AU2KM = 149597870.700
 
 
 
@@ -93,27 +95,28 @@ MINGRAINSIZE_µ = 0.1
 DataInfo = namedtuple("DataInfo", ["shape", "directory", "filename", "filepath"])
 
 def generate_conf_template() -> f90nml.Namelist:
-    '''Generate a template namelist object with comments instead of default values'''
-    amrvac_list = {
-        'hydro_data_dir': "path/to/output/data/directory",
-        'config': "relative/to/<hydro_data_dir>/path/to/amrvac/config/file[s]",
-        'conv2au': 100,
-        'nums': 0
-    }
-    mcfost_list = {
-        'nr': 128,
-        'nr_in': 4,
-        'nphi': 128,
-        'nz': 10,
+    """Generate a template namelist object with comments instead of default values"""
+    amrvac_list = dict(
+        hydro_data_dir="path/to/output/data/directory",
+        config="relative/to/<hydro_data_dir>/path/to/amrvac/config/file[s]",
+        nums=0
+    )
+
+    amrvac_unit_list = dict(distance2au=1.0, time2yr=1.0)
+
+    mcfost_list = dict(
+        nr=128, nr_in=4, nphi=128, nz=10,
         # aspect ratio is implied by those parameters
-        "flaring_index": 1.125,
-        "ref_radius": 100.0,  # [a.u.]
-        "scale_height": 1.0,  # [a.u.], at defined at ref_radius
+        flaring_index=1.125,
+        ref_radius=100.0,  # [a.u.]
+        scale_height=1.0,  # [a.u.], at defined at ref_radius
+    )
+    sublists = {
+        "amrvac_input": amrvac_list,
+        "units": amrvac_unit_list,
+        "mcfost_output": mcfost_list
     }
-    template = f90nml.Namelist({
-        'amrvac_input': f90nml.Namelist(amrvac_list),
-        'mcfost_output': f90nml.Namelist(mcfost_list),
-    })
+    template = f90nml.Namelist({k: f90nml.Namelist(v) for k, v in sublists.items()})
     return template
 
 # decorators
@@ -353,10 +356,11 @@ class MCFOSTUtils:
 
         # Zone
         mesh = itf.sim_conf['meshlist']
+        conv2au = itf.config["units"]["distance2au"]
         parameters.update({
-            'rin': mesh['xprobmin1']*itf.conv2au,
-            'rout': mesh['xprobmax1']*itf.conv2au,
-            'maps_size': 2*mesh['xprobmax1']*itf.conv2au,
+            'rin': mesh['xprobmin1']*conv2au,
+            'rout': mesh['xprobmax1']*conv2au,
+            'maps_size': 2*mesh['xprobmax1']*conv2au,
         })
 
         if itf._bin_dust(): #devnote : using a private method outside of class...
@@ -450,6 +454,7 @@ class Interface:
                  output_dir: Path = Path('.'),
                  dust_bin_mode: str = "auto",
                  read_gas_density=False,
+                 read_gas_velocity=False,
                  mcfost_verbose=False):
 
         self.warnings = []
@@ -465,11 +470,13 @@ class Interface:
             'output_dir': Path(output_dir),
             'nums': nums,
             'dust_bin_mode': dust_bin_mode,
-            'read_gas_density': read_gas_density
+            'read_gas_density': read_gas_density,
+            'read_gas_velocity': read_gas_velocity
         }
 
         self._dim = 2  # no support for 3D input yet
         self.mcfost_verbose = mcfost_verbose
+        self.read_gas_velocity = read_gas_velocity
 
         # parse configuration file
         self.config = f90nml.read(config_file)
@@ -527,11 +534,17 @@ class Interface:
             self.warnings.append(f"rep {self.io['out'].directory} was created")
 
         # optional definition of the distance unit
-        self.conv2au = 1.0
-        try:
-            self.conv2au = self.config['amrvac_input']['conv2au']
-        except KeyError:
-            self.warnings.append("could not find conv2au, distance unit assumed 1au")
+
+
+        default_units = dict(distance2au=1.0, time2yr=1.0)
+        if not self.config.get("units"):
+            self.warnings.append(f"&units parameter list not found. Assuming {default_units}")
+            self.config["units"] = f90nml.Namelist(default_units)
+        else:
+            for k, v in default_units.items():
+                if not self.config["units"].get(k):
+                    self.warnings.append(f"&units:{k} parameter not found. Assuming default {v}")
+                    self.config["units"][k] = v
 
     @property
     def read_gas_density(self) -> bool:
@@ -621,8 +634,7 @@ class Interface:
 
     @property
     def io(self) -> dict:
-        '''Store general info on input/output file locations
-        and data array shapes.'''
+        """Store general info on i/o file locations and data array shapes."""
         if self._iodat is None:
             vtu_filename = ''.join([self.sim_conf['filelist']['base_filename'],
                                     str(self.current_num).zfill(4),
@@ -636,10 +648,11 @@ class Interface:
                      for n in range(1, self._dim+1)]
                 )
             )
+            outshape = self.config["mcfost_output"]
             baseout = dict(
                 directory=Path(self._base_args['output_dir']),
                 filename=basein['filename'].replace('.vtu', '.fits'),
-                shape=None  # not used: don't write bugs when you don't need to
+                shape=(outshape["nr"], outshape["nz"], outshape["nphi"])
             )
             for d, k in zip([basein, baseout], ['in', 'out']):
                 d.update(
@@ -734,11 +747,35 @@ class Interface:
         ]
         header = {'read_n_a': 0} # automatic normalization of size-bins from mcfost param file.
         if self.read_gas_density:
+            #devnote: add try statement here ?
+            header.update(dict(gas_to_dust=self.sim_conf["usr_dust_list"]["gas2dust_ratio"]))
             additional_hdus.append(fits.ImageHDU(self._new_3D_arrays[0]))
             header.update(dict(read_gas_density=1))
 
-            #devnote: add try statement here ?
-            header.update(dict(gas_to_dust=self.sim_conf["usr_dust_list"]["gas2dust_ratio"]))
+        if self.read_gas_velocity:
+            header.update(dict(read_gas_velocity=1))
+            rho, mr, mphi = map(self._interpolate2D, ["rho", "m1", "m2"])
+            vr, vphi = map(lambda x: x/rho, [mr, mphi])
+            phig = self.output_grid["phig"].transpose()
+            vx = vr * np.cos(phig) + vphi * np.sin(phig)
+            vy = vr * np.sin(phig) + vphi * np.cos(phig)
+
+            # transform to 3D
+            nz = self.io["out"].shape[1]
+            vx, vy = map(lambda a: np.stack([a]*nz, axis=1), [vx, vy])
+            vz = np.zeros(vx.shape)
+
+            # unit conversion
+            units = self.config["units"]
+            vel2km_per_s = units["distance2au"]*AU2KM / (units["time2yr"]*S2YR)
+            vx *= vel2km_per_s
+            vy *= vel2km_per_s
+
+            # append
+            for v in (vx, vy, vz):
+                np.testing.assert_array_equal(v.shape, self.io["out"].shape)
+
+            additional_hdus.append(fits.ImageHDU(np.stack([vx, vy, vz], axis=3).T))
 
         dust_densities_HDU = fits.PrimaryHDU(self.new_3D_arrays[dust_bin_selector])
         for k, v in header.items():
@@ -753,36 +790,30 @@ class Interface:
 
     @property
     def input_grid(self) -> dict:
-        '''Store physical coordinates (vectors)
-        about the input grid specifications.'''
+        """Store physical coordinates (vectors) about the input grid specifications."""
         ig = {
-            'rv': self.input_data.get_ticks('r') * self.conv2au,
-            'phiv': self.input_data.get_ticks('phi')
+            "rv": self.input_data.get_ticks("r") * self.config["units"]["distance2au"],
+            "phiv": self.input_data.get_ticks("phi")
         }
         return ig
 
-    def gen_2D_arrays(self):
-        '''Interpolate input data onto r-phi grid
-        with output grid specifications'''
-        n_phi_new, n_rad_new = self.output_grid['rg'].shape
-        assert n_rad_new == self.config['mcfost_output']['nr']
-        assert n_phi_new == self.config['mcfost_output']['nphi']
+    def _interpolate2D(self, datakey: str) -> np.ndarray:
+        """Transform a polar field from MPI-AMRVAC coords to mcfost coords"""
+        interpolator = interp2d(
+            self.input_grid["phiv"],
+            self.input_grid["rv"],
+            self.input_data[datakey], kind="cubic"
+        )
+        return interpolator(self.output_grid["phiv"], self.output_grid["rv"])
 
-        density_keys = sorted(filter(
-            lambda k: 'rho' in k, self.input_data.fields.keys()))
-        interpolated_arrays = []
-        for k in density_keys:
-            interpolator = interp2d(
-                self.input_grid['phiv'],
-                self.input_grid['rv'],
-                self.input_data[k], kind='cubic'
-            )
-            interpolated_arrays.append(
-                interpolator(self.output_grid['phiv'],
-                             self.output_grid['rv'])
-            )
-        assert interpolated_arrays[0].shape == (n_rad_new, n_phi_new)
-        self._new_2D_arrays = np.array(interpolated_arrays)
+    def gen_2D_arrays(self) -> None:
+        """Interpolate input data density fields from input coords to output coords"""
+        n_phi_new, n_rad_new = self.output_grid["rg"].shape
+        assert n_rad_new, n_phi_new == self.io["out"].shape[0, 2]
+
+        density_keys = sorted(filter(lambda k: "rho" in k, self.input_data.fields.keys()))
+        self._new_2D_arrays = np.array([self._interpolate2D(datakey=k) for k in density_keys])
+        assert self._new_2D_arrays[0].shape == (n_rad_new, n_phi_new)
 
     @property
     def aspect_ratio(self):
@@ -858,6 +889,7 @@ def main(config_file: str,
          output_dir: str = '.',
          dust_bin_mode: str = "auto",
          read_gas_density=False,
+         read_gas_velocity=False,
          verbose=False,
          mcfost_verbose=False):
     '''Try to transform a .vtu file into a .fits'''
@@ -866,6 +898,7 @@ def main(config_file: str,
     itf = InterfaceType(config_file, nums=nums, output_dir=output_dir,
                         dust_bin_mode=dust_bin_mode,
                         read_gas_density=read_gas_density,
+                        read_gas_velocity=read_gas_velocity,
                         mcfost_verbose=mcfost_verbose)
 
     for i, n in enumerate(itf.nums):
@@ -938,6 +971,11 @@ if __name__ == '__main__':
         help="pass gas density to mcfost"
     )
     parser.add_argument(
+        "--read_gas_velocity",
+        action="store_true",
+        help="pass gas velocity to mcfost (keplerian velocity is assumed otherwise)"
+    )
+    parser.add_argument(
         '-v', '--verbose',
         action='store_true',
         help='activate verbose mode'
@@ -980,6 +1018,7 @@ if __name__ == '__main__':
         output_dir=cargs.output.strip(),
         dust_bin_mode=cargs.dbm,
         read_gas_density=cargs.read_gas_density,
+        read_gas_velocity=cargs.read_gas_velocity,
         verbose=cargs.verbose,
         mcfost_verbose=cargs.mcfost_verbose
     )

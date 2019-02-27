@@ -1,8 +1,11 @@
 &amrvac_input
     config = 'config1D.par','to2D.par'
-    conv2au = 100
     hydro_data_dir = "."
     nums = 0
+/
+
+&units
+    distance2au = 100
 /
 
 &mcfost_output
