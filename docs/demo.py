@@ -41,6 +41,6 @@ if __name__ == "__main__":
     axes[2].set_title("vertical slice (not to scale)")
     axes[2].imshow(vertical_slice, cmap="inferno", origin="lower")
 
-    savefile = output_dir/"demo_output.png")
+    savefile = output_dir/"demo_output.png"
     print(f"Saving ouput to {savefile}")
     fig.savefig(savefile)
