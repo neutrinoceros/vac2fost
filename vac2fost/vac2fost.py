@@ -567,7 +567,6 @@ class Interface:
     @property
     def io(self) -> IOinfo:
         """Give up-to-date information on data location and naming (.i: input, .o: output)"""
-        # todo: use read_amrvac_parfiles() here !
         vtu_filename = "".join([self.sim_conf["filelist"]["base_filename"],
                                 str(self.current_num).zfill(4),
                                 ".vtu"])
