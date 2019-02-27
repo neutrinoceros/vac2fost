@@ -536,17 +536,17 @@ class Interface:
             location=self.config['amrvac_input']['hydro_data_dir']
         )
 
-        self._dust_binning_mode = dust_bin_mode
-        if dust_bin_mode == "auto":
-            self._autoset_dbm()
-            assert self.dust_binning_mode != "auto"
-
         self._µsizes = None
-
         self._input_data = None
         self._output_grid = None
         self._new_2D_arrays = None
         self._new_3D_arrays = None
+        self._dust_binning_mode = None
+
+        self._set_dust_binning_mode(dust_bin_mode)
+        if dust_bin_mode == "auto":
+            self._autoset_dbm()
+            assert self.dust_binning_mode != "auto"
 
         if not self.io.OUT.directory.exists():
             os.makedirs(self.io.OUT.directory)
@@ -641,11 +641,14 @@ class Interface:
         if new_dbm not in {"dust-only", "gas-only", "mixed", "auto"}:
             raise KeyError(f'Unknown dust binning mode "{new_dbm}"')
 
+        w = ["dust-binning mode was switched"]
         old = self._dust_binning_mode
-        w = f'dust-binning mode was switched from "{old}" to "{new_dbm}"'
+        if old is not None:
+            w.append(f'''from "{old}"''')
+        w.append('''to "{new_dbm}"''')
         if reason is not None:
-            w += f"\n   REASON: {reason}"
-        self.warnings.append(w)
+            w.append(f"\n   REASON: {reason}")
+        self.warnings.append(" ".join(w))
         self._dust_binning_mode = new_dbm
 
     def _bin_dust(self) -> bool:
