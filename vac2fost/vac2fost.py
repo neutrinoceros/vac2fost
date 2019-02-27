@@ -111,7 +111,7 @@ def generate_conf_template() -> f90nml.Namelist:
     )
     sublists = {
         "amrvac_input": amrvac_list,
-        "amrvac_units": amrvac_unit_list,
+        "units": amrvac_unit_list,
         "mcfost_output": mcfost_list
     }
     template = f90nml.Namelist({k: f90nml.Namelist(v) for k, v in sublists.items()})
