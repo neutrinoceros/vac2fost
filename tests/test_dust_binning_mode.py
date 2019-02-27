@@ -6,12 +6,11 @@ from vac2fost.vac2fost import Interface, MINGRAINSIZE_µ
 test_dir = pathlib.Path(__file__).absolute().parent
 output_dir = test_dir / "test_dust_binning_mode"
 
-
-def test_unknown_dbm():
+def test_unrecognized_dbm():
     with pytest.raises(KeyError):
         Interface(test_dir/'sample/vac2fost_conf_quick_no_dust.nml',
                   output_dir=output_dir,
-                  dust_bin_mode="blblblblblblblb")
+                  dust_bin_mode="not-a-real-dbm-option")
 
 def test_gas_only():
     itf = Interface(test_dir/'sample/vac2fost_conf_quick.nml',
@@ -33,12 +32,6 @@ def test_mixed():
                     dust_bin_mode="mixed")
     assert itf.dust_binning_mode == "mixed"
     np.testing.assert_array_equal(itf.grain_micron_sizes, [MINGRAINSIZE_µ, 1e4, 1e3])
-
-def test_unrecognized_dbm():
-    with pytest.raises(KeyError):
-        Interface(test_dir/'sample/vac2fost_conf_quick.nml',
-                  output_dir=output_dir,
-                  dust_bin_mode="not-a-real-dbm-option")
 
 def test_auto_into_mixed():
     itf = Interface(test_dir/'sample/vac2fost_conf_quick.nml',
