@@ -100,7 +100,7 @@ def generate_conf_template() -> f90nml.Namelist:
         nums=0
     )
 
-    amrvac_unit_list = dict(distance2au=1.0, time2s=1.0)
+    amrvac_unit_list = dict(distance2au=1.0, time2yr=1.0)
 
     mcfost_list = dict(
         nr=128, nr_in=4, nphi=128, nz=10,
