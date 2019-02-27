@@ -28,11 +28,12 @@ mcfost_minor_version = "35"
 import os
 import sys
 import shutil
+from dataclasses import dataclass
 from warnings import warn
 from pathlib import Path
 from subprocess import run, CalledProcessError
 from argparse import ArgumentParser
-from collections import OrderedDict as od, namedtuple
+from collections import OrderedDict as od
 from socket import gethostname
 from uuid import uuid4 as uuid
 
@@ -91,8 +92,28 @@ AU2KM = 149597870.700
 
 
 # Defintions ============================================================================
-#devnote : use a DataClass here ?
-DataInfo = namedtuple("DataInfo", ["shape", "directory", "filepath"])
+@dataclass
+class DataInfo:
+    """Hold basic info about input or output data location and shape"""
+    directory: Path
+    filename: str
+    shape: tuple
+
+    @property
+    def filepath(self):
+        """full path"""
+        return self.directory / self.filename
+
+    @property
+    def filestem(self):
+        """filename without an extension (suffix)"""
+        return str(Path(self.filename).stem)
+
+@dataclass
+class IOinfo:
+    """Hold input and output data information"""
+    IN: DataInfo
+    OUT: DataInfo
 
 def generate_conf_template() -> f90nml.Namelist:
     """Generate a template namelist object with comments instead of default values"""
@@ -381,7 +402,7 @@ class MCFOSTUtils:
     def get_mcfost_grid(itf) -> np.ndarray:
         '''Pre-run MCFOST with -disk_struct flag to get the exact grid used.'''
         mcfost_conf_file = itf.mcfost_conf_file
-        output_dir = itf.io['out'].directory
+        output_dir = itf.io.OUT.directory
 
         output_dir = Path(output_dir).resolve()
         mcfost_conf_path = Path(mcfost_conf_file)
@@ -523,19 +544,16 @@ class Interface:
 
         self._µsizes = None
 
-        self._iodat = None
         self._input_data = None
         self._output_grid = None
         self._new_2D_arrays = None
         self._new_3D_arrays = None
 
-        if not self.io['out'].directory.exists():
-            os.makedirs(self.io['out'].directory)
-            self.warnings.append(f"rep {self.io['out'].directory} was created")
+        if not self.io.OUT.directory.exists():
+            os.makedirs(self.io.OUT.directory)
+            self.warnings.append(f"rep {self.io.OUT.directory} was created")
 
         # optional definition of the distance unit
-
-
         default_units = dict(distance2au=1.0, time2yr=1.0)
         if not self.config.get("units"):
             self.warnings.append(f"&units parameter list not found. Assuming {default_units}")
@@ -545,6 +563,29 @@ class Interface:
                 if not self.config["units"].get(k):
                     self.warnings.append(f"&units:{k} parameter not found. Assuming default {v}")
                     self.config["units"][k] = v
+
+    @property
+    def io(self) -> IOinfo:
+        """Give up-to-date information on data location and naming (.i: input, .o: output)"""
+        # todo: use read_amrvac_parfiles() here !
+        vtu_filename = "".join([self.sim_conf["filelist"]["base_filename"],
+                                str(self.current_num).zfill(4),
+                                ".vtu"])
+
+        _input = DataInfo(
+            directory=shell_path(self.config["amrvac_input"]["hydro_data_dir"]).resolve(),
+            filename=vtu_filename,
+            shape=tuple(
+                [self.sim_conf["meshlist"][f"domain_nx{n}"] for n in range(1, self._dim+1)])
+        )
+
+        outshape = self.config["mcfost_output"]
+        _output = DataInfo(
+            directory=Path(self._base_args["output_dir"]),
+            filename=_input.filestem+".fits",
+            shape=(outshape["nr"], outshape["nz"], outshape["nphi"])
+        )
+        return IOinfo(IN=_input, OUT=_output)
 
     @property
     def read_gas_density(self) -> bool:
@@ -633,54 +674,23 @@ class Interface:
         return self._µsizes
 
     @property
-    def io(self) -> dict:
-        """Store general info on i/o file locations and data array shapes."""
-        if self._iodat is None:
-            # todo: use read_amrvac_parfiles() here !
-            vtu_filename = ''.join([self.sim_conf["filelist"]["base_filename"],
-                                    str(self.current_num).zfill(4),
-                                    '.vtu'])
-            # ========================================
-            self._iodat = {}
-            basein = dict(
-                directory=shell_path(self.config["amrvac_input"]["hydro_data_dir"]).resolve(),
-                filename=vtu_filename,
-                shape=tuple(
-                    [self.sim_conf["meshlist"][f"domain_nx{n}"]
-                     for n in range(1, self._dim+1)]
-                )
-            )
-            outshape = self.config["mcfost_output"]
-            baseout = dict(
-                directory=Path(self._base_args["output_dir"]),
-                filename=basein["filename"].replace(".vtu", ".fits"),
-                shape=(outshape["nr"], outshape["nz"], outshape["nphi"])
-            )
-            for d, k in zip([basein, baseout], ["in", "out"]):
-                d.update({"filepath": (d["directory"]/d["filename"]).resolve()})
-                d.pop("filename")
-                self._iodat.update({k: DataInfo(**d)})
-        return self._iodat
-
-    @property
     def mcfost_conf_file(self) -> Path:
         """Locate output configuration file for mcfost"""
-        return self.io['out'].directory / "mcfost_conf.para"
+        return self.io.OUT.directory / "mcfost_conf.para"
 
     def load_input_data(self, n: int = None) -> None:
         '''Use vtkvacreader.VacDataSorter to load AMRVAC data'''
         if n is not None:
             assert n in self.nums
             #reinit properties
-            self._iodat = None
             self._input_data = None
             self._output_grid = None
             self._new_2D_arrays = None
             self._new_3D_arrays = None
             self.current_num = n
         self._input_data = VacDataSorter(
-            file_name=str(self.io['in'].filepath),
-            shape=self.io['in'].shape
+            file_name=str(self.io.IN.filepath),
+            shape=self.io.IN.shape
         )
 
     @property
@@ -763,7 +773,7 @@ class Interface:
             vy = vr * np.sin(phig) + vphi * np.cos(phig)
 
             # transform to 3D
-            nz = self.io["out"].shape[1]
+            nz = self.io.OUT.shape[1]
             vx, vy = map(lambda a: np.stack([a]*nz, axis=1), [vx, vy])
             vz = np.zeros(vx.shape)
 
@@ -775,7 +785,7 @@ class Interface:
 
             # append
             for v in (vx, vy, vz):
-                np.testing.assert_array_equal(v.shape, self.io["out"].shape)
+                np.testing.assert_array_equal(v.shape, self.io.OUT.shape)
 
             additional_hdus.append(fits.ImageHDU(np.stack([vx, vy, vz], axis=3).T))
 
@@ -786,7 +796,7 @@ class Interface:
                 k = f"HIERARCH {k}"
             dust_densities_HDU.header.append((k, v))
 
-        with open(self.io["out"].filepath, mode="wb") as fo:
+        with open(self.io.OUT.filepath, mode="wb") as fo:
             hdul = fits.HDUList(hdus=[dust_densities_HDU] + additional_hdus)
             hdul.writeto(fo)
 
@@ -811,7 +821,7 @@ class Interface:
     def gen_2D_arrays(self) -> None:
         """Interpolate input data density fields from input coords to output coords"""
         n_phi_new, n_rad_new = self.output_grid["rg"].shape
-        assert n_rad_new, n_phi_new == self.io["out"].shape[0, 2]
+        assert n_rad_new, n_phi_new == self.io.OUT.shape[0, 2]
 
         density_keys = sorted(filter(lambda k: "rho" in k, self.input_data.fields.keys()))
         self._new_2D_arrays = np.array([self._interpolate2D(datakey=k) for k in density_keys])
@@ -922,9 +932,9 @@ def main(config_file: str,
         itf.write_output()
 
         try:
-            filepath = itf.io['out'].filepath.relative_to(Path.cwd())
+            filepath = itf.io.OUT.filepath.relative_to(Path.cwd())
         except ValueError:
-            filepath = itf.io['out'].filepath
+            filepath = itf.io.OUT.filepath
         print(CYAN + f" >>> wrote {filepath}")
 
     if itf.warnings:
