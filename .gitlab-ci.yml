@@ -99,5 +99,5 @@ run_demo:
   stage: final
   script:
     - source activate $PYENV
-    - $SLURM_CMD python docs/diagnostic.py
+    - $SLURM_CMD python docs/demo.py
 
