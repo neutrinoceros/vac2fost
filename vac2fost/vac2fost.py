@@ -20,17 +20,23 @@ __version__ = "2.2.1"
 mcfost_major_version = "3.0"
 mcfost_minor_version = "35"
 
-from collections import OrderedDict as od, namedtuple
+
+
+# Imports
+# =======================================================================================
+# stdlib
 import os
-from warnings import warn
-from socket import gethostname
 import sys
 import shutil
+from warnings import warn
+from pathlib import Path
 from subprocess import run, CalledProcessError
 from argparse import ArgumentParser
-from pathlib import Path
-import uuid
+from collections import OrderedDict as od, namedtuple
+from socket import gethostname
+from uuid import uuid4 as uuid
 
+# non standard externals
 import numpy as np
 from astropy.io import fits
 from scipy.interpolate import interp2d
@@ -45,14 +51,17 @@ except ImportError:
     colorama = None
     BOLD = RED = CYAN = ""
 
+# private externals
 from vtk_vacreader import VacDataSorter
 
+
+
+# mcfost detection ======================================================================
 try:
     run(["which", "mcfost"], check=True, capture_output=True)
 except CalledProcessError:
     print(RED+"Critical: could not find mcfost. Please install mcfost before using vac2fost")
 
-# Detect mcfost version
 bout = run("yes | mcfost -version", shell=True, capture_output=True).stdout
 out = "".join(map(chr, bout))
 version_tag = out.split("\n")[0].split()[-1]
@@ -73,12 +82,65 @@ DETECTED_MCFOST_VERSION = verx, very, verz
 del bout, out, version_tag, verx, very, verz
 
 
-# Globals
+
+# Globals ===============================================================================
 MINGRAINSIZE_µ = 0.1
-DataInfo = namedtuple(
-    'DataInfo',
-    ['shape', 'directory', 'filename', 'filepath']
-)
+
+
+
+# Defintions ============================================================================
+#devnote : use a DataClass here ?
+DataInfo = namedtuple("DataInfo", ["shape", "directory", "filename", "filepath"])
+
+def generate_conf_template() -> f90nml.Namelist:
+    """Generate a template namelist object with comments instead of default values"""
+    amrvac_list = dict(
+        hydro_data_dir="path/to/output/data/directory",
+        config="relative/to/<hydro_data_dir>/path/to/amrvac/config/file[s]",
+        nums=0
+    )
+
+    amrvac_unit_list = dict(distance2au=1.0, time2yr=1.0)
+
+    mcfost_list = dict(
+        nr=128, nr_in=4, nphi=128, nz=10,
+        # aspect ratio is implied by those parameters
+        flaring_index=1.125,
+        ref_radius=100.0,  # [a.u.]
+        scale_height=1.0,  # [a.u.], at defined at ref_radius
+    )
+    sublists = {
+        "amrvac_input": amrvac_list,
+        "units": amrvac_unit_list,
+        "mcfost_output": mcfost_list
+    }
+    template = f90nml.Namelist({k: f90nml.Namelist(v) for k, v in sublists.items()})
+    return template
+
+# decorators
+def get_prompt_size():
+    """size of command line interface messages sized to window. Caps at 80."""
+    cols, _ = shutil.get_terminal_size()
+    return min(cols, 80)
+
+def parameterized(dec):
+    """meta decorator, allow definition of decorators with parameters
+    source: https://stackoverflow.com/questions/5929107/decorators-with-parameters"""
+    def layer(*args, **kwargs):
+        def repl(f):
+            return dec(f, *args, **kwargs)
+        return repl
+    return layer
+
+@parameterized
+def wait_for_ok(func, mess, lenght=get_prompt_size()-7):
+    """decorator, sandwich the function execution with '<mess>  ...' & 'ok'"""
+    def modfunc(*args, **kwargs):
+        print(mess.ljust(lenght), end="... ", flush=True)
+        result = func(*args, **kwargs)
+        print("ok")
+        return result
+    return modfunc
 
 def shell_path(pin: str) -> Path:
     """Transform <pin> to a Path, expanding included env variables."""
@@ -221,7 +283,7 @@ class MCFOSTUtils:
                     ('profile_width', 15.)]),
                 od([('v_turb', 0.2)]),
                 od([('nmol', 1)]),
-                od([('mol_data_file', 'co@xplot.dat'),
+                od([("mol_data_file", "13co.dat"),
                     ('level_max', 6)]),
                 od([('vmax', 1.0),
                     ('n_speed', 20)]),
@@ -292,10 +354,11 @@ class MCFOSTUtils:
 
         # Zone
         mesh = itf.sim_conf['meshlist']
+        conv2au = itf.config["units"]["distance2au"]
         parameters.update({
-            'rin': mesh['xprobmin1']*itf.conv2au,
-            'rout': mesh['xprobmax1']*itf.conv2au,
-            'maps_size': 2*mesh['xprobmax1']*itf.conv2au,
+            'rin': mesh['xprobmin1']*conv2au,
+            'rout': mesh['xprobmax1']*conv2au,
+            'maps_size': 2*mesh['xprobmax1']*conv2au,
         })
 
         if itf._bin_dust(): #devnote : using a private method outside of class...
@@ -328,7 +391,7 @@ class MCFOSTUtils:
         if itf.current_num == itf.nums[0]:
             assert mcfost_conf_path.exists()
             # generate a grid data file with mcfost itself and extract it
-            tmp_mcfost_dir = output_dir / f"TMP_VAC2FOST_MCFOST_GRID_{uuid.uuid4()}"
+            tmp_mcfost_dir = output_dir / f"TMP_VAC2FOST_MCFOST_GRID_{uuid()}"
             os.makedirs(tmp_mcfost_dir)
             try:
                 shutil.copyfile(mcfost_conf_path.resolve(),
@@ -378,55 +441,7 @@ def get_dust_mass(data: VacDataSorter) -> float:
     return mass
 
 
-def generate_conf_template() -> f90nml.Namelist:
-    '''Generate a template namelist object with comments instead of default values'''
-    amrvac_list = {
-        'hydro_data_dir': "path/to/output/data/directory",
-        'config': "relative/to/<hydro_data_dir>/path/to/amrvac/config/file[s]",
-        'conv2au': 100,
-        'nums': 0
-    }
-    mcfost_list = {
-        'nr': 128,
-        'nr_in': 4,
-        'nphi': 128,
-        'nz': 10,
-        # aspect ratio is implied by those parameters
-        "flaring_index": 1.125,
-        "ref_radius": 100.0,  # [a.u.]
-        "scale_height": 1.0,  # [a.u.], at defined at ref_radius
-    }
-    template = f90nml.Namelist({
-        'amrvac_input': f90nml.Namelist(amrvac_list),
-        'mcfost_output': f90nml.Namelist(mcfost_list),
-    })
-    return template
-
-def get_prompt_size():
-    """size of command line interface messages sized to window. Caps at 80."""
-    cols, _ = shutil.get_terminal_size()
-    return min(cols, 80)
-
-# decorators
-def parameterized(dec):
-    """meta decorator, allow definition of decorators with parameters
-    source: https://stackoverflow.com/questions/5929107/decorators-with-parameters"""
-    def layer(*args, **kwargs):
-        def repl(f):
-            return dec(f, *args, **kwargs)
-        return repl
-    return layer
-
-@parameterized
-def wait_for_ok(func, mess, lenght=get_prompt_size()-7):
-    """decorator, sandwich the function execution with '<mess>  ...' & 'ok'"""
-    def modfunc(*args, **kwargs):
-        print(mess.ljust(lenght), end="... ", flush=True)
-        result = func(*args, **kwargs)
-        print("ok")
-        return result
-    return modfunc
-
+# Main class ============================================================================
 class Interface:
     '''A class to hold global variables as attributes and give
     clear and concise structure to the main() function.'''
@@ -517,11 +532,17 @@ class Interface:
             self.warnings.append(f"rep {self.io['out'].directory} was created")
 
         # optional definition of the distance unit
-        self.conv2au = 1.0
-        try:
-            self.conv2au = self.config['amrvac_input']['conv2au']
-        except KeyError:
-            self.warnings.append("could not find conv2au, distance unit assumed 1au")
+
+
+        default_units = dict(distance2au=1.0, time2yr=1.0)
+        if not self.config.get("units"):
+            self.warnings.append(f"&units parameter list not found. Assuming {default_units}")
+            self.config["units"] = f90nml.Namelist(default_units)
+        else:
+            for k, v in default_units.items():
+                if not self.config["units"].get(k):
+                    self.warnings.append(f"&units:{k} parameter not found. Assuming default {v}")
+                    self.config["units"][k] = v
 
     @property
     def read_gas_density(self) -> bool:
@@ -543,23 +564,22 @@ class Interface:
             rgd = True
         return rgd
 
-    def print_warnings(self):
-        '''Print warnings if any.'''
-        if self.warnings:
-            print()
-            print(" WARNINGS:")
-            print(RED+'\n'.join([f" - {w}" for w in self.warnings]))
-            if colorama is not None:
-                print(colorama.Style.RESET_ALL, end='')
+    def display_warnings(self):
+        """A colorful way to print the warning list."""
+        print(" WARNINGS:")
+        print(RED+"\n".join([f" - {w}" for w in self.warnings]))
+        if colorama is not None:
+            print(colorama.Style.RESET_ALL, end="")
+
 
     # dust binning mode API
     # ================================================================
     @property
     def dust_binning_mode(self):
         """Define binning strategy
-        - use only gas as a proxy ?
-        - use only dust information ?
-        - use both, assuming gas traces the smallest grains ?
+        - (gas-only)  : use only gas as a proxy for dust
+        - (dust-only) : use only dust information
+        - (mixed)     : use both, assuming gas traces the smallest grains
         """
         return self._dust_binning_mode
 
@@ -764,11 +784,10 @@ class Interface:
 
     @property
     def input_grid(self) -> dict:
-        '''Store physical coordinates (vectors)
-        about the input grid specifications.'''
+        """Store physical coordinates (vectors) about the input grid specifications."""
         ig = {
-            'rv': self.input_data.get_ticks('r') * self.conv2au,
-            'phiv': self.input_data.get_ticks('phi')
+            "rv": self.input_data.get_ticks("r") * self.config["units"]["distance2au"],
+            "phiv": self.input_data.get_ticks("phi")
         }
         return ig
 
@@ -828,7 +847,7 @@ class Interface:
             self.gen_3D_arrays()
         return self._new_3D_arrays
 
-# =======================================================================================
+# Verbose version of Interface ==========================================================
 class VerbatimInterface(Interface):
     """A more talkative Interface"""
     @wait_for_ok(f"loading input data")
@@ -851,7 +870,9 @@ class VerbatimInterface(Interface):
     def write_output(self) -> None:
         super().write_output()
 
-# =======================================================================================
+
+
+# Main function and associated prompt utils =============================================
 def decorated_centered_message(mess: str, dec: str = "=") -> str:
     """Return a decorated version of <mess>"""
     ndecor = int((get_prompt_size() - (len(mess)+2)) / 2)
@@ -898,7 +919,9 @@ def main(config_file: str,
             filepath = itf.io['out'].filepath
         print(CYAN + f" >>> wrote {filepath}")
 
-    itf.print_warnings()
+    if itf.warnings:
+        print()
+        itf.display_warnings()
 
     print(decorated_centered_message("end vac2fost"))
 
@@ -906,7 +929,8 @@ def main(config_file: str,
     return itf
 
 
-# =======================================================================================
+
+# Script part ===========================================================================
 if __name__ == '__main__':
     # Parse the script arguments
     parser = ArgumentParser(description='Parse arguments for main app')

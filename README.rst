@@ -1,6 +1,6 @@
 .. image:: http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat
 
-warning: this work has seen very little usage outside of his author's
+warning: this work has seen very little usage outside of its author's
 laptop, any user feedback is therefor essential to making this program
 more reliable. Please do report bugs on sight, thanks.
 
@@ -114,29 +114,34 @@ can be generated from command line with ``vac2fost.py --genconf > conf.nml``
 For instance
  .. code:: fortran
 
-           &amrvac_input
-                config = 'relative/to/<hydro_data_dir>/path/to/amrvac/config/file1.par','and/file2.par'
-                conv2au = 100
-                hydro_data_dir = 'path/to/output/data/directory'
-                nums = 0
-            /
+	   &amrvac_input
+	   config = 'relative/to/<hydro_data_dir>/path/to/amrvac/config/file1.par','and/file2.par'
+           hydro_data_dir = 'path/to/output/data/directory'
+           nums = 0
+           /
 
-           &mcfost_output
+	   &units
+	   ! conversion factors between dimensionel amrvac outputs and physical units
+	   distance2au = 100.0
+	   time2yr     = 10.
+	   /
+
+	   &mcfost_output
            ! this list describes MCFOST parameters
            ! named according to vac2fost.MCFOSTUtils.blocks_descriptors
-                nr   = 150
-                nphi = 100
-                nz   = 50
-                nr_in = 30  ! need to be < nr
+           nr   = 150
+           nphi = 100
+           nz   = 50
+           nr_in = 30  ! need to be < nr
 
-                flaring_index = 1.125
-                ref_radius = 100.0    ! [a.u.]
-                scale_height = 10.0   ! [a.u.] defined at ref_radius
+           flaring_index = 1.125
+           ref_radius = 100.0    ! [a.u.]
+           scale_height = 10.0   ! [a.u.] defined at ref_radius
 
-                star_mass = 1.8
-                star_temp = 6550
-                distance  = 157
-           /
+           star_mass = 1.8
+           star_temp = 6550
+           distance  = 157
+	   /
 
 How to use it
 

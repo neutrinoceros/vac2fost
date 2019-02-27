@@ -15,6 +15,9 @@
 &amrvac_input
     hydro_data_dir = 'nonaxisym' ! relative to the present configuration file
     config = 'hd142527_rphi.nml', 'dust_rphi.par'
-    conv2au = 100
     nums = 20
+/
+
+&units
+    distance2au = 100
 /
