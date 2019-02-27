@@ -93,27 +93,28 @@ MINGRAINSIZE_µ = 0.1
 DataInfo = namedtuple("DataInfo", ["shape", "directory", "filename", "filepath"])
 
 def generate_conf_template() -> f90nml.Namelist:
-    '''Generate a template namelist object with comments instead of default values'''
-    amrvac_list = {
-        'hydro_data_dir': "path/to/output/data/directory",
-        'config': "relative/to/<hydro_data_dir>/path/to/amrvac/config/file[s]",
-        'conv2au': 100,
-        'nums': 0
-    }
-    mcfost_list = {
-        'nr': 128,
-        'nr_in': 4,
-        'nphi': 128,
-        'nz': 10,
+    """Generate a template namelist object with comments instead of default values"""
+    amrvac_list = dict(
+        hydro_data_dir="path/to/output/data/directory",
+        config="relative/to/<hydro_data_dir>/path/to/amrvac/config/file[s]",
+        nums=0
+    )
+
+    amrvac_unit_list = dict(distance2au=1.0, time2s=1.0)
+
+    mcfost_list = dict(
+        nr=128, nr_in=4, nphi=128, nz=10,
         # aspect ratio is implied by those parameters
-        "flaring_index": 1.125,
-        "ref_radius": 100.0,  # [a.u.]
-        "scale_height": 1.0,  # [a.u.], at defined at ref_radius
+        flaring_index=1.125,
+        ref_radius=100.0,  # [a.u.]
+        scale_height=1.0,  # [a.u.], at defined at ref_radius
+    )
+    sublists = {
+        "amrvac_input": amrvac_list,
+        "amrvac_units": amrvac_unit_list,
+        "mcfost_output": mcfost_list
     }
-    template = f90nml.Namelist({
-        'amrvac_input': f90nml.Namelist(amrvac_list),
-        'mcfost_output': f90nml.Namelist(mcfost_list),
-    })
+    template = f90nml.Namelist({k: f90nml.Namelist(v) for k, v in sublists.items()})
     return template
 
 # decorators
@@ -353,10 +354,11 @@ class MCFOSTUtils:
 
         # Zone
         mesh = itf.sim_conf['meshlist']
+        conv2au = itf.config["units"]["distance2au"]
         parameters.update({
-            'rin': mesh['xprobmin1']*itf.conv2au,
-            'rout': mesh['xprobmax1']*itf.conv2au,
-            'maps_size': 2*mesh['xprobmax1']*itf.conv2au,
+            'rin': mesh['xprobmin1']*conv2au,
+            'rout': mesh['xprobmax1']*conv2au,
+            'maps_size': 2*mesh['xprobmax1']*conv2au,
         })
 
         if itf._bin_dust(): #devnote : using a private method outside of class...
@@ -527,11 +529,17 @@ class Interface:
             self.warnings.append(f"rep {self.io['out'].directory} was created")
 
         # optional definition of the distance unit
-        self.conv2au = 1.0
-        try:
-            self.conv2au = self.config['amrvac_input']['conv2au']
-        except KeyError:
-            self.warnings.append("could not find conv2au, distance unit assumed 1au")
+
+
+        default_units = dict(distance2au=1.0, time2yr=1.0)
+        if not self.config.get("units"):
+            self.warnings.append("&units parameter list not found. Assuming {default_units}")
+            self.config["units"] = f90nml.Namelist(default_units)
+        else:
+            for k, v in default_units.items():
+                if not self.config["units"].get(k):
+                    self.warnings.append(f"&units:{k} parameter not found. Assuming default {v}")
+                    self.config["units"][k] = v
 
     @property
     def read_gas_density(self) -> bool:
@@ -753,11 +761,10 @@ class Interface:
 
     @property
     def input_grid(self) -> dict:
-        '''Store physical coordinates (vectors)
-        about the input grid specifications.'''
+        """Store physical coordinates (vectors) about the input grid specifications."""
         ig = {
-            'rv': self.input_data.get_ticks('r') * self.conv2au,
-            'phiv': self.input_data.get_ticks('phi')
+            "rv": self.input_data.get_ticks("r") * self.config["units"]["distance2au"],
+            "phiv": self.input_data.get_ticks("phi")
         }
         return ig
 
