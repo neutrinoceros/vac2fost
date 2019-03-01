@@ -100,12 +100,12 @@ class DataInfo:
     shape: tuple
 
     @property
-    def filepath(self):
+    def filepath(self) -> Path:
         """full path"""
         return self.directory / self.filename
 
     @property
-    def filestem(self):
+    def filestem(self) -> str:
         """filename without an extension (suffix)"""
         return str(Path(self.filename).stem)
 
