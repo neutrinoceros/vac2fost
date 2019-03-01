@@ -762,7 +762,7 @@ class Interface:
         if self.read_gas_density:
             #devnote: add try statement here ?
             header.update(dict(gas_to_dust=self.sim_conf["usr_dust_list"]["gas2dust_ratio"]))
-            additional_hdus.append(fits.ImageHDU(self._new_3D_arrays[0]))
+            additional_hdus.append(fits.ImageHDU(self.new_3D_arrays[0]))
             header.update(dict(read_gas_density=1))
 
         if self.read_gas_velocity:
