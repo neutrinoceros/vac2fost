@@ -847,12 +847,12 @@ class Interface:
     def gen_3D_arrays(self) -> None:
         """Interpolate input data onto full 3D output grid"""
         oshape = self.io.OUT.gridshape
-        nr, nphi, nz_in = oshape.nr, oshape.nphi, oshape.nz
+        nr, nphi, nz = oshape.nr, oshape.nphi, oshape.nz
 
         nbins = len(self.new_2D_arrays)
-        self._new_3D_arrays = np.zeros((nbins, nphi, nz_in, nr))
-        for ir, r in enumerate(self.output_grid['rv']):
-            z_vect = self.output_grid['zg'][nz_in+EXPECTED_ZSHAPE_INCREMENT:, ir].reshape(1, nz_in)
+        self._new_3D_arrays = np.zeros((nbins, nphi, nz, nr))
+        for ir, r in enumerate(self.output_grid["rv"]):
+            z_vect = self.output_grid["zg"][nz+EXPECTED_ZSHAPE_INCREMENT:, ir].reshape(1, nz)
             local_height = r * self.aspect_ratio
             gaussian = np.exp(-z_vect**2/ (2*local_height**2)) / (np.sqrt(2*np.pi) * local_height)
             for i_bin, surface_density in enumerate(self.new_2D_arrays[:, ir, :]):
