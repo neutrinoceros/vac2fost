@@ -17,13 +17,21 @@ mkdir deps
 cd deps
 git clone https://gitlab.oca.eu/crobert/vtk_vacreader-project.git
 
-read -p "Do you wish to install deps within current conda env ? y/[n]    " choice
+read -p "Do you wish to install deps within current env ? y/[n]    " choice
 
 case $choice in
-    [yY]*) 
-	conda develop vtk_vacreader-project
+    [yY]*)
+	read -p "Select pip or conda installer p/c    " manager
+	case $manager in
+	[pP]*)
+	    pip install -e vtk_vacreader-project
+	    ;;
+	[cC]*)
+	    conda develop vtk_vacreader-project
+	    ;;
+	esac
 	;;
     *)
-	echo "deps were downloaded but not installed !"
+      echo "deps were downloaded but not installed !"
 esac
 

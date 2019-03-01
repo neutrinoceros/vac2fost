@@ -36,7 +36,8 @@ The recommended method for installing vac2fost consists in creating a
 dedicated and _isolated_ Python environment.  `environment.yml`
 describes dependencies and the rationale for each version constraint.
 
-This file can be used to create a environment in one line with conda
+This file can be used out-of-the-box to create a environment in one
+line with conda
 
     .. code-block:: bash
     
@@ -45,23 +46,23 @@ This file can be used to create a environment in one line with conda
 For details, see the official conda documentation for managing environments
 https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html
 
+The dependencies listed therein can otherwise be installed with pip/pipenv.
+
+
 The program also relies on a derived project, vtk_vacreader_: a small
-module to read vtk files from MPI-AMRVAC (restricted to non-AMR files
+module to read VTK files from MPI-AMRVAC (restricted to non-AMR files
 atm).
 
 .. _vtk_vacreader: https://gitlab.oca.eu/crobert/vtk_vacreader-project
 
-It can can be installed as
+It can can be installed with the interactive script `install_deps.sh`.
+Please make sure to run it from your dedicated python environment, be
+it conda or pipenv...  This script will ask for your prefered
+installer (pip or conda ?).
 
-    .. code-block:: bash
-
-        conda activate vac2fost
-	# old versions of anaconda use "source" instead of "conda" in this command
-
-        bash install_deps.sh # this script will ask for user confirmation
-
-**warning; old versions of conda contain a bug where `conda develop` breaks if running in a environement with a different Python version than the base one. This is solved by updating conda with `conda update conda``
-If for whatever reason you are unable to do that, vtk_vacreader can be installed with pip, as long as you're using an environement specific pip.
+**warning; old versions of conda contain a bug where `conda develop` breaks
+if run in a environement with a different Python version than the base one.
+This is solved by updating conda with `conda update conda``.
 **
 
 

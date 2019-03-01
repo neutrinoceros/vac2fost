@@ -30,7 +30,6 @@ update_pyenv:
   script:
     - export CONDA_INST="--name $PYENV --file environment.yml --channel conda-forge --yes"
     - $SLURM_CMD conda create $CONDA_INST || $SLURM_CMD conda install $CONDA_INST
-    - $SLURM_CMD conda install pip --name $PYENV --yes
 
 download_deps:
   stage: build
