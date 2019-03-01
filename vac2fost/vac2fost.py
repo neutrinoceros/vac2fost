@@ -442,8 +442,7 @@ class MCFOSTUtils:
                         "Try reducing the target resolution or,"
                         " alternatively, give more cpu memory to this task."
                     )
-                print(errtip)
-                raise
+                raise RuntimeError(errtip) from exc
             finally:
                 os.chdir(pile)
                 shutil.rmtree(tmp_mcfost_dir)
