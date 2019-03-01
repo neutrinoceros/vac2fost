@@ -58,9 +58,7 @@ from vtk_vacreader import VacDataSorter
 
 
 # mcfost detection ======================================================================
-try:
-    run(["which", "mcfost"], check=True, capture_output=True)
-except CalledProcessError:
+if shutil.which("mcfost") is None:
     print(RED+"Critical: could not find mcfost. Please install mcfost before using vac2fost")
 
 bout = run("yes | mcfost -version", shell=True, capture_output=True).stdout
