@@ -833,12 +833,10 @@ class Interface:
 
     def gen_2D_arrays(self) -> None:
         """Interpolate input data density fields from input coords to output coords"""
-        n_phi_new, n_rad_new = self.output_grid["rg"].shape
-        assert n_rad_new, n_phi_new == self.io.OUT.shape[0, 2]
-
         density_keys = sorted(filter(lambda k: "rho" in k, self.input_data.fields.keys()))
         self._new_2D_arrays = np.array([self._interpolate2D(datakey=k) for k in density_keys])
-        assert self._new_2D_arrays[0].shape == (n_rad_new, n_phi_new)
+        assert self._new_2D_arrays[0].shape == (self.io.OUT.gridshape.nr,
+                                                self.io.OUT.gridshape.nphi)
 
     @property
     def aspect_ratio(self):
@@ -846,13 +844,10 @@ class Interface:
         mcfl = self.config['mcfost_output']
         return mcfl['scale_height'] / mcfl['ref_radius']
 
-    def gen_3D_arrays(self):
-        '''Interpolate input data onto full 3D output grid'''
-        nphi, nr = self.output_grid['rg'].shape
-        nz_out, nr2 = self.output_grid['zg'].shape
-        nz_in = self.config['mcfost_output']['nz']
-        assert nr2 == nr
-        assert nz_out == 2*nz_in + EXPECTED_ZSHAPE_INCREMENT
+    def gen_3D_arrays(self) -> None:
+        """Interpolate input data onto full 3D output grid"""
+        oshape = self.io.OUT.gridshape
+        nr, nphi, nz_in = oshape.nr, oshape.nphi, oshape.nz
 
         nbins = len(self.new_2D_arrays)
         self._new_3D_arrays = np.zeros((nbins, nphi, nz_in, nr))
