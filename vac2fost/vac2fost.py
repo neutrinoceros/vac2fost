@@ -772,7 +772,7 @@ class Interface:
             rho, mr, mphi = map(self._interpolate2D, ["rho", "m1", "m2"])
             vr, vphi = map(lambda x: x/rho, [mr, mphi])
             phig = self.output_grid["phig"].transpose()
-            vx = vr * np.cos(phig) + vphi * np.sin(phig)
+            vx = vr * np.cos(phig) - vphi * np.sin(phig)
             vy = vr * np.sin(phig) + vphi * np.cos(phig)
 
             # transform to 3D
