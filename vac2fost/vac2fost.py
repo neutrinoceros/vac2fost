@@ -59,7 +59,7 @@ from vtk_vacreader import VacDataSorter
 
 # mcfost detection ======================================================================
 if shutil.which("mcfost") is None:
-    print(RED+"Critical: could not find mcfost. Please install mcfost before using vac2fost")
+    raise OSError(RED+"could not find mcfost. Please install mcfost before using vac2fost")
 
 bout = run("yes | mcfost -version", shell=True, capture_output=True).stdout
 out = "".join(map(chr, bout))
@@ -68,7 +68,7 @@ version_tag = out.split("\n")[0].split()[-1]
 verx, very, verz = map(int, version_tag.split("."))
 
 if float(f"{verx}.{very}") < float(mcfost_major_version):
-    raise EnvironmentError("mcfost version must be >= {mcfost_major_version}")
+    raise OSError(f"mcfost version must be >= {mcfost_major_version}")
 
 EXPECTED_ZSHAPE_INCREMENT = 0
 if f"{verx}.{very}" == "3.0":
