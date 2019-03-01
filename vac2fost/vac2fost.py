@@ -93,11 +93,18 @@ AU2KM = 149597870.700
 
 # Defintions ============================================================================
 @dataclass
+class GridShape:
+    """Describe number of cells in cylindrical coordinates in a grid"""
+    nr: int
+    nphi: int
+    nz: int = 1
+
+@dataclass
 class DataInfo:
     """Hold basic info about input or output data location and shape"""
     directory: Path
     filename: str
-    shape: tuple
+    gridshape: GridShape
 
     @property
     def filepath(self):
@@ -570,18 +577,19 @@ class Interface:
                                 str(self.current_num).zfill(4),
                                 ".vtu"])
 
+        geomdefs = {"nr": 1, "nphi": 2}
         _input = DataInfo(
             directory=shell_path(self.config["amrvac_input"]["hydro_data_dir"]).resolve(),
             filename=vtu_filename,
-            shape=tuple(
-                [self.sim_conf["meshlist"][f"domain_nx{n}"] for n in range(1, self._dim+1)])
+            gridshape=GridShape(**{k: self.sim_conf["meshlist"][f"domain_nx{n}"]
+                                   for k, n in geomdefs.items()})
         )
 
-        outshape = self.config["mcfost_output"]
         _output = DataInfo(
             directory=Path(self._base_args["output_dir"]),
             filename=_input.filestem+".fits",
-            shape=(outshape["nr"], outshape["nz"], outshape["nphi"])
+            gridshape=GridShape(**{k: self.config["mcfost_output"][k]
+                                   for k in ("nr", "nphi", "nz")})
         )
         return IOinfo(IN=_input, OUT=_output)
 
@@ -693,7 +701,7 @@ class Interface:
             self.current_num = n
         self._input_data = VacDataSorter(
             file_name=str(self.io.IN.filepath),
-            shape=self.io.IN.shape
+            shape=(self.io.IN.gridshape.nr, self.io.IN.gridshape.nphi)
         )
 
     @property
@@ -776,7 +784,7 @@ class Interface:
             vy = vr * np.sin(phig) + vphi * np.cos(phig)
 
             # transform to 3D
-            nz = self.io.OUT.shape[1]
+            nz = self.io.OUT.gridshape.nz
             vx, vy = map(lambda a: np.stack([a]*nz, axis=1), [vx, vy])
             vz = np.zeros(vx.shape)
 
@@ -787,10 +795,12 @@ class Interface:
             vy *= vel2km_per_s
 
             # append
+            oshape = self.io.OUT.gridshape
             for v in (vx, vy, vz):
-                np.testing.assert_array_equal(v.shape, self.io.OUT.shape)
+                np.testing.assert_array_equal(v.shape, (oshape.nr, oshape.nz, oshape.nphi))
 
-            additional_hdus.append(fits.ImageHDU(np.stack([vx, vy, vz], axis=3).T))
+            velarr = np.stack([vx, vy, vz], axis=3)
+            additional_hdus.append(fits.ImageHDU(velarr.T))
 
         dust_densities_HDU = fits.PrimaryHDU(self.new_3D_arrays[dust_bin_selector])
         for k, v in header.items():
