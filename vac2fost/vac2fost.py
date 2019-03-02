@@ -17,10 +17,8 @@ Known limitations
   4) only r-phi input grids are currently supported
 '''
 __version__ = "2.3.0"
-mcfost_major_version = "3.0"
-mcfost_minor_version = "35"
-min_mcfost_version = "3.0.34"
-rec_mcfost_version = "3.0.35"
+min_mcfost_version = "3.0.34"  # minimal requirement
+rec_mcfost_version = "3.0.35"  # recommendation
 
 
 # Imports
@@ -67,10 +65,10 @@ out = "".join(map(chr, out))
 DETECTED_MCFOST_VERSION = out.split("\n")[0].split()[-1]
 del out
 if DETECTED_MCFOST_VERSION < min_mcfost_version:
-    raise OSError(f"mcfost version must be >= {mcfost_major_version}")
+    raise OSError(f"mcfost version must be >= {min_mcfost_version}")
 
 if DETECTED_MCFOST_VERSION < rec_mcfost_version:
-    warn("vac2fost is developed for mcfost {rec_mcfost_versions} or later.")
+    warn(f"vac2fost is developed for mcfost {rec_mcfost_version} or later.")
     EXPECTED_ZSHAPE_INCREMENT = 1
 else:
     EXPECTED_ZSHAPE_INCREMENT = 0
@@ -347,8 +345,8 @@ class MCFOSTUtils:
         if output_file.exists() and verbose:
             print(f'Warning: {output_file} already exists, and will be overwritten.')
         with open(output_file, mode="wt") as fi:
-            fi.write(mcfost_major_version.ljust(10) +
-                     f"mcfost minimal version. Recommended minor {mcfost_minor_version}\n\n")
+            fi.write(".".join(min_mcfost_version.split(".")[:2]).ljust(10) +
+                     f"mcfost minimal version. {rec_mcfost_version} is recommended\n\n")
             for block, lines in __class__.blocks_descriptors.items():
                 fi.write(f'# {block}\n')
                 for line in lines:
