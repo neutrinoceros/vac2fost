@@ -19,7 +19,8 @@ Known limitations
 __version__ = "2.3.0"
 mcfost_major_version = "3.0"
 mcfost_minor_version = "35"
-
+min_mcfost_version = "3.0.34"
+rec_mcfost_version = "3.0.35"
 
 
 # Imports
@@ -63,22 +64,23 @@ if shutil.which("mcfost") is None:
 
 bout = run("yes | mcfost -version", shell=True, capture_output=True).stdout
 out = "".join(map(chr, bout))
-version_tag = out.split("\n")[0].split()[-1]
+#version_tag = out.split("\n")[0].split()[-1]
+DETECTED_MCFOST_VERSION = out.split("\n")[0].split()[-1]
 
-verx, very, verz = map(int, version_tag.split("."))
-
-if float(f"{verx}.{very}") < float(mcfost_major_version):
+#verx, very, verz = map(int, version_tag.split("."))
+#breakpoint()
+if DETECTED_MCFOST_VERSION < min_mcfost_version:
+#if float(f"{verx}.{very}") < float(mcfost_major_version):
     raise OSError(f"mcfost version must be >= {mcfost_major_version}")
 
-EXPECTED_ZSHAPE_INCREMENT = 0
-if f"{verx}.{very}" == "3.0":
-    if verz < 32:
-        warn("vac2fost has not been tested for mcfost < 3.0.32")
-    if verz < 35:
-        EXPECTED_ZSHAPE_INCREMENT = 1
-
-DETECTED_MCFOST_VERSION = verx, very, verz
-del bout, out, version_tag, verx, very, verz
+if DETECTED_MCFOST_VERSION < rec_mcfost_version:
+    warn("vac2fost is developed for mcfost {rec_mcfost_versions} or later.")
+    EXPECTED_ZSHAPE_INCREMENT = 1
+else:
+    EXPECTED_ZSHAPE_INCREMENT = 0
+#breakpoint()
+#DETECTED_MCFOST_VERSION = verx, very, verz
+#del bout, out, version_tag, verx, very, verz
 
 
 

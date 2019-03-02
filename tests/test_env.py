@@ -8,15 +8,6 @@ import pytest
 testdir = pathlib.Path(__file__).absolute().parent
 output_dir = testdir/'output/test_env'
 
-def test_mcfost_version():
-    """Check consistency with recommended mcfost version"""
-    x, y, z = DETECTED_MCFOST_VERSION
-    detected_major = float(f"{x}.{y}")
-    assert detected_major >= float(mcfost_major_version)
-    if detected_major > float(mcfost_major_version):
-        assert z >= int(mcfost_minor_version)
-
-
 @pytest.mark.skipif(not vac2fost.vac2fost.colorama,
                     reason="Can't test color printing withou colorama")
 def test_with_colorama():

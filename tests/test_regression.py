@@ -7,7 +7,7 @@ from astropy.io import fits
 from vac2fost import main as app
 from vac2fost.vac2fost import DETECTED_MCFOST_VERSION
 
-x, y, z = DETECTED_MCFOST_VERSION
+x, y, z = map(int, DETECTED_MCFOST_VERSION.split("."))
 assert x == 3 and y == 0
 if z < 35:
     REFVER = "3.0.34"
