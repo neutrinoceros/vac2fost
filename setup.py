@@ -1,6 +1,12 @@
 from setuptools import setup, find_packages
 from pathlib import Path
 import os
+import sys
+
+if sys.version < "3.7":
+    raise OSError("vac2fost is written in Python 3.7")
+elif sys.version < "3.7.1":
+    raise OSError("Python 3.7.0 has known issues with scipy, please update to Python 3.7.1 or later")
 
 here = Path(__file__).parent.absolute()
 project_name = "vac2fost"
