@@ -1,24 +1,32 @@
 #!/usr/bin/env python3
-'''A conversion tool from AMRVAC output (.vtu) to MCFOST input (.fits)
+"""A conversion facility for MPI-AMRVAC (.vtu) to MCFOST (.fits)
 
-Run `vac2fost.py --help` for documentation on command line usage
+This is a Python package (from vac2fost import main as vac2fost), and
+also a command line script.  Run `python vac2fost.py --help` for
+documentation on command line usage.
 
-Steps
+The main algorithm runs the following steps
   a) load AMRVAC data with vtk_vacreader.VacDataSorter(), sort it as 2D arrays
-  b) dry-run MCFOST to get the exact target grid
+  b) dry-run MCFOST to get the exact output
   c) interpolate data to the target grid
   d) convert to 3D (gaussian redistribution of density)
   e) collect, sort and write output data to a fits file
 
+
 Known limitations
-  1) amr is not supported by reader
-  2) portability is not guaranted
-  3) interpolation does not account for the curvature of polar cells
-  4) only r-phi input grids are currently supported
-'''
+  1) AMR grids are not supported (.vtu files need to be converted to uniform grids)
+  2) .vtu are assumed to use polar coordinates (r-phi 2D)
+  3) 2D interpolation does not account for the curvature of polar cells
+
+
+Disclaimer
+  This package is using Python3.7 syntax/features and will not be made backward
+  compatible with older versions of Python.
+"""
 __version__ = "2.3.0"
 min_mcfost_version = "3.0.34"  # minimal requirement
 rec_mcfost_version = "3.0.35"  # recommendation
+
 
 
 # Imports
