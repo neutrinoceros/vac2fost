@@ -31,7 +31,7 @@ class TestGasReading:
         target_shape = tuple([conf[k] for k in ("nr","nz", "nphi")])
         assert gas_density.shape == target_shape
 
-    @pytest.mark.skipif(DETECTED_MCFOST_VERSION[2] < 35, reason="latest mcfost versions only")
+    @pytest.mark.skipif(DETECTED_MCFOST_VERSION[2] < "35", reason="latest mcfost versions only")
     def test_read_gas_density_is_valid(self):
         """check that mcfost doesn't crash when passed gas density."""
         os.chdir(itf.io.OUT.directory)
