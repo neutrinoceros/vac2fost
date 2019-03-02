@@ -61,16 +61,12 @@ from vtk_vacreader import VacDataSorter
 # mcfost detection ======================================================================
 if shutil.which("mcfost") is None:
     raise OSError(RED+"could not find mcfost. Please install mcfost before using vac2fost")
+out = run("yes | mcfost -version", shell=True, capture_output=True).stdout #binary
+out = "".join(map(chr, out))
 
-bout = run("yes | mcfost -version", shell=True, capture_output=True).stdout
-out = "".join(map(chr, bout))
-#version_tag = out.split("\n")[0].split()[-1]
 DETECTED_MCFOST_VERSION = out.split("\n")[0].split()[-1]
-
-#verx, very, verz = map(int, version_tag.split("."))
-#breakpoint()
+del out
 if DETECTED_MCFOST_VERSION < min_mcfost_version:
-#if float(f"{verx}.{very}") < float(mcfost_major_version):
     raise OSError(f"mcfost version must be >= {mcfost_major_version}")
 
 if DETECTED_MCFOST_VERSION < rec_mcfost_version:
@@ -78,9 +74,6 @@ if DETECTED_MCFOST_VERSION < rec_mcfost_version:
     EXPECTED_ZSHAPE_INCREMENT = 1
 else:
     EXPECTED_ZSHAPE_INCREMENT = 0
-#breakpoint()
-#DETECTED_MCFOST_VERSION = verx, very, verz
-#del bout, out, version_tag, verx, very, verz
 
 
 
