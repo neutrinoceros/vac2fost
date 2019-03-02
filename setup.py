@@ -28,7 +28,7 @@ setup(
         "numpy>=1.15",
         "astropy>=3.1.1"
         "vtk>=8.1.2",
-        #"f90nml>=1.0.2",
+        "f90nml>=1.0.2",
         #"vtk_vacreader>=1.0.1"
     ],
     python_requires = ">=3.7",
