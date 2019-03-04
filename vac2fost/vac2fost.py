@@ -23,7 +23,7 @@ Disclaimer
   This package is using Python3.7 syntax/features and will not be made backward
   compatible with older versions of Python.
 """
-__version__ = "2.3.0"
+__version__ = "2.3.1"
 min_mcfost_version = "3.0.34"  # minimal requirement
 rec_mcfost_version = "3.0.35"  # recommendation
 
