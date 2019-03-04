@@ -77,8 +77,7 @@ if DETECTED_MCFOST_VERSION < min_mcfost_version:
 
 if DETECTED_MCFOST_VERSION < rec_mcfost_version:
     warn(f"vac2fost is developed for mcfost {rec_mcfost_version} or later. " \
-         f"You are using mcfost {DETECTED_MCFOST_VERSION}"
-    )
+         f"You are using mcfost {DETECTED_MCFOST_VERSION}")
     EXPECTED_ZSHAPE_INCREMENT = 1
 else:
     EXPECTED_ZSHAPE_INCREMENT = 0
