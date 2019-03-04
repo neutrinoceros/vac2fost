@@ -1012,8 +1012,17 @@ if __name__ == '__main__':
         action='store_true',
         help='activate code profiling'
     )
+    parser.add_argument(
+        "--version",
+        action="store_true",
+        help="display this code's version"
+    )
 
     cargs = parser.parse_args()
+
+    if cargs.version:
+        print(__version__)
+        sys.exit(0)
 
     if cargs.genconf:
         print(generate_conf_template())
