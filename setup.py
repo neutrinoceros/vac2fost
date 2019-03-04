@@ -17,7 +17,6 @@ setup(
     author         = __import__(project_name).__author__,
     author_email   = __import__(project_name).__contact__,
     url = "https://gitlab.oca.eu/crobert/vac2fost-project",
-    license = "GNU",
     classifiers = [
         "Development Status :: 3 - Alpha",
         "Programming Language :: Python"
