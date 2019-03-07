@@ -455,22 +455,6 @@ class MCFOSTUtils:
         return target_grid
 
 
-def get_dust_mass(data: VacDataSorter) -> float:
-    '''estimate the total dust mass in the grid in code units
-    (solar mass = 1) is assumed by the present script and MCFOST
-    '''
-    # devnote : assume a linearly spaced grid
-    dphi = 2*np.pi / data.shape[1]
-    rvect = data.get_ticks(0)
-    dr = rvect[1] - rvect[0]
-    cell_surfaces = dphi/2 * ((rvect + dr/2)**2 - (rvect - dr/2)**2)
-
-    mass = 0.0
-    for _, field in filter(lambda item: 'rhod' in item[0], data):
-        mass += np.sum([cell_surfaces * field[:, i]
-                        for i in range(field.shape[1])])
-    return mass
-
 
 # Main class ============================================================================
 class Interface:
@@ -733,6 +717,20 @@ class Interface:
             }
         return self._output_grid
 
+    def estimate_dust_mass(self) -> float:
+        """Estimate the total dust mass in the grid, in code units"""
+        # devnote : this assumes a linearly spaced grid
+        dphi = 2*np.pi / self.input_data.shape[1]
+        rvect = self.input_data.get_ticks(0)
+        dr = rvect[1] - rvect[0]
+        cell_surfaces = dphi/2 * ((rvect + dr/2)**2 - (rvect - dr/2)**2)
+
+        mass = 0.0
+        for _, field in filter(lambda item: "rhod" in item[0], self.input_data):
+            mass += np.sum([cell_surfaces * field[:, i]
+                            for i in range(field.shape[1])])
+        return mass
+
     def write_mcfost_conf_file(self) -> None:
         '''Customize defaults with user specifications'''
         custom = {}
@@ -743,7 +741,7 @@ class Interface:
         custom.update(self.config['mcfost_output'])
 
         if self._bin_dust():
-            custom.update({'dust_mass': get_dust_mass(self.input_data)})
+            custom.update({"dust_mass": self.estimate_dust_mass()})
         MCFOSTUtils.write_mcfost_conf(
             output_file=self.mcfost_conf_file,
             custom=custom,
