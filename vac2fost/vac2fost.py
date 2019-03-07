@@ -719,7 +719,12 @@ class Interface:
     @property
     def g2d_ratio(self):
         """Gas to dust ratio"""
-        return self.sim_conf["usr_dust_list"]["gas2dust_ratio"]
+        res = 0.01
+        try:
+            res = self.sim_conf["usr_dust_list"]["gas2dust_ratio"]
+        except KeyError:
+            self.warnings.append(f"could not find &usr_dust_list:gas2dust_ratio, assume {res}")
+        return res
 
     def estimate_dust_mass(self) -> float:
         """Estimate the total dust mass in the grid, in code units"""
@@ -738,7 +743,7 @@ class Interface:
             mass += np.sum([cell_surfaces * self.input_data[key][:, i]
                             for i in range(self.io.IN.gridshape.nphi)])
         if self.dust_binning_mode == "gas-only":
-            breakpoint()
+            mass /= self.g2d_ratio
         return mass
 
     def write_mcfost_conf_file(self) -> None:
