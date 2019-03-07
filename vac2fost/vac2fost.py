@@ -46,6 +46,7 @@ from uuid import uuid4 as uuid
 
 # non standard externals
 import numpy as np
+from astropy import units
 from astropy.io import fits
 from scipy.interpolate import interp2d
 import f90nml
@@ -86,8 +87,8 @@ else:
 
 # Globals ===============================================================================
 MINGRAINSIZE_µ = 0.1
-S2YR = 1/(365*24*3600)
-AU2KM = 149597870.700
+YR2S = units.yr.to(units.s)
+AU2KM = units.au.to(units.km)
 
 
 
@@ -764,14 +765,12 @@ class Interface:
             "mixed": self.grain_micron_sizes.argsort()
         }[self.dust_binning_mode]
 
-        additional_hdus = [
-            fits.ImageHDU(self.grain_micron_sizes[self.grain_micron_sizes.argsort()])
-        ]
+        suppl_hdus = [fits.ImageHDU(self.grain_micron_sizes[self.grain_micron_sizes.argsort()])]
         header = {'read_n_a': 0} # automatic normalization of size-bins from mcfost param file.
         if self.read_gas_density:
             #devnote: add try statement here ?
             header.update(dict(gas_to_dust=self.sim_conf["usr_dust_list"]["gas2dust_ratio"]))
-            additional_hdus.append(fits.ImageHDU(self.new_3D_arrays[0]))
+            suppl_hdus.append(fits.ImageHDU(self.new_3D_arrays[0]))
             header.update(dict(read_gas_density=1))
 
         if self.read_gas_velocity:
@@ -786,20 +785,16 @@ class Interface:
             nz = self.io.OUT.gridshape.nz
             vx, vy = map(lambda a: np.stack([a]*nz, axis=1), [vx, vy])
             vz = np.zeros(vx.shape)
-
-            # unit conversion
-            units = self.config["units"]
-            vel2km_per_s = units["distance2au"]*AU2KM / (units["time2yr"]*S2YR)
-            vx *= vel2km_per_s
-            vy *= vel2km_per_s
-
-            # append
             oshape = self.io.OUT.gridshape
             for v in (vx, vy, vz):
                 np.testing.assert_array_equal(v.shape, (oshape.nr, oshape.nz, oshape.nphi))
 
-            velarr = np.stack([vx, vy, vz], axis=3)
-            additional_hdus.append(fits.ImageHDU(velarr.T))
+            # unit conversion
+            conv = self.config["units"]
+            vel2km_per_s = conv["distance2au"]*AU2KM / (conv["time2yr"]*YR2S)
+
+            velarr = np.stack([vx, vy, vz], axis=3) * vel2km_per_s
+            suppl_hdus.append(fits.ImageHDU(velarr.T))
 
         dust_densities_HDU = fits.PrimaryHDU(self.new_3D_arrays[dust_bin_selector])
         for k, v in header.items():
@@ -809,7 +804,7 @@ class Interface:
             dust_densities_HDU.header.append((k, v))
 
         with open(self.io.OUT.filepath, mode="wb") as fo:
-            hdul = fits.HDUList(hdus=[dust_densities_HDU] + additional_hdus)
+            hdul = fits.HDUList(hdus=[dust_densities_HDU] + suppl_hdus)
             hdul.writeto(fo)
 
     @property
