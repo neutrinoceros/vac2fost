@@ -394,10 +394,9 @@ class MCFOSTUtils:
         })
 
         if itf._bin_dust(): #devnote : using a private method outside of class...
-            dl2 = itf.sim_conf['usr_dust_list']
             parameters.update({
-                'gas_to_dust_ratio': dl2['gas2dust_ratio'],
-                # 'dust_mass': ... # MISSING FEATURE (ISSUE 18)
+                "gas_to_dust_ratio": itf.g2d_ratio,
+                "dust_mass": itf.estimate_dust_mass()
             })
             # Grains
             sizes_µm = itf.grain_micron_sizes
@@ -717,18 +716,29 @@ class Interface:
             }
         return self._output_grid
 
+    @property
+    def g2d_ratio(self):
+        """Gas to dust ratio"""
+        return self.sim_conf["usr_dust_list"]["gas2dust_ratio"]
+
     def estimate_dust_mass(self) -> float:
         """Estimate the total dust mass in the grid, in code units"""
         # devnote : this assumes a linearly spaced grid
-        dphi = 2*np.pi / self.input_data.shape[1]
+        dphi = 2*np.pi / self.io.IN.gridshape.nphi
         rvect = self.input_data.get_ticks(0)
         dr = rvect[1] - rvect[0]
         cell_surfaces = dphi/2 * ((rvect + dr/2)**2 - (rvect - dr/2)**2)
 
+        if self.dust_binning_mode == "gas-only":
+            keys = ["rho"]
+        else:
+            keys = [k for k, _ in self.input_data if "rhod" in k]
         mass = 0.0
-        for _, field in filter(lambda item: "rhod" in item[0], self.input_data):
-            mass += np.sum([cell_surfaces * field[:, i]
-                            for i in range(field.shape[1])])
+        for key in keys:
+            mass += np.sum([cell_surfaces * self.input_data[key][:, i]
+                            for i in range(self.io.IN.gridshape.nphi)])
+        if self.dust_binning_mode == "gas-only":
+            breakpoint()
         return mass
 
     def write_mcfost_conf_file(self) -> None:
@@ -740,8 +750,6 @@ class Interface:
             raise KeyError(f'Unrecognized MCFOST argument(s): {unknown_args}')
         custom.update(self.config['mcfost_output'])
 
-        if self._bin_dust():
-            custom.update({"dust_mass": self.estimate_dust_mass()})
         MCFOSTUtils.write_mcfost_conf(
             output_file=self.mcfost_conf_file,
             custom=custom,
