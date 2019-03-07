@@ -373,6 +373,7 @@ class MCFOSTUtils:
                 fi.write('\n')
             fi.write("\n\n")
             fi.write(f"%% automatically generated with vac2fost {__version__}\n")
+            fi.write(f"%% via mcfost {DETECTED_MCFOST_VERSION}\n")
             fi.write(f"%% run by {os.environ['USER']} on {gethostname()}\n")
         if verbose:
             print(f'wrote {output_file}')
