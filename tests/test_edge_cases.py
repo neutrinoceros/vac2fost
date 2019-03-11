@@ -1,4 +1,5 @@
 from os import chdir
+from shutil import rmtree
 from subprocess import run
 from pathlib import Path
 from vac2fost import main as app
@@ -8,6 +9,8 @@ OUT = testdir/"output"
 
 def test_read_gas_vel_gas_only():
     outdir = OUT / "gasvel_gasonly"
+    if outdir.exists():
+        rmtree(outdir)
     app(
         testdir / "sample/vac2fost_conf_quick.nml",
         read_gas_velocity=True,
