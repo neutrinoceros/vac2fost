@@ -54,8 +54,11 @@ class TestRegressionMain:
     def test_target_grid(self):
         itf = __class__.itf
         ref = fits.open(__class__.subrefdir / "mcfost_grid.fits.gz")[0].data
-        new = fits.open(itf.io.OUT.directory/'mcfost_grid.fits.gz')[0].data
-        np.testing.assert_array_equal(ref, new)
+        new = fits.open(itf.io.OUT.directory/ "mcfost_grid.fits.gz")[0].data
+
+        #shutil.copyfile(itf.io.OUT.directory/ "mcfost_grid.fits.gz",
+        #                __class__.subrefdir / "mcfost_grid.fits.gz") # regold
+        np.testing.assert_allclose(ref, new, rtol=1e-15)
 
     def test_out(self):
         itf = __class__.itf
@@ -71,9 +74,9 @@ class TestRegressionMain:
         np.testing.assert_array_equal(itf.output_grid['phiv'], out_ref['output_grid']['phiv'])
         np.testing.assert_array_equal(itf.output_grid['rg'], out_ref['output_grid']['rg'])
         np.testing.assert_array_equal(itf.output_grid['phig'], out_ref['output_grid']['phig'])
-        np.testing.assert_array_equal(itf.output_grid['zg'], out_ref['output_grid']['zg'])
+        np.testing.assert_allclose(itf.output_grid['zg'], out_ref['output_grid']['zg'], rtol=1e-15)
         np.testing.assert_allclose(itf.new_2D_arrays, out_ref['new_2D_arrays'], rtol=1e-25)
-        np.testing.assert_allclose(itf.new_3D_arrays, out_ref['new_3D_arrays'], rtol=1e-15)
+        np.testing.assert_allclose(itf.new_3D_arrays, out_ref['new_3D_arrays'], rtol=5e-14)
 
     def test_image(self):
         itf = __class__.itf
@@ -83,7 +86,8 @@ class TestRegressionMain:
         fipath = itf.io.OUT.filepath
         data = fits.open(fipath)[0].data[0]
         ref = fits.open(__class__.subrefdir / "hd142527_dusty0000.fits")[0].data[0]
-        np.testing.assert_array_equal(data, ref)
+        #shutil.copyfile(fipath, __class__.subrefdir / "hd142527_dusty0000.fits") #regold
+        np.testing.assert_allclose(data, ref, rtol=5e-14)
 
 class TestRegressionMutliNums:
     subrefdir = REFOUT_DIR / "multinums"
@@ -95,8 +99,9 @@ class TestRegressionMutliNums:
         for n in (0, 1, 2):
             out_file = __class__.itf.io.OUT.directory / f"{filename}{str(n).zfill(4)}.fits"
             ref_file = test_dir / f"ref/{REFVER}/multinums/hd142527_dusty{str(n).zfill(4)}.fits"
+            #shutil.copyfile(out_file, ref_file) #regold
             assert out_file.exists()
-            np.testing.assert_array_equal(fits.open(out_file)[0].data, fits.open(ref_file)[0].data)
+            np.testing.assert_allclose(fits.open(out_file)[0].data, fits.open(ref_file)[0].data, rtol=5e-14)
 
 class TestRegressionNonAxisym:
     subrefdir = REFOUT_DIR / "nonaxisym"
@@ -117,9 +122,9 @@ class TestRegressionNonAxisym:
         np.testing.assert_array_equal(itf.output_grid['phiv'], out_ref['output_grid']['phiv'])
         np.testing.assert_array_equal(itf.output_grid['rg'], out_ref['output_grid']['rg'])
         np.testing.assert_array_equal(itf.output_grid['phig'], out_ref['output_grid']['phig'])
-        np.testing.assert_array_equal(itf.output_grid['zg'], out_ref['output_grid']['zg'])
+        np.testing.assert_allclose(itf.output_grid['zg'], out_ref['output_grid']['zg'], rtol=1e-15)
         np.testing.assert_allclose(itf.new_2D_arrays, out_ref['new_2D_arrays'], rtol=1e-25)
-        np.testing.assert_allclose(itf.new_3D_arrays, out_ref['new_3D_arrays'], rtol=1e-15)
+        np.testing.assert_allclose(itf.new_3D_arrays, out_ref['new_3D_arrays'], rtol=5e-14)
 
     def test_image(self):
         itf = __class__.itf
@@ -128,8 +133,10 @@ class TestRegressionNonAxisym:
         itf.write_output()
         fipath = itf.io.OUT.filepath
         data = fits.open(fipath)[0].data[0]
+        #shutil.copyfile(fipath, __class__.subrefdir / "hd142527_rphi0020.fits")#regold
         ref = fits.open(__class__.subrefdir / "hd142527_rphi0020.fits")[0].data[0]
-        np.testing.assert_array_equal(data, ref)
+
+        np.testing.assert_allclose(data, ref, rtol=5e-14)
 
 class TestRegressionAutoGasOnly:
     subrefdir = REFOUT_DIR / "autogasonly"
