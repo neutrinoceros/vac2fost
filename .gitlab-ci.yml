@@ -46,7 +46,7 @@ install_mcfost:
     - chmod +x mcfost
     - mkdir -p $MCFOST_UTILS || echo "skip mkdir"
     - $SLURM_CMD ./mcfost -setup
-    - yes | mcfost ref3.0.para  && rm -fr data_th # agree to licence...
+    - yes | ./mcfost ref3.0.para && rm -fr data_th # agree to licence...
     - cd ../
     - which mcfost
     - mcfost -version
