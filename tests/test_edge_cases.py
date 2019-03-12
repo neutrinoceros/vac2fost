@@ -25,7 +25,8 @@ def test_read_gas_vel_gas_only():
     )
     chdir(outdir)
     with fits.open(densfile) as dfile:
-        dat = dfile[2].data
+        assert len(dfile) == 2
+        dat = dfile[1].data
         assert dat.shape == (3, 10, 2, 10)
 
     run(["mcfost", "mcfost_conf.para", "-3D", "-density_file", densfile], check=True)
@@ -43,6 +44,7 @@ def test_read_gas_vel_dust_only():
     )
     chdir(outdir)
     with fits.open(densfile) as dfile:
+        assert len(dfile) == 3
         dat = dfile[2].data
         assert dat.shape == (3, 10, 2, 10)
 
@@ -61,6 +63,7 @@ def test_read_gas_vel_mixed():
     )
     chdir(outdir)
     with fits.open(densfile) as dfile:
+        assert len(dfile) == 3
         dat = dfile[2].data
         assert dat.shape == (3, 10, 2, 10)
 
