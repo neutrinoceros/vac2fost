@@ -772,12 +772,18 @@ class Interface:
     def write_output(self) -> None:
         """Write a .fits file suited for MCFOST input."""
         dust_bin_selector = {
-            "gas-only": 0,
+            "gas-only": np.zeros(1, dtype="int64"),
             "dust-only": 1 + self.grain_micron_sizes.argsort(),
             "mixed": self.grain_micron_sizes.argsort()
         }[self.dust_binning_mode]
 
-        suppl_hdus = [fits.ImageHDU(self.grain_micron_sizes[self.grain_micron_sizes.argsort()])]
+        suppl_hdus = []
+        if len(dust_bin_selector) > 1:
+            # mcfost requires an HDU with grain sizes only if more than one population is present
+            suppl_hdus.append(
+                fits.ImageHDU(self.grain_micron_sizes[self.grain_micron_sizes.argsort()])
+            )
+
         header = {'read_n_a': 0} # automatic normalization of size-bins from mcfost param file.
         if self.read_gas_density:
             #devnote: add try statement here ?
