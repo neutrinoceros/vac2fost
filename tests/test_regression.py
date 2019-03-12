@@ -54,7 +54,10 @@ class TestRegressionMain:
     def test_target_grid(self):
         itf = __class__.itf
         ref = fits.open(__class__.subrefdir / "mcfost_grid.fits.gz")[0].data
-        new = fits.open(itf.io.OUT.directory/'mcfost_grid.fits.gz')[0].data
+        new = fits.open(itf.io.OUT.directory/ "mcfost_grid.fits.gz")[0].data
+
+        #shutil.copyfile(itf.io.OUT.directory/ "mcfost_grid.fits.gz",
+        #                __class__.subrefdir / "mcfost_grid.fits.gz") # regold
         np.testing.assert_array_equal(ref, new)
 
     def test_out(self):
@@ -83,6 +86,7 @@ class TestRegressionMain:
         fipath = itf.io.OUT.filepath
         data = fits.open(fipath)[0].data[0]
         ref = fits.open(__class__.subrefdir / "hd142527_dusty0000.fits")[0].data[0]
+        #shutil.copyfile(fipath, __class__.subrefdir / "hd142527_dusty0000.fits") #regold
         np.testing.assert_array_equal(data, ref)
 
 class TestRegressionMutliNums:
@@ -95,6 +99,7 @@ class TestRegressionMutliNums:
         for n in (0, 1, 2):
             out_file = __class__.itf.io.OUT.directory / f"{filename}{str(n).zfill(4)}.fits"
             ref_file = test_dir / f"ref/{REFVER}/multinums/hd142527_dusty{str(n).zfill(4)}.fits"
+            #shutil.copyfile(out_file, ref_file) #regold
             assert out_file.exists()
             np.testing.assert_array_equal(fits.open(out_file)[0].data, fits.open(ref_file)[0].data)
 
@@ -128,7 +133,9 @@ class TestRegressionNonAxisym:
         itf.write_output()
         fipath = itf.io.OUT.filepath
         data = fits.open(fipath)[0].data[0]
+        #shutil.copyfile(fipath, __class__.subrefdir / "hd142527_rphi0020.fits")#regold
         ref = fits.open(__class__.subrefdir / "hd142527_rphi0020.fits")[0].data[0]
+
         np.testing.assert_array_equal(data, ref)
 
 class TestRegressionAutoGasOnly:
