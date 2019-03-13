@@ -58,13 +58,13 @@ install_pymodules:
     - $SLURM_CMD pip install `pwd`/deps/vtk_vacreader-project
     - $SLURM_CMD pip install .
 
-unitests:
+unit:
   stage: unit_tests
   script:
     - source activate $PYENV
     - $SLURM_CMD pytest tests/unit
 
-intest:
+integration:
   stage: integration_tests
   script:
     - source activate $PYENV
