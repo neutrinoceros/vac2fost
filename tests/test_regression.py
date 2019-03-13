@@ -6,17 +6,9 @@ import numpy as np
 from astropy.io import fits
 
 from vac2fost import main as app
-from vac2fost.vac2fost import DETECTED_MCFOST_VERSION
-
-x, y, z = map(int, DETECTED_MCFOST_VERSION.split("."))
-assert x == 3 and y == 0
-if z < 35:
-    REFVER = "3.0.34"
-else:
-    REFVER = "3.0.35"
 
 test_dir = Path(__file__).parent.resolve()
-REFOUT_DIR = test_dir / f"ref/{REFVER}"
+REFOUT_DIR = test_dir / "ref"
 OUT = test_dir/"output"
 
 def instanciate_interface(conffile, **kwargs):
@@ -99,7 +91,7 @@ class TestRegressionMutliNums:
         filename = __class__.itf.io.OUT.filepath.stem[:-4]
         for n in (0, 1, 2):
             out_file = __class__.itf.io.OUT.directory / f"{filename}{str(n).zfill(4)}.fits"
-            ref_file = test_dir / f"ref/{REFVER}/multinums/hd142527_dusty{str(n).zfill(4)}.fits"
+            ref_file = __class__.subrefdir / f"hd142527_dusty{str(n).zfill(4)}.fits"
             #shutil.copyfile(out_file, ref_file) #regold
             assert out_file.exists()
             np.testing.assert_allclose(fits.open(out_file)[0].data, fits.open(ref_file)[0].data, rtol=5e-14)
