@@ -455,7 +455,7 @@ class Interface:
     @wait_for_ok("parsing input")
     def __init__(self, config_file,
                  nums: int = None, # or any int-returning iterable
-                 output_dir: Path = Path('.'),
+                 output_dir: Path = Path.cwd(),
                  dust_bin_mode: str = "auto",
                  read_gas_density=False,
                  read_gas_velocity=False,
