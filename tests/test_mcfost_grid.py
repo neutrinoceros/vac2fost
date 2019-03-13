@@ -1,26 +1,12 @@
-'''Test basic consistency of main() called through python.'''
 import shutil
 import multiprocessing as mp
 from pathlib import Path
 
 import pytest
-import f90nml
 
-from amrvac_pywrap import read_amrvac_conf
-from vac2fost.vac2fost import MCFOSTUtils, Interface
+from vac2fost.vac2fost import Interface
 
 test_dir = Path(__file__).absolute().parent
-
-sampledir = test_dir / 'sample'
-config_file = sampledir / 'vac2fost_conf.nml'
-config = f90nml.read(config_file)
-options = config['amrvac_input']
-sim_conf = read_amrvac_conf(files=options["config"],
-                            origin=sampledir/options['hydro_data_dir'])
-
-custom = {}
-itf = Interface(str(config_file))
-custom.update(MCFOSTUtils.translate_amrvac_config(itf))
 
 def gen_mcfost_grid(output_dir):
     """Create an Interface only to create an mcfost grid from it,
@@ -28,7 +14,7 @@ def gen_mcfost_grid(output_dir):
     """
     if output_dir.exists():
         shutil.rmtree(output_dir)
-    myitf = Interface(config_file=test_dir/'sample/vac2fost_conf.nml',
+    myitf = Interface(config_file=test_dir / "sample/vac2fost_conf.nml",
                       output_dir=output_dir, mcfost_verbose=True)
     return myitf.output_grid
 
