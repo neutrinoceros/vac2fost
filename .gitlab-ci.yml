@@ -64,13 +64,7 @@ unitests:
     - source activate $PYENV
     - $SLURM_CMD pytest tests/unit
 
-mcfost_grid:
-  stage: unit_tests
-  script:
-    - source activate $PYENV
-    - $SLURM_CMD pytest tests/test_mcfost_grid.py
-
-misc_intest:
+intest:
   stage: integration_tests
   script:
     - source activate $PYENV
