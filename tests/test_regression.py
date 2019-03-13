@@ -53,11 +53,11 @@ class TestRegressionMain:
 
     def test_target_grid(self):
         itf = __class__.itf
-        ref = fits.open(__class__.subrefdir / "mcfost_grid.fits.gz")[0].data
-        new = fits.open(itf.io.OUT.directory/ "mcfost_grid.fits.gz")[0].data
-
-        #shutil.copyfile(itf.io.OUT.directory/ "mcfost_grid.fits.gz",
-        #                __class__.subrefdir / "mcfost_grid.fits.gz") # regold
+        ref_file = __class__.subrefdir / "mcfost_grid.fits.gz"
+        new_file = itf.io.OUT.directory/'mcfost_grid.fits.gz'
+        ref = fits.open(ref_file)[0].data
+        new = fits.open(new_file)[0].data
+        #shutil.copyfile(new_file, ref_file) # to regold ...
         np.testing.assert_allclose(ref, new, rtol=1e-15)
 
     def test_out(self):
@@ -83,11 +83,12 @@ class TestRegressionMain:
         # get the Primary (only image available),
         # and exctract its first 3d array (density field)
         itf.write_output()
-        fipath = itf.io.OUT.filepath
-        data = fits.open(fipath)[0].data[0]
-        ref = fits.open(__class__.subrefdir / "hd142527_dusty0000.fits")[0].data[0]
-        #shutil.copyfile(fipath, __class__.subrefdir / "hd142527_dusty0000.fits") #regold
-        np.testing.assert_allclose(data, ref, rtol=5e-14)
+        ref_file = __class__.subrefdir / "hd142527_dusty0000.fits"
+        new_file = itf.io.OUT.filepath
+        #shutil.copyfile(new_file, ref_file) # to regold ...
+        ref = fits.open(ref_file)[0].data[0]
+        new = fits.open(new_file)[0].data[0]
+        np.testing.assert_allclose(new, ref, rtol=5e-14)
 
 class TestRegressionMutliNums:
     subrefdir = REFOUT_DIR / "multinums"
@@ -97,11 +98,11 @@ class TestRegressionMutliNums:
     def test_multinums_output(self):
         filename = __class__.itf.io.OUT.filepath.stem[:-4]
         for n in (0, 1, 2):
-            out_file = __class__.itf.io.OUT.directory / f"{filename}{str(n).zfill(4)}.fits"
+            new_file = __class__.itf.io.OUT.directory / f"{filename}{str(n).zfill(4)}.fits"
             ref_file = test_dir / f"ref/{REFVER}/multinums/hd142527_dusty{str(n).zfill(4)}.fits"
-            #shutil.copyfile(out_file, ref_file) #regold
-            assert out_file.exists()
-            np.testing.assert_allclose(fits.open(out_file)[0].data, fits.open(ref_file)[0].data, rtol=5e-14)
+            assert new_file.exists()
+            #shutil.copyfile(new_file, ref_file) # to regold ...
+            np.testing.assert_allclose(fits.open(new_file)[0].data, fits.open(ref_file)[0].data, rtol=5e-14)
 
 class TestRegressionNonAxisym:
     subrefdir = REFOUT_DIR / "nonaxisym"
@@ -131,12 +132,12 @@ class TestRegressionNonAxisym:
         # get the Primary (only image available),
         # and exctract its first 3d array (density field)
         itf.write_output()
-        fipath = itf.io.OUT.filepath
-        data = fits.open(fipath)[0].data[0]
-        #shutil.copyfile(fipath, __class__.subrefdir / "hd142527_rphi0020.fits")#regold
-        ref = fits.open(__class__.subrefdir / "hd142527_rphi0020.fits")[0].data[0]
-
-        np.testing.assert_allclose(data, ref, rtol=5e-14)
+        ref_file = __class__.subrefdir / "hd142527_rphi0020.fits"
+        new_file = itf.io.OUT.filepath
+        ref = fits.open(ref_file)[0].data[0]
+        new = fits.open(new_file)[0].data[0]
+        #shutil.copyfile(new_file, ref_file) # to regold ...
+        np.testing.assert_allclose(new, ref, rtol=5e-14)
 
 class TestRegressionAutoGasOnly:
     subrefdir = REFOUT_DIR / "autogasonly"
