@@ -62,7 +62,7 @@ misc_unitests:
   stage: unit_tests
   script:
     - source activate $PYENV
-    - $SLURM_CMD pytest tests/test_{params,io,dust_binning_mode,mcfost_writter,utils}.py
+    - $SLURM_CMD pytest tests/test_{params,io,dust_detection,mcfost_writter,utils}.py
 
 mcfost_grid:
   stage: unit_tests
