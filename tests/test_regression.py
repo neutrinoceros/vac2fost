@@ -1,3 +1,4 @@
+
 import pickle
 from pathlib import Path
 import shutil
@@ -5,17 +6,9 @@ import numpy as np
 from astropy.io import fits
 
 from vac2fost import main as app
-from vac2fost.vac2fost import DETECTED_MCFOST_VERSION
-
-x, y, z = map(int, DETECTED_MCFOST_VERSION.split("."))
-assert x == 3 and y == 0
-if z < 35:
-    REFVER = "3.0.34"
-else:
-    REFVER = "3.0.35"
 
 test_dir = Path(__file__).parent.resolve()
-REFOUT_DIR = test_dir / f"ref/{REFVER}"
+REFOUT_DIR = test_dir / "ref"
 OUT = test_dir/"output"
 
 def instanciate_interface(conffile, **kwargs):
@@ -39,7 +32,7 @@ def regold(itf, reffile):
 
 class TestRegressionMain:
     subrefdir = REFOUT_DIR / "default"
-    itf = instanciate_interface(conffile="vac2fost_conf.nml")
+    itf = instanciate_interface(conffile="vac2fost_conf.nml", mcfost_verbose=True)
     itf.tag = itf._base_args['config_file'].stem
 
     def test_mcfost_conf(self):
@@ -99,10 +92,11 @@ class TestRegressionMutliNums:
         filename = __class__.itf.io.OUT.filepath.stem[:-4]
         for n in (0, 1, 2):
             new_file = __class__.itf.io.OUT.directory / f"{filename}{str(n).zfill(4)}.fits"
-            ref_file = test_dir / f"ref/{REFVER}/multinums/hd142527_dusty{str(n).zfill(4)}.fits"
+            ref_file = __class__.subrefdir / f"hd142527_dusty{str(n).zfill(4)}.fits"
             assert new_file.exists()
             #shutil.copyfile(new_file, ref_file) # to regold ...
             np.testing.assert_allclose(fits.open(new_file)[0].data, fits.open(ref_file)[0].data, rtol=5e-14)
+
 
 class TestRegressionNonAxisym:
     subrefdir = REFOUT_DIR / "nonaxisym"

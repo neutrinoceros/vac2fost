@@ -7,7 +7,6 @@ import pytest
 import f90nml
 from astropy.io import fits
 from vac2fost import main as app
-from vac2fost.vac2fost import DETECTED_MCFOST_VERSION
 
 test_dir = pathlib.Path(__file__).absolute().parent
 outdir = test_dir / "output/test_read_gas_density"
@@ -31,7 +30,6 @@ class TestGasReading:
         target_shape = tuple([conf[k] for k in ("nr","nz", "nphi")])
         assert gas_density.shape == target_shape
 
-    @pytest.mark.skipif(DETECTED_MCFOST_VERSION < "3.0.35", reason="latest mcfost versions only")
     def test_read_gas_density_is_valid(self):
         """check that mcfost doesn't crash when passed gas density."""
         os.chdir(itf.io.OUT.directory)
