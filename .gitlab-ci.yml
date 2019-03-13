@@ -74,7 +74,7 @@ misc_intest:
   stage: integration_tests
   script:
     - source activate $PYENV
-    - $SLURM_CMD pytest tests/test_{env,read_gas_velocity,scripting,edge_cases}.py
+    - $SLURM_CMD pytest tests/int
 
 shell:
   stage: integration_tests

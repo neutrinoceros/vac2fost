@@ -7,7 +7,7 @@ import f90nml
 from vac2fost import main as app
 import pytest
 
-testdir = Path(__file__).parent.resolve()
+testdir = Path(__file__).parent.parent
 OUT = testdir / "output"
 densfile = "hd142527_dusty0000.fits"
 

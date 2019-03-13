@@ -4,7 +4,7 @@ import vac2fost
 from vac2fost import main as app
 import pytest
 
-testdir = pathlib.Path(__file__).absolute().parent
+testdir = pathlib.Path(__file__).parent.parent
 output_dir = testdir/'output/test_env'
 
 @pytest.mark.skipif(not vac2fost.vac2fost.colorama,
