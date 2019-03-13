@@ -5,7 +5,7 @@ import f90nml
 from vtk_vacreader import VacDataSorter as VDS
 from vac2fost.vac2fost import Interface, MINGRAINSIZE_µ
 
-test_dir = pathlib.Path(__file__).absolute().parent
+test_dir = pathlib.Path(__file__).absolute().parent.parent
 output_dir = test_dir / "test_dust_binning_mode"
 
 class TestDBM:

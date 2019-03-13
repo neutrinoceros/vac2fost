@@ -1,8 +1,10 @@
 from os import mkdir
 from pathlib import Path
+import pytest
 from vac2fost.vac2fost import MCFOSTUtils
+from vac2fost import main as app
 
-testdir = Path(__file__).parent.absolute()
+testdir = Path(__file__).parent.parent
 outdir = testdir/"output"
 
 if not outdir.is_dir():
@@ -28,3 +30,11 @@ def test_writter_args():
         outdir/"writter_out_2.para",
         custom={"nphot_sed": 2}
     )
+
+
+def test_unrecognized_mcfost_parameter():
+    with pytest.raises(KeyError):
+        app(
+            str(testdir / "sample/vac2fost_conf_fake_params.nml"),
+            output_dir=testdir/"output/fake_params"
+        )
