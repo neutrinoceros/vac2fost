@@ -1,3 +1,4 @@
+
 import pickle
 from pathlib import Path
 import shutil
@@ -39,7 +40,7 @@ def regold(itf, reffile):
 
 class TestRegressionMain:
     subrefdir = REFOUT_DIR / "default"
-    itf = instanciate_interface(conffile="vac2fost_conf.nml")
+    itf = instanciate_interface(conffile="vac2fost_conf.nml", mcfost_verbose=True)
     itf.tag = itf._base_args['config_file'].stem
 
     def test_mcfost_conf(self):

@@ -24,8 +24,8 @@ Disclaimer
   compatible with older versions of Python.
 """
 __version__ = "2.3.2"
-min_mcfost_version = "3.0.34"  # minimal requirement
-rec_mcfost_version = "3.0.35"  # recommendation
+min_mcfost_version = "3.0.35"  # minimal requirement
+#rec_mcfost_version = "3.0.35"  # recommendation
 
 
 
@@ -36,7 +36,6 @@ import os
 import sys
 import shutil
 from dataclasses import dataclass
-from warnings import warn
 from pathlib import Path
 from subprocess import run, CalledProcessError
 from argparse import ArgumentParser
@@ -75,13 +74,6 @@ DETECTED_MCFOST_VERSION = out.split("\n")[0].split()[-1]
 del out
 if DETECTED_MCFOST_VERSION < min_mcfost_version:
     raise OSError(f"mcfost version must be >= {min_mcfost_version}")
-
-if DETECTED_MCFOST_VERSION < rec_mcfost_version:
-    warn(f"vac2fost is developed for mcfost {rec_mcfost_version} or later. " \
-         f"You are using mcfost {DETECTED_MCFOST_VERSION}")
-    EXPECTED_ZSHAPE_INCREMENT = 1
-else:
-    EXPECTED_ZSHAPE_INCREMENT = 0
 
 
 
@@ -356,7 +348,7 @@ class MCFOSTUtils:
             print(f'Warning: {output_file} already exists, and will be overwritten.')
         with open(output_file, mode="wt") as fi:
             fi.write(".".join(min_mcfost_version.split(".")[:2]).ljust(10) +
-                     f"mcfost minimal version. {rec_mcfost_version} is recommended\n\n")
+                     "mcfost minimal version prescribed by vac2fost\n\n")
             for block, lines in __class__.blocks_descriptors.items():
                 fi.write(f'# {block}\n')
                 for line in lines:
@@ -864,7 +856,7 @@ class Interface:
         nbins = len(self.new_2D_arrays)
         self._new_3D_arrays = np.zeros((nbins, nphi, nz, nr))
         for ir, r in enumerate(self.output_grid["rv"]):
-            z_vect = self.output_grid["zg"][nz+EXPECTED_ZSHAPE_INCREMENT:, ir].reshape(1, nz)
+            z_vect = self.output_grid["zg"][nz:, ir].reshape(1, nz)
             local_height = r * self.aspect_ratio
             gaussian = np.exp(-z_vect**2/ (2*local_height**2)) / (np.sqrt(2*np.pi) * local_height)
             for i_bin, surface_density in enumerate(self.new_2D_arrays[:, ir, :]):
