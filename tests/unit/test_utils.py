@@ -1,3 +1,4 @@
+"""Tests related to isolated functions in vac2fost (outside of classes)"""
 from os import environ as env
 from pathlib import Path
 from vac2fost.vac2fost import shell_path
