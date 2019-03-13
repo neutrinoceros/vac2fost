@@ -73,4 +73,4 @@ class TestMassEstimate:
         estimates = [itf.estimate_dust_mass() for itf in itfs]
         ref = estimates.pop(0)
         for e in estimates:
-            assert abs(e -ref) / ref < 1e-6
+            assert abs(e -ref) / ref < 1e-11
