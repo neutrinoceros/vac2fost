@@ -61,3 +61,16 @@ class TestDBM:
                         dust_bin_mode="dust-only")
         with pytest.raises(KeyError):
             gms = itf.grain_micron_sizes
+
+
+
+class TestMassEstimate:
+    def test_dust_mass_estimations_consistency(self):
+        itfs = [Interface(test_dir/'sample/vac2fost_conf_quick.nml',
+                          output_dir=output_dir,
+                          dust_bin_mode=dbm)
+                for dbm in ("mixed", "gas-only", "dust-only")]
+        estimates = [itf.estimate_dust_mass() for itf in itfs]
+        ref = estimates.pop(0)
+        for e in estimates:
+            assert abs(e -ref) / ref < 1e-6
