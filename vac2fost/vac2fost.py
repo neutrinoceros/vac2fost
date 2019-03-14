@@ -369,39 +369,6 @@ class MCFOSTUtils:
         if verbose:
             print(f'wrote {output_file}')
 
-    def translate_amrvac_config(itf: Interface) -> dict:
-        # devnote : this should be refactored as part of the Interface class
-        '''pass amrvac parameters to mcfost'''
-        parameters = {}
-
-        # Zone
-        mesh = itf.sim_conf['meshlist']
-        conv2au = itf.config["units"]["distance2au"]
-        parameters.update({
-            'rin': mesh['xprobmin1']*conv2au,
-            'rout': mesh['xprobmax1']*conv2au,
-            'maps_size': 2*mesh['xprobmax1']*conv2au,
-        })
-
-        if itf._bin_dust(): #devnote : using a private method outside of class...
-            parameters.update({
-                "gas_to_dust_ratio": itf.g2d_ratio,
-                "dust_mass": itf.estimate_dust_mass()
-            })
-            # Grains
-            sizes_µm = itf.grain_micron_sizes
-            parameters.update({
-                # min/max grain sizes in microns
-                'sp_min': min(1e-1, min(sizes_µm)),
-                'sp_max': max(1e3, max(sizes_µm)),
-            })
-        #Star
-        try:
-            parameters.update({"star_mass": itf.sim_conf["disk_list"]["central_mass"]})
-        except KeyError:
-            itf.warnings.append("Parameter &disk_list:central_mass not found. Assuming default 1.0")
-        return parameters
-
     def get_mcfost_grid(itf) -> np.ndarray:
         '''Pre-run MCFOST with -disk_struct flag to get the exact grid used.'''
         mcfost_conf_file = itf.mcfost_conf_file
@@ -740,10 +707,41 @@ class Interface:
         mass *= self.config["units"]["mass2solar"]
         return mass
 
+    def _translate_amrvac_config(self) -> dict:
+        parameters = {}
+
+        # Zone
+        mesh = self.sim_conf['meshlist']
+        conv2au = self.config["units"]["distance2au"]
+        parameters.update({
+            'rin': mesh['xprobmin1']*conv2au,
+            'rout': mesh['xprobmax1']*conv2au,
+            'maps_size': 2*mesh['xprobmax1']*conv2au,
+        })
+
+        if self._bin_dust(): #devnote : using a private method outside of class...
+            parameters.update({
+                "gas_to_dust_ratio": self.g2d_ratio,
+                "dust_mass": self.estimate_dust_mass()
+            })
+            # Grains
+            sizes_µm = self.grain_micron_sizes
+            parameters.update({
+                # min/max grain sizes in microns
+                'sp_min': min(1e-1, min(sizes_µm)),
+                'sp_max': max(1e3, max(sizes_µm)),
+            })
+        #Star
+        try:
+            parameters.update({"star_mass": self.sim_conf["disk_list"]["central_mass"]})
+        except KeyError:
+            self.warnings.append("&disk_list not found. Assuming default values")
+        return parameters
+
     def write_mcfost_conf_file(self) -> None:
         '''Customize defaults with user specifications'''
         custom = {}
-        custom.update(MCFOSTUtils.translate_amrvac_config(self))
+        custom.update(self._translate_amrvac_config())
         unknown_args = self._scan_for_unknown_arguments()
         if unknown_args:
             raise KeyError(f'Unrecognized MCFOST argument(s): {unknown_args}')
