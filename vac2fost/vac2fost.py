@@ -785,26 +785,7 @@ class Interface:
 
         if self.read_gas_velocity:
             header.update(dict(read_gas_velocity=1))
-            rho, mr, mphi = map(self._interpolate2D, ["rho", "m1", "m2"])
-            vr, vphi = map(lambda x: x/rho, [mr, mphi])
-            phig = self.output_grid["phig"].transpose()
-            vx = vr * np.cos(phig) - vphi * np.sin(phig)
-            vy = vr * np.sin(phig) + vphi * np.cos(phig)
-
-            # transform to 3D
-            nz = self.io.OUT.gridshape.nz
-            vx, vy = map(lambda a: np.stack([a]*nz, axis=1), [vx, vy])
-            vz = np.zeros(vx.shape)
-            oshape = self.io.OUT.gridshape
-            for v in (vx, vy, vz):
-                np.testing.assert_array_equal(v.shape, (oshape.nr, oshape.nz, oshape.nphi))
-
-            # unit conversion
-            conv = self.config["units"]
-            vel2km_per_s = conv["distance2au"]*AU2KM / (conv["time2yr"]*YR2S)
-
-            velarr = np.stack([vx, vy, vz], axis=3) * vel2km_per_s
-            suppl_hdus.append(fits.ImageHDU(velarr.T))
+            suppl_hdus.append(fits.ImageHDU(self.new_3D_gas_velocity))
 
         dust_densities_HDU = fits.PrimaryHDU(self.new_3D_arrays[dust_bin_selector])
         for k, v in header.items():
@@ -876,6 +857,32 @@ class Interface:
         if self._new_3D_arrays is None:
             self.gen_3D_arrays()
         return self._new_3D_arrays
+
+    @property
+    def new_3D_gas_velocity(self) -> np.ndarray:
+        """Derive the 3D velocity field for gas velocity, in km/s"""
+        rho, mr, mphi = map(self._interpolate2D, ["rho", "m1", "m2"])
+        vr, vphi = map(lambda x: x/rho, [mr, mphi])
+        phig = self.output_grid["phig"].transpose()
+        vx = vr * np.cos(phig) - vphi * np.sin(phig)
+        vy = vr * np.sin(phig) + vphi * np.cos(phig)
+
+        # transform to 3D
+        nz = self.io.OUT.gridshape.nz
+        vx, vy = map(lambda a: np.stack([a]*nz, axis=1), [vx, vy])
+        vz = np.zeros(vx.shape)
+        oshape = self.io.OUT.gridshape
+        for v in (vx, vy, vz):
+            np.testing.assert_array_equal(v.shape, (oshape.nr, oshape.nz, oshape.nphi))
+
+        # unit conversion
+        conv = self.config["units"]
+        vel2km_per_s = conv["distance2au"]*AU2KM / (conv["time2yr"]*YR2S)
+
+        velarr = np.stack([vx, vy, vz], axis=3) * vel2km_per_s
+        return velarr.transpose()
+
+
 
 # Verbose version of Interface ==========================================================
 class VerbatimInterface(Interface):
