@@ -19,20 +19,22 @@ def instanciate_interface(conffile, **kwargs):
     return itf
 
 # to regold tests
-def regold(itf, reffile):
+def regold(itf, reffile, morekeys:list = None):
     save_keys = [
         'sim_conf',
         'input_grid', 'output_grid',
         'new_2D_arrays', 'new_3D_arrays',
         'dust_binning_mode'
     ]
+    if morekeys is not None:
+        save_keys += morekeys
     with open(reffile, mode="wb") as file:
         out = {k: itf.__getattribute__(k) for k in save_keys}
         pickle.dump(out, file)
 
 class TestRegressionMain:
     subrefdir = REFOUT_DIR / "default"
-    itf = instanciate_interface(conffile="vac2fost_conf.nml", mcfost_verbose=True)
+    itf = instanciate_interface(conffile="vac2fost_conf.nml", read_gas_velocity=True, mcfost_verbose=True)
     itf.tag = itf._base_args['config_file'].stem
 
     def test_mcfost_conf(self):
@@ -56,7 +58,7 @@ class TestRegressionMain:
     def test_out(self):
         itf = __class__.itf
         reffile = __class__.subrefdir / f"{itf.tag}.p"
-        #regold(itf, reffile)
+        #regold(itf, reffile, morekeys=["new_3D_gas_velocity"])
 
         out_ref = pickle.load(open(reffile, mode="rb"))
         assert itf.dust_binning_mode == out_ref['dust_binning_mode']
@@ -70,6 +72,7 @@ class TestRegressionMain:
         np.testing.assert_allclose(itf.output_grid['zg'], out_ref['output_grid']['zg'], rtol=1e-15)
         np.testing.assert_allclose(itf.new_2D_arrays, out_ref['new_2D_arrays'], rtol=1e-25)
         np.testing.assert_allclose(itf.new_3D_arrays, out_ref['new_3D_arrays'], rtol=5e-14)
+        np.testing.assert_allclose(itf.new_3D_gas_velocity, out_ref['new_3D_gas_velocity'], rtol=5e-14)
 
     def test_image(self):
         itf = __class__.itf
@@ -106,7 +109,9 @@ class TestRegressionNonAxisym:
     def test_out(self):
         itf = __class__.itf
         reffile = __class__.subrefdir / f"{itf.tag}.p"
-        #regold(itf, reffile)
+        # nb: the present test forces the computatio of the 3D gas velocity field
+        # BY testing or regolding it, despite the fact it's not ask at instanciation
+        #regold(itf, reffile, morekeys=["new_3D_gas_velocity"])
 
         out_ref = pickle.load(open(reffile, mode="rb"))
         assert itf.dust_binning_mode == out_ref['dust_binning_mode']
@@ -120,6 +125,7 @@ class TestRegressionNonAxisym:
         np.testing.assert_allclose(itf.output_grid['zg'], out_ref['output_grid']['zg'], rtol=1e-15)
         np.testing.assert_allclose(itf.new_2D_arrays, out_ref['new_2D_arrays'], rtol=1e-25)
         np.testing.assert_allclose(itf.new_3D_arrays, out_ref['new_3D_arrays'], rtol=5e-14)
+        np.testing.assert_allclose(itf.new_3D_gas_velocity, out_ref['new_3D_gas_velocity'], rtol=5e-14)
 
     def test_image(self):
         itf = __class__.itf
