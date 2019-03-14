@@ -742,7 +742,7 @@ class Interface:
         '''Customize defaults with user specifications'''
         custom = {}
         custom.update(MCFOSTUtils.translate_amrvac_config(self))
-        unknown_args = self.scan_for_unknown_arguments()
+        unknown_args = self._scan_for_unknown_arguments()
         if unknown_args:
             raise KeyError(f'Unrecognized MCFOST argument(s): {unknown_args}')
         custom.update(self.config['mcfost_output'])
@@ -753,10 +753,10 @@ class Interface:
             verbose=self.mcfost_verbose
         )
 
-    def scan_for_unknown_arguments(self) -> list:
-        '''Get unrecognized arguments found in mcfost_output'''
+    def _scan_for_unknown_arguments(self) -> list:
+        """Get unrecognized arguments found in mcfost_output"""
         unknowns = []
-        for arg in self.config['mcfost_output'].keys():
+        for arg in self.config["mcfost_output"].keys():
             if not arg.lower() in MCFOSTUtils.known_args:
                 unknowns.append(arg)
         return unknowns
