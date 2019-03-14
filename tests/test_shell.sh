@@ -1,5 +1,6 @@
 #! /usr/bin/sh
-TESTDIR=$ROOTDIR/tests
+
+TESTDIR=$ROOTDIR/tests # this required that ROOTDIR be defined as the path to vac2fost installation dir
 OUT=$TESTDIR/output
 EXE=$OUT/v2f_exe.py
 
