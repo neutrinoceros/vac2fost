@@ -81,6 +81,7 @@ if DETECTED_MCFOST_VERSION < min_mcfost_version:
 MINGRAINSIZE_µ = 0.1
 YR2S = units.yr.to(units.s)
 AU2KM = units.au.to(units.km)
+DEFAULT_UNITS = dict(distance2au=1.0, time2yr=1.0, mass2solar=1.0)
 
 
 
@@ -123,8 +124,6 @@ def generate_conf_template() -> f90nml.Namelist:
         nums=0
     )
 
-    amrvac_unit_list = dict(distance2au=1.0, time2yr=1.0)
-
     mcfost_list = dict(
         nr=128, nr_in=4, nphi=128, nz=10,
         # aspect ratio is implied by those parameters
@@ -134,7 +133,7 @@ def generate_conf_template() -> f90nml.Namelist:
     )
     sublists = {
         "amrvac_input": amrvac_list,
-        "units": amrvac_unit_list,
+        "units": DEFAULT_UNITS,
         "mcfost_output": mcfost_list
     }
     template = f90nml.Namelist({k: f90nml.Namelist(v) for k, v in sublists.items()})
@@ -370,35 +369,6 @@ class MCFOSTUtils:
         if verbose:
             print(f'wrote {output_file}')
 
-    def translate_amrvac_config(itf) -> dict:
-        # itf must be of type Interface (can't be parsed properly before python 3.7)
-        # devnote : this should be refactored as part of the Interface class
-        '''pass amrvac parameters to mcfost'''
-        parameters = {}
-
-        # Zone
-        mesh = itf.sim_conf['meshlist']
-        conv2au = itf.config["units"]["distance2au"]
-        parameters.update({
-            'rin': mesh['xprobmin1']*conv2au,
-            'rout': mesh['xprobmax1']*conv2au,
-            'maps_size': 2*mesh['xprobmax1']*conv2au,
-        })
-
-        if itf._bin_dust(): #devnote : using a private method outside of class...
-            parameters.update({
-                "gas_to_dust_ratio": itf.g2d_ratio,
-                "dust_mass": itf.estimate_dust_mass()
-            })
-            # Grains
-            sizes_µm = itf.grain_micron_sizes
-            parameters.update({
-                # min/max grain sizes in microns
-                'sp_min': min(1e-1, min(sizes_µm)),
-                'sp_max': max(1e3, max(sizes_µm)),
-            })
-        return parameters
-
     def get_mcfost_grid(itf) -> np.ndarray:
         '''Pre-run MCFOST with -disk_struct flag to get the exact grid used.'''
         mcfost_conf_file = itf.mcfost_conf_file
@@ -535,13 +505,11 @@ class Interface:
             os.makedirs(self.io.OUT.directory)
             self.warnings.append(f"dir {self.io.OUT.directory} was created")
 
-        # optional definition of the distance unit
-        default_units = dict(distance2au=1.0, time2yr=1.0)
         if not self.config.get("units"):
-            self.warnings.append(f"&units parameter list not found. Assuming {default_units}")
-            self.config["units"] = f90nml.Namelist(default_units)
+            self.warnings.append(f"&units parameter list not found. Assuming {DEFAULT_UNITS}")
+            self.config["units"] = f90nml.Namelist(DEFAULT_UNITS)
         else:
-            for k, v in default_units.items():
+            for k, v in DEFAULT_UNITS.items():
                 if not self.config["units"].get(k):
                     self.warnings.append(f"&units:{k} parameter not found. Assuming default {v}")
                     self.config["units"][k] = v
@@ -719,7 +687,7 @@ class Interface:
         return res
 
     def estimate_dust_mass(self) -> float:
-        """Estimate the total dust mass in the grid, in code units"""
+        """Estimate the total dust mass in the grid, in solar masses"""
         # devnote : this assumes a linearly spaced grid
         dphi = 2*np.pi / self.io.IN.gridshape.nphi
         rvect = self.input_data.get_ticks(0)
@@ -736,12 +704,44 @@ class Interface:
                             for i in range(self.io.IN.gridshape.nphi)])
         if self.dust_binning_mode == "gas-only":
             mass /= self.g2d_ratio
+        mass *= self.config["units"]["mass2solar"]
         return mass
+
+    def _translate_amrvac_config(self) -> dict:
+        parameters = {}
+
+        # Zone
+        mesh = self.sim_conf['meshlist']
+        conv2au = self.config["units"]["distance2au"]
+        parameters.update({
+            'rin': mesh['xprobmin1']*conv2au,
+            'rout': mesh['xprobmax1']*conv2au,
+            'maps_size': 2*mesh['xprobmax1']*conv2au,
+        })
+
+        if self._bin_dust(): #devnote : using a private method outside of class...
+            parameters.update({
+                "gas_to_dust_ratio": self.g2d_ratio,
+                "dust_mass": self.estimate_dust_mass()
+            })
+            # Grains
+            sizes_µm = self.grain_micron_sizes
+            parameters.update({
+                # min/max grain sizes in microns
+                'sp_min': min(1e-1, min(sizes_µm)),
+                'sp_max': max(1e3, max(sizes_µm)),
+            })
+        #Star
+        try:
+            parameters.update({"star_mass": self.sim_conf["disk_list"]["central_mass"]})
+        except KeyError:
+            self.warnings.append("&disk_list not found. Assuming default values")
+        return parameters
 
     def write_mcfost_conf_file(self) -> None:
         '''Customize defaults with user specifications'''
         custom = {}
-        custom.update(MCFOSTUtils.translate_amrvac_config(self))
+        custom.update(self._translate_amrvac_config())
         unknown_args = self._scan_for_unknown_arguments()
         if unknown_args:
             raise KeyError(f'Unrecognized MCFOST argument(s): {unknown_args}')
