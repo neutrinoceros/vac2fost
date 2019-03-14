@@ -81,6 +81,7 @@ if DETECTED_MCFOST_VERSION < min_mcfost_version:
 MINGRAINSIZE_µ = 0.1
 YR2S = units.yr.to(units.s)
 AU2KM = units.au.to(units.km)
+DEFAULT_UNITS = dict(distance2au=1.0, time2yr=1.0, mass2solar=1.0)
 
 
 
@@ -123,8 +124,6 @@ def generate_conf_template() -> f90nml.Namelist:
         nums=0
     )
 
-    amrvac_unit_list = dict(distance2au=1.0, time2yr=1.0)
-
     mcfost_list = dict(
         nr=128, nr_in=4, nphi=128, nz=10,
         # aspect ratio is implied by those parameters
@@ -134,7 +133,7 @@ def generate_conf_template() -> f90nml.Namelist:
     )
     sublists = {
         "amrvac_input": amrvac_list,
-        "units": amrvac_unit_list,
+        "units": DEFAULT_UNITS,
         "mcfost_output": mcfost_list
     }
     template = f90nml.Namelist({k: f90nml.Namelist(v) for k, v in sublists.items()})
@@ -535,13 +534,11 @@ class Interface:
             os.makedirs(self.io.OUT.directory)
             self.warnings.append(f"dir {self.io.OUT.directory} was created")
 
-        # optional definition of the distance unit
-        default_units = dict(distance2au=1.0, time2yr=1.0)
         if not self.config.get("units"):
-            self.warnings.append(f"&units parameter list not found. Assuming {default_units}")
-            self.config["units"] = f90nml.Namelist(default_units)
+            self.warnings.append(f"&units parameter list not found. Assuming {DEFAULT_UNITS}")
+            self.config["units"] = f90nml.Namelist(DEFAULT_UNITS)
         else:
-            for k, v in default_units.items():
+            for k, v in DEFAULT_UNITS.items():
                 if not self.config["units"].get(k):
                     self.warnings.append(f"&units:{k} parameter not found. Assuming default {v}")
                     self.config["units"][k] = v
@@ -719,7 +716,7 @@ class Interface:
         return res
 
     def estimate_dust_mass(self) -> float:
-        """Estimate the total dust mass in the grid, in code units"""
+        """Estimate the total dust mass in the grid, in solar masses"""
         # devnote : this assumes a linearly spaced grid
         dphi = 2*np.pi / self.io.IN.gridshape.nphi
         rvect = self.input_data.get_ticks(0)
@@ -736,6 +733,7 @@ class Interface:
                             for i in range(self.io.IN.gridshape.nphi)])
         if self.dust_binning_mode == "gas-only":
             mass /= self.g2d_ratio
+        mass *= self.config["units"]["mass2solar"]
         return mass
 
     def write_mcfost_conf_file(self) -> None:
