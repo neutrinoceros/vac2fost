@@ -369,8 +369,7 @@ class MCFOSTUtils:
         if verbose:
             print(f'wrote {output_file}')
 
-    def translate_amrvac_config(itf) -> dict:
-        # itf must be of type Interface (can't be parsed properly before python 3.7)
+    def translate_amrvac_config(itf: Interface) -> dict:
         # devnote : this should be refactored as part of the Interface class
         '''pass amrvac parameters to mcfost'''
         parameters = {}
@@ -396,6 +395,11 @@ class MCFOSTUtils:
                 'sp_min': min(1e-1, min(sizes_µm)),
                 'sp_max': max(1e3, max(sizes_µm)),
             })
+        #Star
+        try:
+            parameters.update({"star_mass": itf.sim_conf["disk_list"]["central_mass"]})
+        except KeyError:
+            itf.warnings.append("Parameter &disk_list:central_mass not found. Assuming default 1.0")
         return parameters
 
     def get_mcfost_grid(itf) -> np.ndarray:
