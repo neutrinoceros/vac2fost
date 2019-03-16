@@ -79,8 +79,6 @@ if DETECTED_MCFOST_VERSION < min_mcfost_version:
 
 # Globals ===============================================================================
 MINGRAINSIZE_µ = 0.1
-YR2S = units.yr.to(units.s)
-AU2KM = units.au.to(units.km)
 DEFAULT_UNITS = dict(distance2au=1.0, time2yr=1.0, mass2solar=1.0)
 
 
@@ -877,9 +875,9 @@ class Interface:
 
         # unit conversion
         conv = self.config["units"]
-        vel2km_per_s = conv["distance2au"]*AU2KM / (conv["time2yr"]*YR2S)
-
-        velarr = np.stack([vx, vy, vz], axis=3) * vel2km_per_s
+        dimvel = conv["distance2au"]*units.au / (conv["time2yr"]*units.yr)
+        vel2kms = dimvel.to(units.km/units.s).value
+        velarr = np.stack([vx, vy, vz], axis=3) * vel2kms
         return velarr.transpose()
 
 
