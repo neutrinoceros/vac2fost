@@ -186,7 +186,7 @@ def read_amrvac_parfiles(parfiles: list, location: str = "") -> f90nml.Namelist:
         pfs = parfiles
     assert all([isinstance(pf, (str, os.PathLike)) for pf in pfs])
 
-    confs = [f90nml.read(pathloc / pf) for pf in pfs]
+    confs = [f90nml.read((pathloc / pf).resolve()) for pf in pfs]
     conf_tot = f90nml.Namelist()
     for c in confs:
         conf_tot.patch(c)
