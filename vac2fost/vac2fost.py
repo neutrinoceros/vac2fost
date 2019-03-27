@@ -876,7 +876,7 @@ class Interface:
         # unit conversion
         conv = self.config["units"]
         dimvel = conv["distance2au"]*units.au / (conv["time2yr"]*units.yr)
-        vel2kms = dimvel.to(units.km/units.s).value
+        vel2kms = dimvel.to(units.m / units.s).value
         velarr = np.stack([vx, vy, vz], axis=3) * vel2kms
         return velarr.transpose()
 
