@@ -247,12 +247,12 @@ class MCFOSTUtils:
                 od([('theory', 1)])
             )),
             ('Symmetries', (
-                od([('sym_image', False)]),
-                od([('sym_central', False)]),
-                od([('sym_axial', False)]),
+                od([('sym_image', True)]),
+                od([('sym_central', True)]),
+                od([('sym_axial', True)]),
             )),
             ('Disk physics', (
-                od([('dust_settling', 3),
+                od([('dust_settling', 0),
                     ('exp_strat', 0.5),
                     ('a_srat', 1.0)]),
                 od([('dust_radial_migration', False)]),

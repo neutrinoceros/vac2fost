@@ -39,10 +39,12 @@ class TestRegressionMain:
 
     def test_mcfost_conf(self):
         itf = __class__.itf
-        with open(__class__.subrefdir / "mcfost_conf.para") as fi:
-            ref_lines = fi.readlines()
         with open(itf.io.OUT.directory / "mcfost_conf.para") as fi:
             new_lines = fi.readlines()
+        #with open(__class__.subrefdir / "mcfost_conf.para", mode="wt") as fi: #regold...
+        #    fi.write("".join(new_lines))
+        with open(__class__.subrefdir / "mcfost_conf.para") as fi:
+            ref_lines = fi.readlines()
         for n, r in zip(new_lines[2:-3], ref_lines[2:]):
             assert n == r
 
@@ -146,10 +148,12 @@ class TestRegressionAutoGasOnly:
 
     def test_mcfost_conf(self):
         itf = __class__.itf
+        with open(itf.io.OUT.directory / "mcfost_conf.para") as fi:
+            new_lines = fi.readlines()
+        #with open(__class__.subrefdir / "mcfost_conf.para", mode="wt") as fi: #regold...
+        #    fi.write("".join(new_lines))
         with open(__class__.subrefdir / "mcfost_conf.para") as fi:
             ref_lines = fi.readlines()
-        with open(itf.io.OUT.directory/"mcfost_conf.para") as fi:
-            new_lines = fi.readlines()
         for n, r in zip(new_lines[2:-3], ref_lines[2:]):
             assert n == r
 
