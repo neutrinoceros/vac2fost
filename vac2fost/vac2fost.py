@@ -23,7 +23,7 @@ Disclaimer
   This package is using Python3.7 syntax/features and will not be made backward
   compatible with older versions of Python.
 """
-__version__ = "2.4.0"
+__version__ = "2.3.3"
 min_mcfost_version = "3.0.35"  # minimal requirement
 #rec_mcfost_version = "3.0.35"  # recommendation
 
@@ -79,8 +79,6 @@ if DETECTED_MCFOST_VERSION < min_mcfost_version:
 
 # Globals ===============================================================================
 MINGRAINSIZE_µ = 0.1
-YR2S = units.yr.to(units.s)
-AU2KM = units.au.to(units.km)
 DEFAULT_UNITS = dict(distance2au=1.0, time2yr=1.0, mass2solar=1.0)
 
 
@@ -188,7 +186,7 @@ def read_amrvac_parfiles(parfiles: list, location: str = "") -> f90nml.Namelist:
         pfs = parfiles
     assert all([isinstance(pf, (str, os.PathLike)) for pf in pfs])
 
-    confs = [f90nml.read(pathloc / pf) for pf in pfs]
+    confs = [f90nml.read((pathloc / pf).resolve()) for pf in pfs]
     conf_tot = f90nml.Namelist()
     for c in confs:
         conf_tot.patch(c)
@@ -249,12 +247,12 @@ class MCFOSTUtils:
                 od([('theory', 1)])
             )),
             ('Symmetries', (
-                od([('sym_image', False)]),
-                od([('sym_central', False)]),
-                od([('sym_axial', False)]),
+                od([('sym_image', True)]),
+                od([('sym_central', True)]),
+                od([('sym_axial', True)]),
             )),
             ('Disk physics', (
-                od([('dust_settling', 3),
+                od([('dust_settling', 0),
                     ('exp_strat', 0.5),
                     ('a_srat', 1.0)]),
                 od([('dust_radial_migration', False)]),
@@ -877,9 +875,9 @@ class Interface:
 
         # unit conversion
         conv = self.config["units"]
-        vel2km_per_s = conv["distance2au"]*AU2KM / (conv["time2yr"]*YR2S)
-
-        velarr = np.stack([vx, vy, vz], axis=3) * vel2km_per_s
+        dimvel = conv["distance2au"]*units.au / (conv["time2yr"]*units.yr)
+        vel2kms = dimvel.to(units.m / units.s).value
+        velarr = np.stack([vx, vy, vz], axis=3) * vel2kms
         return velarr.transpose()
 
 

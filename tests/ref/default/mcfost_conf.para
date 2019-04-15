@@ -1,4 +1,4 @@
-3.0       mcfost minimal version. Recommended minor 35
+3.0       mcfost minimal version prescribed by vac2fost
 
 # Photons
   1.28e5                                nphot_temp
@@ -27,12 +27,12 @@
   1                                     theory
 
 # Symmetries
-  False                                 sym_image
-  False                                 sym_central
-  False                                 sym_axial
+  True                                  sym_image
+  True                                  sym_central
+  True                                  sym_axial
 
 # Disk physics
-  3  0.5  1.0                           dust_settling, exp_strat, a_srat
+  0  0.5  1.0                           dust_settling, exp_strat, a_srat
   False                                 dust_radial_migration
   False                                 sublimate_dust
   False                                 hydrostatic_eq
@@ -74,5 +74,6 @@
 
 
 
-%% automatically generated with vac2fost 2.2.1
-%% run by crobert on calculon
+%% automatically generated with vac2fost 2.3.3
+%% via mcfost 3.0.35
+%% run by clm on beelzebot.local
