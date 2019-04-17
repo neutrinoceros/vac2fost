@@ -201,132 +201,141 @@ class MCFOSTUtils:
     to define the output grid."""
 
     blocks_descriptors = od(
-        # name every mcfost parameter (by order of appearence)
-        # and give default values
+        # This nested orderded dictionnary describes a default parafile for mcfost
+        #
+        # parameter names should match mcfost's documentation
+        # http://ipag-old.osug.fr/~pintec/mcfost/docs/html/parameter_file.html
+        #
+        # spaces in mutliple-words names contained in above documentation
+        # (e.g. "<use default wavelength grid>")
+        # are here replaced by underscores to accomodate vac2fost's configuation
+        # Such changed names are indicated with "<>"
+        # 
+        # this is still WIP (remaining naming discrepencies)
         [
-            ('Photons', (
-                od([('nphot_temp', '1.28e5')]),
-                od([('nphot_sed', '1.28e3')]),
-                od([('nphot_img', '1.28e5')])
+            ("Photons", (
+                od([("nbr_photons_eq_temp", "1.28e5")]),
+                od([("nbr_photons_lambda", "1.28e3")]),
+                od([("nbr_photons_image", "1.28e5")])
             )),
-            ('Wavelengths', (
-                od([('n_lambda', 50),
-                    ('lambda_min', 0.1),
-                    ('lambda_max', 3e3)]),
-                od([('compute_temp', True),
-                    ('compute_sed', True),
-                    ('use_default_wl', True)]),
-                od([('wavelength_file',
-                     'wavelengths.dat')]),
-                od([('separation', False),
-                    ('stokes_parameters', False)])
+            ("Wavelengths", (
+                od([("n_lambda", 50),
+                    ("lambda_min", "0.1"),
+                    ("lambda_max", "3e3")]),
+                od([("ltemp", True),
+                    ("lsed", True),
+                    ("use_default_wavelength_grid", True)]), # <>
+                od([("wavelength_file", "wavelengths.dat")]), # <>
+                od([("separate_contributions", False), # <>
+                    ("output_stokes_parameters", False)]) # <>
             )),
-            ('Grid', (
-                od([('geometry', '1')]),
+            ('Grid', ( # <----- todo : check this section (delicate process)
+                od([('grid_type', 1)]), # <>
                 od([('nr', 100),
                     ('nz', 10),
                     ('nphi', 100),
                     ('nr_in', 30)])
             )),
-            ('Maps', (
-                od([('nx', 501),
-                    ('ny', 501),
-                    ('maps_size', 400)]),
-                od([('imin', 0),
-                    ('imax', 0),
-                    ('n_incl', 1),
-                    ('centered', False)]),
-                od([('az_min', 0),
-                    ('az_max', 240),
-                    ('n_az_angles', 1)]),
-                od([('distance_pc', 140)]),
-                od([('disk_position_angle', 0)])
+            ("Images", (
+                od([("grid_nx", 501),
+                    ("grid_ny", 501),
+                    ("map_size", 400)]),
+                od([("RT_imin", 0),
+                    ("RT_imax", 0),
+                    ("RT_n_incl", 1),
+                    ("RT_centered", False)]),
+                od([("RT_az_min", 0),
+                    ("RT_az_max", 240),
+                    ("RT_n_az", 1)]),
+                od([("distance_pc", 140)]), # Unit: parsec # todo : change for "distance"
+                od([("disk_PA", 0)]) # <>
             )),
-            ('Scattering', (
-                od([('scattering_method', '0')]),
-                od([('theory', 1)])
+            ("Scattering Method", (
+                od([("scattering_method", 0)]), # <>
+                od([("Mie_HG", 1)]) # <>
             )),
-            ('Symmetries', (
-                od([('sym_image', True)]),
-                od([('sym_central', True)]),
-                od([('sym_axial', True)]),
+            ("Symmetries", (
+                od([("image_symmetry", True)]), # <>
+                od([("central_symmetry", True)]), # <>
+                od([("plane_symmetry", True)]), # <>
             )),
-            ('Disk physics', (
-                od([('dust_settling', 0),
-                    ('exp_strat', 0.5),
-                    ('a_srat', 1.0)]),
-                od([('dust_radial_migration', False)]),
-                od([('sublimate_dust', False)]),
-                od([('hydrostatic_eq', False)]),
-                od([('viscous_heating', False),
-                    ('alpha_viscosity', '1e-3')]),
+            ("Disk physics", (
+                od([("dust_settling", 0),
+                    ("exp_strat", 0.5),
+                    ("a_srat", 1.0)]),
+                od([("dust_radial_migration", False)]), # <>
+                od([("sublimate_dust", False)]), # TODO: check order !!
+                od([("hydrostatic_equilibrium", False)]), # <>
+                od([("viscous_heating", False), # <>
+                    ("viscosity", "1e-3")]),
             )),
-            ('Number of zones', (
-                od([('n_zones', '1')]),
+            ("Number of Zones", (
+                od([("n", 1)]),
             )),
-            ('Zone', (
-                od([('zone_type', 1)]),
-                od([('dust_mass', '1e-3'),
-                    ('gas_to_dust_ratio', 100)]),
-                od([('scale_height', 5.0),
-                    ('ref_radius', 100.0),
-                    # only relevant in geometry "4" (debris disk) according to doc
-                    ('profile_exp', 2)]),
+            ("Density structure", (
+                od([("zone_type", 1)]), # <>
+                od([("disk_dust_mass", "1e-3"), # <>
+                    ("gas_to_dust_ratio", 100)]), # <>
+                od([("scale_height", 5.0), # <> replace with "scale_height_H0"
+                    ("ref_radius", 100.0), # <> replace with "reference_radius_R0"
+                    ("vertical_profile_exponent", 2)]), # <>
+                # todo : this part is oddly hard to rewrite... (breaks regression)
                 od([('rin', 10),
                     ('edge', 0),
                     ('rout', 200),
                     ('rc', 100)]),
-                od([('flaring_index', 1.0)]),
-                od([('density_exp', -0.5),
-                    ('gamma_exp', 0.0)])
+                # ^^^^^^^^^^^
+                od([("flaring_index", 1.0)]), # * replace with "flaring_exponent"
+                od([("density_exp", -0.5), # *
+                    ("gamma_exp", 0.0)])
             )),
-            ('Grains', (
-                od([('n_species', 1)]),
-                od([('grain_type', 'Mie'),
-                    ('n_components', 1),
-                    ('mixing_rule', 2),
-                    ('porosity', 0.),
-                    ('mass_fraction', 0.75),
-                    ('vmax_dhs', 0.9)]),
-                od([('optical_indices_file', 'Draine_Si_sUV.dat'),
-                    ('volume_fraction', 1.0)]),
-                od([('heating_method', 1)]),
-                od([('sp_min', MINGRAINSIZE_µ),
-                    ('sp_max', 1000),
-                    ('sexp', 3.5),
-                    ('n_grains', 100)])
+            ("Grain properties", (
+                od([("N_species", 1)]),
+                od([("Grain_type", "Mie"),
+                    ("N_components", 1),
+                    ("mixing_rule", 2), # <>
+                    ("porosity", 0.),
+                    ("mass_fraction", 0.75), # <>
+                    ("DHS_Vmax", 0.9)]),
+                od([("optical_indices_file", "Draine_Si_sUV.dat"), # *
+                    ("volume_fraction", 1.0)]),
+                od([("heating_method", 1)]), # <>
+                od([("amin", MINGRAINSIZE_µ),
+                    ("amax", 1000),
+                    ("aexp", 3.5),
+                    ("n_grains", 100)]) # todo: change mcfost doc for case consistency
             )),
-            ('Molecular RT', (
-                od([('lpop', True),
-                    ('laccurate_pop', True),
-                    ('LTE', True),
-                    ('profile_width', 15.)]),
-                od([('v_turb', 0.2)]),
-                od([('nmol', 1)]),
-                od([("mol_data_file", "13co.dat"),
-                    ('level_max', 6)]),
-                od([('vmax', 1.0),
-                    ('n_speed', 20)]),
-                od([('cst_mol_abund', True),
-                    ('abund', '1e-6'),
-                    ('abund_file', 'abundance.fits.gz')]),
-                od([('ray_tracing', True),
-                    ('n_lines_rt', 3)]),
-                od([('transition_num_1', 1),
-                    ('transition_num_2', 2),
-                    ('transition_num_3', 3)])
+            ("Molecular RT settings", (
+                od([("lpop", True),
+                    ("lpop_accurate", True),
+                    ("LTE", True),
+                    ("profile_width", 15.0)]),
+                od([("v_turb", 0.0)]), # <<<<<<<< todo : ask why this line is not documented anymore ...
+                od([("nmol", 1)]), # <<<<<<<<< same as above
+                od([("molecular_data_file", "13co.dat"), # *
+                    ("level_max", 6)]), # <>
+                od([("vmax", 1.0),
+                    ("n_speed", 20)]),
+                od([("cst_abundance", True),
+                    ("abund", "1e-6"), # <<<<<<<<< same as above
+                    ("abund_file", "abundance.fits.gz")]),  # <<<<<<<<< same as above
+                od([("ray_tracing", True),
+                    ("n_lines", 3)]), # todo : change mcfost doc (consistency)
+                od([("transition_num_1", 1),
+                    ("transition_num_2", 2),
+                    ("transition_num_3", 3)])
             )),
-            ('Star', (
-                od([('n_stars', 1)]),
-                od([('star_temp', 4000.0),
-                    ('star_radius', 2.0),
-                    ('star_mass', 1.0),
-                    ('star_x', 0.),
-                    ('star_y', 0.),
-                    ('star_z', 0),
-                    ('star_is_bb', True)]),
-                od([('star_rad_file', 'lte4000-3.5.NextGen.fits.gz')]),
-                od([('fUV', 0.0), ('slope_fUV', 2.2)]),
+            ("Star properties", (
+                od([("num_stars", 1)]), # todo : consistency...
+                od([("star_temp", 4000.0), # TODO : "Temp" or "Teff" ??
+                    ("Radius", 2.0), # mcfost pr: note contains "Teff" and "Rstar"...
+                    ("star_mass", 1.0), # mcfost pr: change to "mass", currently doc as "M"
+                    ("x", 0.),
+                    ("y", 0.),
+                    ("z", 0),
+                    ("is_black_body", True)]), # *
+                od([("star_rad_file", "lte4000-3.5.NextGen.fits.gz")]), # <<<<<< missing doc
+                od([("fUV", 0.0), ("slope_fUV", 2.2)]),
             ))
         ])
 
