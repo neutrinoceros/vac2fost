@@ -261,7 +261,7 @@ class MCFOSTUtils:
             )),
             ("Scattering Method", (
                 od([("scattering_method", 0)]), # <>
-                od([("Mie_HG", 1)]) # <>
+                od([("Mie_HG", 1)]) # *
             )),
             ("Symmetries", (
                 od([("image_symmetry", True)]), # <>
@@ -296,23 +296,23 @@ class MCFOSTUtils:
                 # ^^^^^^^^^^^
                 od([("flaring_index", 1.0)]), # *
                 od([("density_exp", -0.5), # *
-                    ("gamma_exp", 0.0)])
+                    ("gamma_exp", 0.0)]) # *
             )),
             ("Grain properties", (
-                od([("N_species", 1)]),
+                od([("N_species", 1)]), # %
                 od([("Grain_type", "Mie"),
-                    ("N_components", 1),
+                    ("N_components", 1), # %
                     ("mixing_rule", 2), # <>
                     ("porosity", 0.),
                     ("mass_fraction", 0.75), # <>
                     ("DHS_Vmax", 0.9)]),
-                od([("optical_indices_file", "Draine_Si_sUV.dat"), # *
+                od([("optical_indices_file", "Draine_Si_sUV.dat"), # * %%
                     ("volume_fraction", 1.0)]),
                 od([("heating_method", 1)]), # <>
                 od([("amin", MINGRAINSIZE_µ),
                     ("amax", 1000),
                     ("aexp", 3.5),
-                    ("n_grains", 100)]) # %
+                    ("n_grains", 100)])
             )),
             ("Molecular RT settings", (
                 od([("lpop", True),
@@ -328,7 +328,7 @@ class MCFOSTUtils:
                 od([("cst_abundance", True),
                     ("abund", "1e-6"), # ?
                     ("abund_file", "abundance.fits.gz")]), # ?
-                od([("ray_tracing", True),
+                od([("ray_tracing", True), # *
                     ("n_lines", 3)]), # %
                 od([("transition_num_1", 1),
                     ("transition_num_2", 2),
@@ -342,7 +342,7 @@ class MCFOSTUtils:
                     ("x", 0.),
                     ("y", 0.),
                     ("z", 0),
-                    ("is_black_body", True)]), # *
+                    ("is_blackbody", True)]), # *
                 od([("star_rad_file", "lte4000-3.5.NextGen.fits.gz")]), # ?
                 od([("fUV", 0.0), ("slope_fUV", 2.2)]),
             ))
