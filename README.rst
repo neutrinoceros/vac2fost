@@ -135,7 +135,7 @@ For instance
            nz   = 50
            nr_in = 30  ! need to be < nr
 
-           flaring_index = 1.125
+           flaring_exp = 1.125
            ref_radius = 100.0    ! [a.u.]
            scale_height = 10.0   ! [a.u.] defined at ref_radius
 

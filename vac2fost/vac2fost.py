@@ -125,7 +125,7 @@ def generate_conf_template() -> f90nml.Namelist:
     mcfost_list = dict(
         nr=128, nr_in=4, nphi=128, nz=10,
         # aspect ratio is implied by those parameters
-        flaring_index=1.125,
+        flaring_exp=1.125,
         ref_radius=100.0,  # [a.u.]
         scale_height=1.0,  # [a.u.], at defined at ref_radius
     )
@@ -209,17 +209,14 @@ class MCFOSTUtils:
         # this is still WIP (remaining naming discrepencies)
         #
         # notes for a future pull-request on mcfost documentation itself:
-        # <>  indicates a change in separators (" " or "-" are replaced with "_")
         # *   indicates a change in name for various reasons...
-        # %   indicates an inconsistency with the dominant naming convention "n_truc"
-        # %%  indicates a local inconsistency
         # ?   indicates a missing documentation line (or a deprecated parameter)
         # $   indicates stuff I'll have to go over again, either because it breaks regression here, or because I'll need to change to api altogether
 
-        # fixplan : 1) PR to fix <> and % in different commits (and %%)
-        #           2) ask Christophe about "?" and go over *
-        #           3) deal with *
-        #           4) deal with $
+        # fixplan : DONE 1) PR to fix <> and % in different commits (and %% ?)
+        #                2) ask Christophe about "?" and go over *
+        #                3) deal with *
+        #                4) deal with $
 
         [
             ("Photons", (
@@ -239,7 +236,7 @@ class MCFOSTUtils:
                     ("output_stokes_parameters", False)])
             )),
             ('Grid', ( # <----- todo : check this section (delicate process)
-                od([('grid_type', 1)]), # <>
+                od([('grid_type', 1)]),
                 od([('nr', 100),
                     ('nz', 10),
                     ('nphi', 100),
@@ -261,7 +258,7 @@ class MCFOSTUtils:
             )),
             ("Scattering Method", (
                 od([("scattering_method", 0)]),
-                od([("Mie_HG", 1)]) # *
+                od([("Mie_hg", 1)]) # *
             )),
             ("Symmetries", (
                 od([("image_symmetry", True)]),
@@ -294,7 +291,7 @@ class MCFOSTUtils:
                     ('rout', 200), #$
                     ('rc', 100)]), #$
                 # ^^^^^^^^^^^
-                od([("flaring_index", 1.0)]), # *
+                od([("flaring_exp", 1.0)]), # *
                 od([("density_exp", -0.5), # *
                     ("gamma_exp", 0.0)]) # *
             )),
@@ -306,7 +303,7 @@ class MCFOSTUtils:
                     ("porosity", 0.),
                     ("mass_fraction", 0.75),
                     ("DHS_Vmax", 0.9)]),
-                od([("optical_indices_file", "Draine_Si_sUV.dat"), # * %%
+                od([("optical_indices_file", "Draine_Si_sUV.dat"),
                     ("volume_fraction", 1.0)]),
                 od([("heating_method", 1)]),
                 od([("amin", MINGRAINSIZE_µ),
@@ -337,7 +334,7 @@ class MCFOSTUtils:
             ("Star properties", (
                 od([("n_stars", 1)]),
                 od([("Teff", 4000.0),
-                    ("Rstar", 2.0), # %%
+                    ("Rstar", 2.0),
                     ("Mstar", 1.0), # *
                     ("x", 0.),
                     ("y", 0.),
