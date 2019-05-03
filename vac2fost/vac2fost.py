@@ -287,9 +287,9 @@ class MCFOSTUtils:
                     ("vertical_profile_exponent", 2)]),
                 # todo : this part is oddly hard to rewrite... (breaks regression)
                 od([('rin', 10),   #$
-                    ('edge', 0),   #$
+                    ('edge', 0),
                     ('rout', 200), #$
-                    ('Rc', 100)]), #$
+                    ('Rc', 100)]),
                 # ^^^^^^^^^^^
                 od([("flaring_exp", 1.0)]), # *
                 od([("density_exp", -0.5), # *
