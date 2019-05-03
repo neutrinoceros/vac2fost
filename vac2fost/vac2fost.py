@@ -233,10 +233,10 @@ class MCFOSTUtils:
                     ("lambda_max", "3e3")]),
                 od([("ltemp", True),
                     ("lsed", True),
-                    ("use_default_wavelength_grid", True)]), # <>
-                od([("wavelength_file", "wavelengths.dat")]), # <>
-                od([("separate_contributions", False), # <>
-                    ("output_stokes_parameters", False)]) # <>
+                    ("use_default_wavelength_grid", True)]),
+                od([("wavelength_file", "wavelengths.dat")]),
+                od([("separate_contributions", False),
+                    ("output_stokes_parameters", False)])
             )),
             ('Grid', ( # <----- todo : check this section (delicate process)
                 od([('grid_type', 1)]), # <>
@@ -257,37 +257,37 @@ class MCFOSTUtils:
                     ("RT_az_max", 240),
                     ("RT_n_az", 1)]),
                 od([("distance_pc", 140)]), # $
-                od([("disk_PA", 0)]) # <>
+                od([("disk_PA", 0)])
             )),
             ("Scattering Method", (
-                od([("scattering_method", 0)]), # <>
+                od([("scattering_method", 0)]),
                 od([("Mie_HG", 1)]) # *
             )),
             ("Symmetries", (
-                od([("image_symmetry", True)]), # <>
-                od([("central_symmetry", True)]), # <>
-                od([("plane_symmetry", True)]), # <>
+                od([("image_symmetry", True)]),
+                od([("central_symmetry", True)]),
+                od([("plane_symmetry", True)]),
             )),
             ("Disk physics", (
                 od([("dust_settling", 0),
                     ("exp_strat", 0.5),
                     ("a_srat", 1.0)]),
-                od([("dust_radial_migration", False)]), # <>
+                od([("dust_radial_migration", False)]),
                 od([("sublimate_dust", False)]), # TODO: check order !!
-                od([("hydrostatic_equilibrium", False)]), # <>
-                od([("viscous_heating", False), # <>
+                od([("hydrostatic_equilibrium", False)]),
+                od([("viscous_heating", False),
                     ("viscosity", "1e-3")]),
             )),
             ("Number of Zones", (
                 od([("n", 1)]),
             )),
             ("Density structure", (
-                od([("zone_type", 1)]), # <>
-                od([("disk_dust_mass", "1e-3"), # <>
-                    ("gas_to_dust_ratio", 100)]), # <>
+                od([("zone_type", 1)]),
+                od([("disk_dust_mass", "1e-3"),
+                    ("gas_to_dust_ratio", 100)]),
                 od([("scale_height", 5.0), # $
                     ("ref_radius", 100.0), # $
-                    ("vertical_profile_exponent", 2)]), # <>
+                    ("vertical_profile_exponent", 2)]),
                 # todo : this part is oddly hard to rewrite... (breaks regression)
                 od([('rin', 10),   #$
                     ('edge', 0),   #$
@@ -299,16 +299,16 @@ class MCFOSTUtils:
                     ("gamma_exp", 0.0)]) # *
             )),
             ("Grain properties", (
-                od([("N_species", 1)]), # %
+                od([("n_species", 1)]),
                 od([("Grain_type", "Mie"),
-                    ("N_components", 1), # %
-                    ("mixing_rule", 2), # <>
+                    ("n_components", 1),
+                    ("mixing_rule", 2),
                     ("porosity", 0.),
-                    ("mass_fraction", 0.75), # <>
+                    ("mass_fraction", 0.75),
                     ("DHS_Vmax", 0.9)]),
                 od([("optical_indices_file", "Draine_Si_sUV.dat"), # * %%
                     ("volume_fraction", 1.0)]),
-                od([("heating_method", 1)]), # <>
+                od([("heating_method", 1)]),
                 od([("amin", MINGRAINSIZE_µ),
                     ("amax", 1000),
                     ("aexp", 3.5),
@@ -322,27 +322,27 @@ class MCFOSTUtils:
                 od([("v_turb", 0.0)]), # ?
                 od([("nmol", 1)]), # ?
                 od([("molecular_data_file", "13co.dat"), # *
-                    ("level_max", 6)]), # <>
+                    ("level_max", 6)]),
                 od([("vmax", 1.0),
                     ("n_speed", 20)]),
                 od([("cst_abundance", True),
                     ("abund", "1e-6"), # ?
                     ("abund_file", "abundance.fits.gz")]), # ?
                 od([("ray_tracing", True), # *
-                    ("n_lines", 3)]), # %
+                    ("n_lines", 3)]),
                 od([("transition_num_1", 1),
                     ("transition_num_2", 2),
                     ("transition_num_3", 3)])
             )),
             ("Star properties", (
-                od([("num_stars", 1)]), # %
-                od([("star_temp", 4000.0), # %%
-                    ("Radius", 2.0), # %%
-                    ("star_mass", 1.0), # *
+                od([("n_stars", 1)]),
+                od([("Teff", 4000.0),
+                    ("Rstar", 2.0), # %%
+                    ("Mstar", 1.0), # *
                     ("x", 0.),
                     ("y", 0.),
                     ("z", 0),
-                    ("is_blackbody", True)]), # *
+                    ("is_blackbody", True)]),
                 od([("star_rad_file", "lte4000-3.5.NextGen.fits.gz")]), # ?
                 od([("fUV", 0.0), ("slope_fUV", 2.2)]),
             ))
@@ -351,7 +351,7 @@ class MCFOSTUtils:
     known_args = []
     for descriptor in blocks_descriptors.items():
         for di in descriptor[1]:
-            known_args += list(di.keys())
+            known_args += [k.lower() for k in di.keys()]
 
     def write_mcfost_conf(output_file: Path, custom: dict = None, verbose=False):
         """Write a configuration file for mcfost using values from <custom>,
