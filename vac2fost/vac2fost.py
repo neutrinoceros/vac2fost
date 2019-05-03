@@ -542,12 +542,12 @@ class Interface:
                                    for k, n in geomdefs.items()})
         )
 
-        trad_keys = {"n_rad": "nr", "n_az": "nphi", "nz": "nz"}
+        trad_keys = {"nr": "n_rad", "nphi": "n_az", "nz": "nz"}
         _output = DataInfo(
             directory=Path(self._base_args["output_dir"]),
             filename=_input.filestem+".fits",
-            gridshape=GridShape(**{trad_keys[k]: self.config["mcfost_output"][k]
-                                   for k in ("n_rad", "n_az", "nz")})
+            gridshape=GridShape(**{k1: self.config["mcfost_output"][k2]
+                                   for k1, k2 in trad_keys.items()})
         )
         return IOinfo(IN=_input, OUT=_output)
 
