@@ -123,7 +123,7 @@ def generate_conf_template() -> f90nml.Namelist:
     )
 
     mcfost_list = dict(
-        nr=128, nr_in=4, nphi=128, nz=10,
+        n_rad=128, n_rad_in=4, n_az=128, nz=10,
         # aspect ratio is implied by those parameters
         flaring_exp=1.125,
         ref_radius=100.0,  # [a.u.]
@@ -235,12 +235,12 @@ class MCFOSTUtils:
                 od([("separate_contributions", False),
                     ("output_stokes_parameters", False)])
             )),
-            ('Grid', ( # <----- todo : check this section (delicate process)
-                od([('grid_type', 1)]),
-                od([('nr', 100),
-                    ('nz', 10),
-                    ('nphi', 100),
-                    ('nr_in', 30)])
+            ("Grid", (
+                od([("grid_type", 1)]),
+                od([("n_rad", 100),
+                    ("nz", 10),
+                    ("n_az", 100),
+                    ("n_rad_in", 30)])
             )),
             ("Images", (
                 od([("grid_nx", 501),
@@ -542,11 +542,12 @@ class Interface:
                                    for k, n in geomdefs.items()})
         )
 
+        trad_keys = {"n_rad": "nr", "n_az": "nphi", "nz": "nz"}
         _output = DataInfo(
             directory=Path(self._base_args["output_dir"]),
             filename=_input.filestem+".fits",
-            gridshape=GridShape(**{k: self.config["mcfost_output"][k]
-                                   for k in ("nr", "nphi", "nz")})
+            gridshape=GridShape(**{trad_keys[k]: self.config["mcfost_output"][k]
+                                   for k in ("n_rad", "n_az", "nz")})
         )
         return IOinfo(IN=_input, OUT=_output)
 

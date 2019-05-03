@@ -1,8 +1,8 @@
 &mcfost_output
-    nr   = 10
-    nphi = 10
+    n_rad   = 10
+    n_az = 10
     nz   = 2
-    nr_in = 2
+    n_rad_in = 2
 
     flaring_exp = 1.125
     scale_height = 10.0
