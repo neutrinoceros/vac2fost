@@ -253,7 +253,7 @@ class MCFOSTUtils:
                 od([("RT_az_min", 0),
                     ("RT_az_max", 240),
                     ("RT_n_az", 1)]),
-                od([("distance_pc", 140)]), # $
+                od([("distance", 140)]),
                 od([("disk_PA", 0)])
             )),
             ("Scattering Method", (
@@ -289,7 +289,7 @@ class MCFOSTUtils:
                 od([('rin', 10),   #$
                     ('edge', 0),   #$
                     ('rout', 200), #$
-                    ('rc', 100)]), #$
+                    ('Rc', 100)]), #$
                 # ^^^^^^^^^^^
                 od([("flaring_exp", 1.0)]), # *
                 od([("density_exp", -0.5), # *

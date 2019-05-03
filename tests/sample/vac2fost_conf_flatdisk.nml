@@ -5,7 +5,7 @@
     n_rad_in = 2
     Mstar    = 1.8  ! [M_sun] (Casassus et al 2015)
     Teff    = 6550 ! [K]     (Mendiguita et al 2014)
-    distance_pc  = 157  ! [pc]    (Gaia consortium 2016)
+    distance  = 157  ! [pc]    (Gaia consortium 2016)
 
     flaring_exp = 1.125
     scale_height = 10.0
