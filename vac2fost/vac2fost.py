@@ -282,15 +282,13 @@ class MCFOSTUtils:
                 od([("zone_type", 1)]),
                 od([("disk_dust_mass", "1e-3"),
                     ("gas_to_dust_ratio", 100)]),
-                od([("scale_height", 5.0), # $
-                    ("ref_radius", 100.0), # $
+                od([("scale_height", 5.0), # *
+                    ("ref_radius", 100.0), # *
                     ("vertical_profile_exponent", 2)]),
-                # todo : this part is oddly hard to rewrite... (breaks regression)
-                od([('rin', 10),   #$
+                od([('rin', 10),   #$ # todo : this is oddly hard to rewrite... (breaks regression)
                     ('edge', 0),
-                    ('rout', 200), #$
+                    ('rout', 200), #$ # todo : this is oddly hard to rewrite... (breaks regression)
                     ('Rc', 100)]),
-                # ^^^^^^^^^^^
                 od([("flaring_exp", 1.0)]), # *
                 od([("density_exp", -0.5), # *
                     ("gamma_exp", 0.0)]) # *
@@ -335,7 +333,7 @@ class MCFOSTUtils:
                 od([("n_stars", 1)]),
                 od([("Teff", 4000.0),
                     ("Rstar", 2.0),
-                    ("Mstar", 1.0), # *
+                    ("Mstar", 1.0),
                     ("x", 0.),
                     ("y", 0.),
                     ("z", 0),
