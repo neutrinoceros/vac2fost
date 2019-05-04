@@ -23,9 +23,6 @@ Disclaimer
   This package is using Python3.7 syntax/features and will not be made backward
   compatible with older versions of Python.
 """
-__version__ = "2.3.3"
-min_mcfost_version = "3.0.35"  # minimal requirement
-#rec_mcfost_version = "3.0.35"  # recommendation
 
 
 
@@ -34,13 +31,8 @@ min_mcfost_version = "3.0.35"  # minimal requirement
 # stdlib
 import os
 import sys
-import shutil
 from pathlib import Path
-from subprocess import run, CalledProcessError
 from argparse import ArgumentParser
-from collections import OrderedDict as od
-from socket import gethostname
-from uuid import uuid4 as uuid
 
 # non standard externals
 import numpy as np
@@ -60,20 +52,12 @@ except ImportError:
 
 # private externals
 from vtk_vacreader import VacDataSorter
+from vac2fost.info import __version__
 from vac2fost.utils import shell_path, wait_for_ok, get_prompt_size
 from vac2fost.utils import IOinfo, DataInfo, GridShape
+from vac2fost.mcfost_utils import MINGRAINSIZE_µ, KNOWN_MCFOST_ARGS
+from vac2fost.mcfost_utils import get_mcfost_grid, write_mcfost_conf
 
-
-# mcfost detection ======================================================================
-if shutil.which("mcfost") is None:
-    raise OSError(RED+"could not find mcfost. Please install mcfost before using vac2fost")
-out = run("yes | mcfost -version", shell=True, capture_output=True).stdout #binary
-out = "".join(map(chr, out))
-
-DETECTED_MCFOST_VERSION = out.split("\n")[0].split()[-1]
-del out
-if DETECTED_MCFOST_VERSION < min_mcfost_version:
-    raise OSError(f"mcfost version must be >= {min_mcfost_version}")
 
 
 
@@ -384,7 +368,7 @@ class Interface:
         if self._output_grid is None:
             if not self.mcfost_conf_file.is_file():
                 self.write_mcfost_conf_file()
-            target_grid = MCFOSTUtils.get_mcfost_grid(self)
+            target_grid = get_mcfost_grid(self)
             self._output_grid = {
                 'array': target_grid,
                 # (nr, nphi) 2D grids
@@ -469,7 +453,7 @@ class Interface:
             raise KeyError(f'Unrecognized MCFOST argument(s): {unknown_args}')
         custom.update(self.config['mcfost_output'])
 
-        MCFOSTUtils.write_mcfost_conf(
+        write_mcfost_conf(
             output_file=self.mcfost_conf_file,
             custom=custom,
             verbose=self.mcfost_verbose
@@ -479,7 +463,7 @@ class Interface:
         """Get unrecognized arguments found in mcfost_output"""
         unknowns = []
         for arg in self.config["mcfost_output"].keys():
-            if not arg.lower() in MCFOSTUtils.known_args:
+            if not arg.lower() in KNOWN_MCFOST_ARGS:
                 unknowns.append(arg)
         return unknowns
 

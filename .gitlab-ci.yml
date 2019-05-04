@@ -87,7 +87,7 @@ code_quality:
   stage: final
   script:
     - source activate $PYENV
-    - pylint --rcfile .pylintrc vac2fost/vac2fost.py
+    - pylint --rcfile .pylintrc vac2fost/*.py
 
 run_demo:
   stage: final

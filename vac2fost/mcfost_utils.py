@@ -3,35 +3,51 @@ to define the output grid."""
 import os
 import shutil
 from pathlib import Path
+from socket import gethostname
 from subprocess import run, CalledProcessError
 from collections import OrderedDict as od
 from uuid import uuid4 as uuid
 
 import numpy as np
-from astropy import fits
+from astropy.io import fits
 
+from vac2fost.info import __version__
 
+MIN_MCFOST_VERSION = "3.0.35"  # minimal requirement
 MINGRAINSIZE_µ = 0.1
 
+# mcfost detection ======================================================================
+if shutil.which("mcfost") is None:
+    raise OSError("could not find mcfost. Please install mcfost before using vac2fost")
+out = run("yes | mcfost -version", shell=True, capture_output=True).stdout #binary
+out = "".join(map(chr, out))
+
+DETECTED_MCFOST_VERSION = out.split("\n")[0].split()[-1]
+del out
+if DETECTED_MCFOST_VERSION < MIN_MCFOST_VERSION:
+    raise OSError(f"mcfost version must be >= {MIN_MCFOST_VERSION}")
+
+
+
+# Definitions ===========================================================================
+# This nested orderded dictionnary describes a default parafile for mcfost
+#
+# parameter names should match mcfost"s documentation
+# http://ipag-old.osug.fr/~pintec/mcfost/docs/html/parameter_file.html
+#
+# this is still WIP (remaining naming discrepencies)
+#
+# notes for a future pull-request on mcfost documentation itself:
+# *   indicates a change in name for various reasons...
+# ?   indicates a missing documentation line (or a deprecated parameter)
+# $   indicates stuff I"ll have to go over again, either because it
+#     breaks regression here, or because I need to change to api altogether
+
+# fixplan : DONE 1) PR to fix <> and % in different commits (and %% ?)
+#                2) ask Christophe about "?" and go over *
+#                3) deal with *
+#                4) deal with $
 blocks_descriptors = od(
-    # This nested orderded dictionnary describes a default parafile for mcfost
-    #
-    # parameter names should match mcfost"s documentation
-    # http://ipag-old.osug.fr/~pintec/mcfost/docs/html/parameter_file.html
-    #
-    # this is still WIP (remaining naming discrepencies)
-    #
-    # notes for a future pull-request on mcfost documentation itself:
-    # *   indicates a change in name for various reasons...
-    # ?   indicates a missing documentation line (or a deprecated parameter)
-    # $   indicates stuff I"ll have to go over again, either because it
-    #     breaks regression here, or because I need to change to api altogether
-
-    # fixplan : DONE 1) PR to fix <> and % in different commits (and %% ?)
-    #                2) ask Christophe about "?" and go over *
-    #                3) deal with *
-    #                4) deal with $
-
     [
         ("Photons", (
             od([("nbr_photons_eq_temp", "1.28e5")]),
@@ -171,7 +187,7 @@ def write_mcfost_conf(output_file: Path, custom: dict = None, verbose=False):
     if output_file.exists() and verbose:
         print(f"Warning: {output_file} already exists, and will be overwritten.")
     with open(output_file, mode="wt") as fi:
-        fi.write(".".join(min_mcfost_version.split(".")[:2]).ljust(10) +
+        fi.write(".".join(MIN_MCFOST_VERSION.split(".")[:2]).ljust(10) +
                  "mcfost minimal version prescribed by vac2fost\n\n")
         for block, lines in blocks_descriptors.items():
             fi.write(f"# {block}\n")
