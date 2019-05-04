@@ -35,7 +35,6 @@ min_mcfost_version = "3.0.35"  # minimal requirement
 import os
 import sys
 import shutil
-from dataclasses import dataclass
 from pathlib import Path
 from subprocess import run, CalledProcessError
 from argparse import ArgumentParser
@@ -61,7 +60,8 @@ except ImportError:
 
 # private externals
 from vtk_vacreader import VacDataSorter
-
+from vac2fost.utils import shell_path, wait_for_ok, get_prompt_size
+from vac2fost.utils import IOinfo, DataInfo, GridShape
 
 
 # mcfost detection ======================================================================
@@ -84,36 +84,6 @@ DEFAULT_UNITS = dict(distance2au=1.0, time2yr=1.0, mass2solar=1.0)
 
 
 # Defintions ============================================================================
-@dataclass
-class GridShape:
-    """Describe number of cells in cylindrical coordinates in a grid"""
-    nr: int
-    nphi: int
-    nz: int = 1
-
-@dataclass
-class DataInfo:
-    """Hold basic info about input or output data location and shape"""
-    directory: Path
-    filename: str
-    gridshape: GridShape
-
-    @property
-    def filepath(self) -> Path:
-        """full path"""
-        return self.directory / self.filename
-
-    @property
-    def filestem(self) -> str:
-        """filename without an extension (suffix)"""
-        return str(Path(self.filename).stem)
-
-@dataclass
-class IOinfo:
-    """Hold input and output data information"""
-    IN: DataInfo
-    OUT: DataInfo
-
 def generate_conf_template() -> f90nml.Namelist:
     """Generate a template namelist object with comments instead of default values"""
     amrvac_list = dict(
@@ -136,35 +106,6 @@ def generate_conf_template() -> f90nml.Namelist:
     }
     template = f90nml.Namelist({k: f90nml.Namelist(v) for k, v in sublists.items()})
     return template
-
-# decorators
-def get_prompt_size():
-    """size of command line interface messages sized to window. Caps at 80."""
-    cols, _ = shutil.get_terminal_size()
-    return min(cols, 80)
-
-def parameterized(dec):
-    """meta decorator, allow definition of decorators with parameters
-    source: https://stackoverflow.com/questions/5929107/decorators-with-parameters"""
-    def layer(*args, **kwargs):
-        def repl(f):
-            return dec(f, *args, **kwargs)
-        return repl
-    return layer
-
-@parameterized
-def wait_for_ok(func, mess, lenght=get_prompt_size()-7):
-    """decorator, sandwich the function execution with '<mess>  ...' & 'ok'"""
-    def modfunc(*args, **kwargs):
-        print(mess.ljust(lenght), end="... ", flush=True)
-        result = func(*args, **kwargs)
-        print("ok")
-        return result
-    return modfunc
-
-def shell_path(pin: str) -> Path:
-    """Transform <pin> to a Path, expanding included env variables."""
-    return Path(os.path.expandvars(str(pin)))
 
 def read_amrvac_parfiles(parfiles: list, location: str = "") -> f90nml.Namelist:
     """Parse one, or a list of MPI-AMRVAC parfiles into a consistent
