@@ -1,74 +1,74 @@
 3.0       mcfost minimal version prescribed by vac2fost
 
 # Photons
-  1.28e5                                nphot_temp
-  1.28e3                                nphot_sed
-  1.28e5                                nphot_img
+  1.28e5                                nbr_photons_eq_temp
+  1.28e3                                nbr_photons_lambda
+  1.28e5                                nbr_photons_image
 
 # Wavelengths
-  50  0.1  3000.0                       n_lambda, lambda_min, lambda_max
-  True  True  True                      compute_temp, compute_sed, use_default_wl
+  50  0.1  3e3                          n_lambda, lambda_min, lambda_max
+  True  True  True                      ltemp, lsed, use_default_wavelength_grid
   wavelengths.dat                       wavelength_file
-  False  False                          separation, stokes_parameters
+  False  False                          separate_contributions, output_stokes_parameters
 
 # Grid
-  1                                     geometry
-  128  10  64  2                        nr, nz, nphi, nr_in
+  1                                     grid_type
+  128  10  64  2                        n_rad, nz, n_az, n_rad_in
 
-# Maps
-  501  501  900.0                       nx, ny, maps_size
-  0  0  1  False                        imin, imax, n_incl, centered
-  0  240  1                             az_min, az_max, n_az_angles
-  157                                   distance_pc
-  0                                     disk_position_angle
+# Images
+  501  501  400                         grid_nx, grid_ny, map_size
+  0  0  1  False                        RT_imin, RT_imax, RT_n_incl, RT_centered
+  0  240  1                             RT_az_min, RT_az_max, RT_n_az
+  157                                   distance
+  0                                     disk_PA
 
-# Scattering
+# Scattering Method
   0                                     scattering_method
-  1                                     theory
+  1                                     Mie_hg
 
 # Symmetries
-  True                                  sym_image
-  True                                  sym_central
-  True                                  sym_axial
+  True                                  image_symmetry
+  True                                  central_symmetry
+  True                                  plane_symmetry
 
 # Disk physics
   0  0.5  1.0                           dust_settling, exp_strat, a_srat
   False                                 dust_radial_migration
   False                                 sublimate_dust
-  False                                 hydrostatic_eq
-  False  1e-3                           viscous_heating, alpha_viscosity
+  False                                 hydrostatic_equilibrium
+  False  1e-3                           viscous_heating, viscosity
 
-# Number of zones
+# Number of Zones
   1                                     n_zones
 
-# Zone
+# Density structure
   1                                     zone_type
-  0.0003997547968135546  100.0          dust_mass, gas_to_dust_ratio
-  10.0  100.0  2                        scale_height, ref_radius, profile_exp
-  70.0  0  450.0  100                   rin, edge, rout, rc
-  1.125                                 flaring_index
+  1e-3  100.0                           disk_dust_mass, gas_to_dust_ratio
+  10.0  100.0  2                        scale_height, reference_radius, vertical_profile_exponent
+  70.0  0  450.0  100                   rin, edge, rout, Rc
+  1.125                                 flaring_exp
   -0.5  0.0                             density_exp, gamma_exp
 
-# Grains
+# Grain properties
   1                                     n_species
-  Mie  1  2  0.0  0.75  0.9             grain_type, n_components, mixing_rule, porosity, mass_fraction, vmax_dhs
+  Mie  1  2  0.0  0.75  0.9             Grain_type, n_components, mixing_rule, porosity, mass_fraction, DHS_Vmax
   Draine_Si_sUV.dat  1.0                optical_indices_file, volume_fraction
   1                                     heating_method
-  0.1  10000.0  3.5  100                sp_min, sp_max, sexp, n_grains
+  0.1  1000  3.5  100                   amin, amax, aexp, n_grains
 
-# Molecular RT
-  True  True  True  15.0                lpop, laccurate_pop, LTE, profile_width
-  0.2                                   v_turb
+# Molecular RT settings
+  True  True  True  15.0                lpop, lpop_accurate, LTE, profile_width
+  0.0                                   v_turb
   1                                     nmol
-  13co.dat  6                           mol_data_file, level_max
+  13co.dat  6                           molecular_data_file, level_max
   1.0  20                               vmax, n_speed
-  True  1e-6  abundance.fits.gz         cst_mol_abund, abund, abund_file
-  True  3                               ray_tracing, n_lines_rt
+  True  1e-6  abundance.fits.gz         cst_abundance, abund, abund_file
+  True  3                               ray_tracing, n_lines
   1  2  3                               transition_num_1, transition_num_2, transition_num_3
 
-# Star
+# Star properties
   1                                     n_stars
-  6550  2.0  1.8  0.0  0.0  0  True     star_temp, star_radius, star_mass, star_x, star_y, star_z, star_is_bb
+  4000.0  2.0  1.0  0.0  0.0  0  True   Teff, Rstar, Mstar, x, y, z, is_blackbody
   lte4000-3.5.NextGen.fits.gz           star_rad_file
   0.0  2.2                              fUV, slope_fUV
 
@@ -76,4 +76,4 @@
 
 %% automatically generated with vac2fost 2.3.3
 %% via mcfost 3.0.35
-%% run by clm on beelzebot.local
+%% run by clm on beelzebot.home

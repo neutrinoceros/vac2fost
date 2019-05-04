@@ -6,6 +6,7 @@ import numpy as np
 from astropy.io import fits
 
 from vac2fost import main as app
+import pytest
 
 test_dir = Path(__file__).parent.resolve()
 REFOUT_DIR = test_dir / "ref"

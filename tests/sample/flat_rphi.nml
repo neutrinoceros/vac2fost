@@ -1,5 +1,5 @@
 &disk_list
-    ref_radius = 1.0d0
+    reference_radius = 1.0d0
     central_mass = 1.0d0
     rho_slope = 0d0
     rho0 = 1e-5
