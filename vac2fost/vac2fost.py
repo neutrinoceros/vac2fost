@@ -211,7 +211,8 @@ class MCFOSTUtils:
         # notes for a future pull-request on mcfost documentation itself:
         # *   indicates a change in name for various reasons...
         # ?   indicates a missing documentation line (or a deprecated parameter)
-        # $   indicates stuff I'll have to go over again, either because it breaks regression here, or because I'll need to change to api altogether
+        # $   indicates stuff I'll have to go over again, either because it
+        #     breaks regression here, or because I need to change to api altogether
 
         # fixplan : DONE 1) PR to fix <> and % in different commits (and %% ?)
         #                2) ask Christophe about "?" and go over *
@@ -270,13 +271,13 @@ class MCFOSTUtils:
                     ("exp_strat", 0.5),
                     ("a_srat", 1.0)]),
                 od([("dust_radial_migration", False)]),
-                od([("sublimate_dust", False)]), # TODO: check order !!
+                od([("sublimate_dust", False)]), # mcfost issue : check order !
                 od([("hydrostatic_equilibrium", False)]),
                 od([("viscous_heating", False),
                     ("viscosity", "1e-3")]),
             )),
             ("Number of Zones", (
-                od([("n", 1)]),
+                od([("n_zones", 1)]), # *
             )),
             ("Density structure", (
                 od([("zone_type", 1)]),
@@ -285,10 +286,10 @@ class MCFOSTUtils:
                 od([("scale_height", 5.0), # *
                     ("ref_radius", 100.0), # *
                     ("vertical_profile_exponent", 2)]),
-                od([('rin', 10),   #$ # todo : this is oddly hard to rewrite... (breaks regression)
-                    ('edge', 0),
-                    ('rout', 200), #$ # todo : this is oddly hard to rewrite... (breaks regression)
-                    ('Rc', 100)]),
+                od([("rin", 10), # $
+                    ("edge", 0),
+                    ("rout", 200), # $
+                    ("Rc", 100)]),
                 od([("flaring_exp", 1.0)]), # *
                 od([("density_exp", -0.5), # *
                     ("gamma_exp", 0.0)]) # *
