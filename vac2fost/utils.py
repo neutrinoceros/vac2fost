@@ -3,6 +3,15 @@ from pathlib import Path
 from os.path import expandvars
 from shutil import get_terminal_size
 from dataclasses import dataclass
+try:
+    import colorama
+    colorama.init(autoreset=True)
+    BOLD = colorama.Style.BRIGHT
+    RED = BOLD + colorama.Fore.RED
+    CYAN = colorama.Fore.CYAN
+except ImportError:
+    colorama = None
+    BOLD = RED = CYAN = ""
 
 
 
@@ -16,6 +25,10 @@ def get_prompt_size():
     cols, _ = get_terminal_size()
     return min(cols, 80)
 
+def decorated_centered_message(mess: str, dec: str = "=") -> str:
+    """Return a decorated version of <mess>"""
+    ndecor = int((get_prompt_size() - (len(mess)+2)) / 2)
+    return BOLD + " ".join([dec*ndecor, mess, dec*ndecor])
 
 
 # Dataclasses =======================================================================

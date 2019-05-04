@@ -40,20 +40,12 @@ from astropy import units
 from astropy.io import fits
 from scipy.interpolate import interp2d
 import f90nml
-try:
-    import colorama
-    colorama.init(autoreset=True)
-    BOLD = colorama.Style.BRIGHT
-    RED = BOLD + colorama.Fore.RED
-    CYAN = colorama.Fore.CYAN
-except ImportError:
-    colorama = None
-    BOLD = RED = CYAN = ""
 
 # private externals
 from vtk_vacreader import VacDataSorter
 from vac2fost.info import __version__
-from vac2fost.utils import shell_path, wait_for_ok, get_prompt_size
+from vac2fost.utils import colorama, RED, CYAN, BOLD
+from vac2fost.utils import shell_path, wait_for_ok, get_prompt_size, decorated_centered_message
 from vac2fost.utils import IOinfo, DataInfo, GridShape
 from vac2fost.mcfost_utils import MINGRAINSIZE_µ, KNOWN_MCFOST_ARGS
 from vac2fost.mcfost_utils import get_mcfost_grid, write_mcfost_conf
@@ -615,12 +607,7 @@ class VerbatimInterface(Interface):
 
 
 
-# Main function and associated prompt utils =============================================
-def decorated_centered_message(mess: str, dec: str = "=") -> str:
-    """Return a decorated version of <mess>"""
-    ndecor = int((get_prompt_size() - (len(mess)+2)) / 2)
-    return BOLD + " ".join([dec*ndecor, mess, dec*ndecor])
-
+# Main function =========================================================================
 def main(config_file: str,
          nums: int = None, # or any in-returning interable
          output_dir: str = '.',
