@@ -1,9 +1,4 @@
-#-*-coding:utf-8-*-
+"""vac2fost.__init__.py"""
 
+from vac2fost.info import __version__, __author__, __contact__
 from vac2fost.vac2fost import main
-from vac2fost.vac2fost import __version__
-
-__author__  = 'Clément Robert'
-__contact__ = 'clement.robert@oca.eu'
-__licence__ = 'GNU'
-
