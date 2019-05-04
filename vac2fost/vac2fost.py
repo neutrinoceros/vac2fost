@@ -126,8 +126,8 @@ def generate_conf_template() -> f90nml.Namelist:
         n_rad=128, n_rad_in=4, n_az=128, nz=10,
         # aspect ratio is implied by those parameters
         flaring_exp=1.125,
-        ref_radius=100.0,  # [a.u.]
-        scale_height=1.0,  # [a.u.], at defined at ref_radius
+        reference_radius=100.0,  # [a.u.]
+        scale_height=1.0,  # [a.u.], at defined at reference_radius
     )
     sublists = {
         "amrvac_input": amrvac_list,
@@ -284,7 +284,7 @@ class MCFOSTUtils:
                 od([("disk_dust_mass", "1e-3"),
                     ("gas_to_dust_ratio", 100)]),
                 od([("scale_height", 5.0), # *
-                    ("ref_radius", 100.0), # *
+                    ("reference_radius", 100.0), # *
                     ("vertical_profile_exponent", 2)]),
                 od([("rin", 10), # $
                     ("edge", 0),
@@ -840,7 +840,7 @@ class Interface:
     def aspect_ratio(self):
         """Dimensionless ratio implied by mcfost parameters"""
         mcfl = self.config['mcfost_output']
-        return mcfl['scale_height'] / mcfl['ref_radius']
+        return mcfl['scale_height'] / mcfl['reference_radius']
 
     def gen_3D_arrays(self) -> None:
         """Interpolate input data onto full 3D output grid"""

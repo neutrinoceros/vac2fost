@@ -130,18 +130,18 @@ For instance
 	   &mcfost_output
            ! this list describes MCFOST parameters
            ! named according to vac2fost.MCFOSTUtils.blocks_descriptors
-           nr   = 150
-           nphi = 100
+           n_rad   = 150
+           n_az = 100
            nz   = 50
-           nr_in = 30  ! need to be < nr
+           n_rad_in = 30  ! need to be < nr
 
            flaring_exp = 1.125
-           ref_radius = 100.0    ! [a.u.]
+           reference_radius = 100.0    ! [a.u.]
            scale_height = 10.0   ! [a.u.] defined at ref_radius
 
-           star_mass = 1.8
-           star_temp = 6550
-           distance  = 157
+           Mstar = 1.8
+           Teff = 6550
+           distance = 157
 	   /
 
 How to use it

@@ -6,7 +6,7 @@
 
     flaring_exp = 1.125
     scale_height = 10.0
-    ref_radius = 100.0
+    reference_radius = 100.0
 /
 
 &amrvac_input
