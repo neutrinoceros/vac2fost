@@ -610,13 +610,13 @@ class VerbatimInterface(Interface):
 # Main function =========================================================================
 def main(config_file: str,
          nums: int = None, # or any in-returning interable
-         output_dir: str = '.',
+         output_dir: Path = Path.cwd(),
          dust_bin_mode: str = "auto",
          read_gas_density=False,
          read_gas_velocity=False,
          verbose=False,
          mcfost_verbose=False):
-    '''Try to transform a .vtu file into a .fits'''
+    """Transform a .vtu datfile into a .fits"""
     print(decorated_centered_message("start vac2fost"))
     InterfaceType = {True: VerbatimInterface, False: Interface}[verbose]
     itf = InterfaceType(config_file, nums=nums, output_dir=output_dir,
