@@ -21,6 +21,6 @@ class TestSettling:
 
     def test_activate_settling(self):
         itf = app(__class__.conf_file, output_dir=__class__.outdir,
-                  use_settling=True,
+                  settling=True,
                   mcfost_verbose=True)
         assert itf.use_settling

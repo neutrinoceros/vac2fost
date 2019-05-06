@@ -126,6 +126,7 @@ class Interface:
                  dust_bin_mode: str = "auto",
                  read_gas_density=False,
                  read_gas_velocity=False,
+                 settling=False,
                  mcfost_verbose=False):
 
         self.warnings = []
@@ -148,7 +149,7 @@ class Interface:
         self._dim = 2  # no support for 3D input yet
         self.mcfost_verbose = mcfost_verbose
         self.read_gas_velocity = read_gas_velocity
-        self.use_settling = False
+        self.use_settling = settling
 
         # parse configuration file
         self.config = f90nml.read(config_file)
@@ -620,6 +621,7 @@ def main(config_file: str,
          dust_bin_mode: str = "auto",
          read_gas_density=False,
          read_gas_velocity=False,
+         settling=False,
          verbose=False,
          mcfost_verbose=False):
     '''Try to transform a .vtu file into a .fits'''
@@ -629,6 +631,7 @@ def main(config_file: str,
                         dust_bin_mode=dust_bin_mode,
                         read_gas_density=read_gas_density,
                         read_gas_velocity=read_gas_velocity,
+                        settling=settling,
                         mcfost_verbose=mcfost_verbose)
 
     for i, n in enumerate(itf.nums):
