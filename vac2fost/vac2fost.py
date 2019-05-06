@@ -148,6 +148,7 @@ class Interface:
         self._dim = 2  # no support for 3D input yet
         self.mcfost_verbose = mcfost_verbose
         self.read_gas_velocity = read_gas_velocity
+        self.use_settling = False
 
         # parse configuration file
         self.config = f90nml.read(config_file)
@@ -523,9 +524,9 @@ class Interface:
 
     @property
     def aspect_ratio(self):
-        """Dimensionless ratio implied by mcfost parameters"""
-        mcfl = self.config['mcfost_output']
-        return mcfl['scale_height'] / mcfl['reference_radius']
+        """Dimensionless gas scale height implied by mcfost parameters"""
+        mcfl = self.config["mcfost_output"]
+        return mcfl["scale_height"] / mcfl["reference_radius"]
 
     def gen_3D_arrays(self) -> None:
         """Interpolate input data onto full 3D output grid"""
@@ -536,9 +537,12 @@ class Interface:
         self._new_3D_arrays = np.zeros((nbins, nphi, nz, nr))
         for ir, r in enumerate(self.output_grid["rv"]):
             z_vect = self.output_grid["zg"][nz:, ir].reshape(1, nz)
-            local_height = r * self.aspect_ratio
-            gaussian = np.exp(-z_vect**2/ (2*local_height**2)) / (np.sqrt(2*np.pi) * local_height)
+            gas_height = r * self.aspect_ratio
             for i_bin, surface_density in enumerate(self.new_2D_arrays[:, ir, :]):
+                H = gas_height
+                if self.use_settling:
+                    H *= (self.grain_micron_sizes[i_bin] / MINGRAINSIZE_µ)**(-0.5)
+                gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
                 self._new_3D_arrays[i_bin, :, :, ir] = \
                     gaussian * surface_density.reshape(nphi, 1)
 
