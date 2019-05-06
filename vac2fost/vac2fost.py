@@ -313,17 +313,18 @@ class Interface:
 
     @property
     def grain_micron_sizes(self) -> np.ndarray:
-        '''Read grain sizes (assumed in [cm]), from AMRVAC parameters and
-        convert to microns.'''
+        """Read grain sizes (assumed in [cm]), from AMRVAC parameters and
+        convert to microns."""
         assert self.dust_binning_mode != "auto"
         if self._µsizes is None:
             µm_sizes = np.empty(0)
             if self._bin_dust():
                 cm_sizes = np.array(
-                    self.sim_conf['usr_dust_list']['grain_size_cm'])
+                    self.sim_conf["usr_dust_list"]["grain_size_cm"])
                 µm_sizes = 1e4 * cm_sizes
-            if self._bin_gas():
-                µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
+                assert min(µm_sizes) > 0.1 #in case this triggers, review this code
+            # always associate a grain size to the gas bin
+            µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
             self._µsizes = µm_sizes
         return self._µsizes
 
@@ -464,15 +465,16 @@ class Interface:
         """Write a .fits file suited for MCFOST input."""
         dust_bin_selector = {
             "gas-only": np.zeros(1, dtype="int64"),
-            "dust-only": 1 + self.grain_micron_sizes.argsort(),
+            "dust-only": 1 + self.grain_micron_sizes[1:].argsort(),
             "mixed": self.grain_micron_sizes.argsort()
         }[self.dust_binning_mode]
 
         suppl_hdus = []
+        assert (len(dust_bin_selector) > 1) == (self._bin_dust())
         if len(dust_bin_selector) > 1:
             # mcfost requires an HDU with grain sizes only if more than one population is present
             suppl_hdus.append(
-                fits.ImageHDU(self.grain_micron_sizes[self.grain_micron_sizes.argsort()])
+                fits.ImageHDU(self.grain_micron_sizes[dust_bin_selector])
             )
 
         header = {'read_n_a': 0} # automatic normalization of size-bins from mcfost param file.
