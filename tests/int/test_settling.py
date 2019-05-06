@@ -24,3 +24,9 @@ class TestSettling:
                   settling=True,
                   mcfost_verbose=True)
         assert itf.use_settling
+
+    def test_run_settling(self):
+        itf = app(__class__.conf_file, output_dir=__class__.outdir,
+                  settling=True,
+                  mcfost_verbose=True)
+        itf.new_3D_arrays
