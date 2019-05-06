@@ -11,7 +11,10 @@ from uuid import uuid4 as uuid
 import numpy as np
 from astropy.io import fits
 
-from vac2fost.info import __version__
+try:
+    from .info import __version__
+except ImportError:
+    from info import __version__
 
 MIN_MCFOST_VERSION = "3.0.35"  # minimal requirement
 MINGRAINSIZE_µ = 0.1
