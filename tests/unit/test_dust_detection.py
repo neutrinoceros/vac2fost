@@ -28,7 +28,7 @@ class TestDBM:
                         output_dir=output_dir,
                         dust_bin_mode="dust-only")
         assert itf.dust_binning_mode == "dust-only"
-        np.testing.assert_array_equal(itf.grain_micron_sizes, [1e4, 1e3])
+        np.testing.assert_array_equal(itf.grain_micron_sizes, [MINGRAINSIZE_µ, 1e4, 1e3])
 
     def test_mixed(self):
         itf = Interface(test_dir/'sample/vac2fost_conf_quick.nml',
