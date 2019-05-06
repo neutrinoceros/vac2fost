@@ -68,12 +68,12 @@
 
 # Star properties
   1                                     n_stars
-  4000.0  2.0  1.0  0.0  0.0  0  True   Teff, Rstar, Mstar, x, y, z, is_blackbody
+  6550  2.0  1.8  0.0  0.0  0  True     Teff, Rstar, Mstar, x, y, z, is_blackbody
   lte4000-3.5.NextGen.fits.gz           star_rad_file
   0.0  2.2                              fUV, slope_fUV
 
 
 
-%% automatically generated with vac2fost 2.3.3
+%% automatically generated with vac2fost 2.4.0
 %% via mcfost 3.0.35
-%% run by clm on beelzebot.home
+%% run by crobert on calculon
