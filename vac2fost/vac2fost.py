@@ -319,9 +319,8 @@ class Interface:
         if self._µsizes is None:
             µm_sizes = np.empty(0)
             if self._bin_dust():
-                cm_sizes = np.array(
+                µm_sizes = 1e4 * np.array(
                     self.sim_conf["usr_dust_list"]["grain_size_cm"])
-                µm_sizes = 1e4 * cm_sizes
                 assert min(µm_sizes) > 0.1 #in case this triggers, review this code
             # always associate a grain size to the gas bin
             µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
@@ -540,10 +539,11 @@ class Interface:
         for ir, r in enumerate(self.output_grid["rv"]):
             z_vect = self.output_grid["zg"][nz:, ir].reshape(1, nz)
             gas_height = r * self.aspect_ratio
-            for i_bin, surface_density in enumerate(self.new_2D_arrays[:, ir, :]):
+            for i_bin, grain_µsize in enumerate(self.grain_micron_sizes):
+                surface_density = self.new_2D_arrays[i_bin, ir, :]
                 H = gas_height
                 if self.use_settling:
-                    H *= (self.grain_micron_sizes[i_bin] / MINGRAINSIZE_µ)**(-0.5)
+                    H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
                 gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
                 self._new_3D_arrays[i_bin, :, :, ir] = \
                     gaussian * surface_density.reshape(nphi, 1)
