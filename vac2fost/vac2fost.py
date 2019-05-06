@@ -126,6 +126,7 @@ class Interface:
                  dust_bin_mode: str = "auto",
                  read_gas_density=False,
                  read_gas_velocity=False,
+                 settling=False,
                  mcfost_verbose=False):
 
         self.warnings = []
@@ -148,6 +149,7 @@ class Interface:
         self._dim = 2  # no support for 3D input yet
         self.mcfost_verbose = mcfost_verbose
         self.read_gas_velocity = read_gas_velocity
+        self.use_settling = settling
 
         # parse configuration file
         self.config = f90nml.read(config_file)
@@ -318,9 +320,8 @@ class Interface:
         if self._µsizes is None:
             µm_sizes = np.empty(0)
             if self._bin_dust():
-                cm_sizes = np.array(
+                µm_sizes = 1e4 * np.array(
                     self.sim_conf["usr_dust_list"]["grain_size_cm"])
-                µm_sizes = 1e4 * cm_sizes
                 assert min(µm_sizes) > 0.1 #in case this triggers, review this code
             # always associate a grain size to the gas bin
             µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
@@ -525,9 +526,9 @@ class Interface:
 
     @property
     def aspect_ratio(self):
-        """Dimensionless ratio implied by mcfost parameters"""
-        mcfl = self.config['mcfost_output']
-        return mcfl['scale_height'] / mcfl['reference_radius']
+        """Dimensionless gas scale height implied by mcfost parameters"""
+        mcfl = self.config["mcfost_output"]
+        return mcfl["scale_height"] / mcfl["reference_radius"]
 
     def gen_3D_arrays(self) -> None:
         """Interpolate input data onto full 3D output grid"""
@@ -538,9 +539,13 @@ class Interface:
         self._new_3D_arrays = np.zeros((nbins, nphi, nz, nr))
         for ir, r in enumerate(self.output_grid["rv"]):
             z_vect = self.output_grid["zg"][nz:, ir].reshape(1, nz)
-            local_height = r * self.aspect_ratio
-            gaussian = np.exp(-z_vect**2/ (2*local_height**2)) / (np.sqrt(2*np.pi) * local_height)
-            for i_bin, surface_density in enumerate(self.new_2D_arrays[:, ir, :]):
+            gas_height = r * self.aspect_ratio
+            for i_bin, grain_µsize in enumerate(self.grain_micron_sizes):
+                surface_density = self.new_2D_arrays[i_bin, ir, :]
+                H = gas_height
+                if self.use_settling:
+                    H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
+                gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
                 self._new_3D_arrays[i_bin, :, :, ir] = \
                     gaussian * surface_density.reshape(nphi, 1)
 
@@ -616,6 +621,7 @@ def main(config_file: str,
          dust_bin_mode: str = "auto",
          read_gas_density=False,
          read_gas_velocity=False,
+         settling=False,
          verbose=False,
          mcfost_verbose=False):
     '''Try to transform a .vtu file into a .fits'''
@@ -625,6 +631,7 @@ def main(config_file: str,
                         dust_bin_mode=dust_bin_mode,
                         read_gas_density=read_gas_density,
                         read_gas_velocity=read_gas_velocity,
+                        settling=settling,
                         mcfost_verbose=mcfost_verbose)
 
     for i, n in enumerate(itf.nums):
@@ -702,6 +709,11 @@ if __name__ == '__main__':
         help="pass gas velocity to mcfost (keplerian velocity is assumed otherwise)"
     )
     parser.add_argument(
+        "--settling",
+        action="store_true",
+        help="differentiate scale height according to grain-size"
+    )
+    parser.add_argument(
         '-v', '--verbose',
         action='store_true',
         help='activate verbose mode'
@@ -754,6 +766,7 @@ if __name__ == '__main__':
         dust_bin_mode=cargs.dbm,
         read_gas_density=cargs.read_gas_density,
         read_gas_velocity=cargs.read_gas_velocity,
+        settling=cargs.settling,
         verbose=cargs.verbose,
         mcfost_verbose=cargs.mcfost_verbose
     )
