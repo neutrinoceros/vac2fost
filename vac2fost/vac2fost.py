@@ -43,12 +43,23 @@ import f90nml
 
 # private externals
 from vtk_vacreader import VacDataSorter
-from vac2fost.info import __version__
-from vac2fost.utils import colorama, RED, CYAN, BOLD
-from vac2fost.utils import shell_path, wait_for_ok, get_prompt_size, decorated_centered_message
-from vac2fost.utils import IOinfo, DataInfo, GridShape
-from vac2fost.mcfost_utils import MINGRAINSIZE_µ, KNOWN_MCFOST_ARGS
-from vac2fost.mcfost_utils import get_mcfost_grid, write_mcfost_conf
+
+# package level dependencies
+# devnote: this state of things is really unsatisfying (dupplicated code), *but it works*
+if __name__ == "__main__":
+    from info import __version__
+    from utils import colorama, RED, CYAN, BOLD
+    from utils import shell_path, wait_for_ok, get_prompt_size, decorated_centered_message
+    from utils import IOinfo, DataInfo, GridShape
+    from mcfost_utils import MINGRAINSIZE_µ, KNOWN_MCFOST_ARGS
+    from mcfost_utils import get_mcfost_grid, write_mcfost_conf
+else:
+    from .info import __version__
+    from .utils import colorama, RED, CYAN, BOLD
+    from .utils import shell_path, wait_for_ok, get_prompt_size, decorated_centered_message
+    from .utils import IOinfo, DataInfo, GridShape
+    from .mcfost_utils import MINGRAINSIZE_µ, KNOWN_MCFOST_ARGS
+    from .mcfost_utils import get_mcfost_grid, write_mcfost_conf
 
 
 
