@@ -10,6 +10,7 @@ if [ -z ${VAC2FOST_INSTALL_DIR+x} ] ; then
     echo "error: this script requires VAC2FOST_INSTALL_DIR to be defined."
     exit 1
 fi
+echo "install dir used : $VAC2FOST_INSTALL_DIR"
 
 TESTDIR=$VAC2FOST_INSTALL_DIR/tests
 OUT=$TESTDIR/output
