@@ -6,7 +6,7 @@ if [ $? == 1 ] ; then
     exit 1
 fi
 
-if [ -n "$$VAC2FOST_INSTALL_DIR" ] ; then
+if [ -z ${VAC2FOST_INSTALL_DIR+x} ] ; then
     echo "error: this script requires VAC2FOST_INSTALL_DIR to be defined."
     exit 1
 fi
