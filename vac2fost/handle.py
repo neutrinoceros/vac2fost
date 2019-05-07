@@ -45,7 +45,9 @@ def main(config_file: str,
          verbose=False,
          mcfost_verbose=False):
     """Transform a .vtu datfile into a .fits"""
+
     print(decorated_centered_message("start vac2fost"))
+
     InterfaceType = {True: VerbatimInterface, False: Interface}[verbose]
     itf = InterfaceType(config_file, nums=nums, output_dir=output_dir,
                         dust_bin_mode=dust_bin_mode,
