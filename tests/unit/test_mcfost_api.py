@@ -5,8 +5,7 @@ import multiprocessing as mp
 import pytest
 
 from vac2fost.mcfost_utils import blocks_descriptors, write_mcfost_conf
-from vac2fost.vac2fost import Interface
-from vac2fost import main as app
+from vac2fost import Interface, main as app
 
 testdir = Path(__file__).parent.parent
 outdir = testdir/"output"

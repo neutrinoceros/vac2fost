@@ -1,11 +1,14 @@
 """Shell level script"""
 import sys
+from pathlib import Path
 from argparse import ArgumentParser
 
 import f90nml
 
-from vac2fost.vac2fost import DEFAULT_UNITS, main
 from vac2fost.info import __version__
+from vac2fost.utils import CYAN, BOLD, get_prompt_size, decorated_centered_message
+from vac2fost.interfaces import DEFAULT_UNITS, Interface, VerbatimInterface
+
 
 
 
@@ -32,6 +35,56 @@ def generate_conf_template() -> f90nml.Namelist:
     template = f90nml.Namelist({k: f90nml.Namelist(v) for k, v in sublists.items()})
     return template
 
+
+def main(config_file: str,
+         nums: int = None, # or any in-returning interable
+         output_dir: Path = Path.cwd(),
+         dust_bin_mode: str = "auto",
+         read_gas_density=False,
+         read_gas_velocity=False,
+         verbose=False,
+         mcfost_verbose=False):
+    """Transform a .vtu datfile into a .fits"""
+    print(decorated_centered_message("start vac2fost"))
+    InterfaceType = {True: VerbatimInterface, False: Interface}[verbose]
+    itf = InterfaceType(config_file, nums=nums, output_dir=output_dir,
+                        dust_bin_mode=dust_bin_mode,
+                        read_gas_density=read_gas_density,
+                        read_gas_velocity=read_gas_velocity,
+                        mcfost_verbose=mcfost_verbose)
+
+    for i, n in enumerate(itf.nums):
+        if verbose or i == 0:
+            print()
+        mess1 = f"current input number: {n}"
+        mess2 = f"({i+1}/{len(itf.nums)})"
+        print((BOLD+" "*(get_prompt_size()-len(mess1)-len(mess2))).join([mess1, mess2]))
+        print("-"*get_prompt_size())
+        try:
+            itf.load_input_data(n)
+        except FileNotFoundError as err:
+            filepath = Path(str(err)).relative_to(Path.cwd())
+            itf.warnings.append(f"file not found: {filepath}")
+            continue
+        itf.write_mcfost_conf_file()
+        itf.gen_2D_arrays()
+        itf.gen_3D_arrays()
+        itf.write_output()
+
+        try:
+            filepath = itf.io.OUT.filepath.relative_to(Path.cwd())
+        except ValueError:
+            filepath = itf.io.OUT.filepath
+        print(CYAN + f" >>> wrote {filepath}")
+
+    if itf.warnings:
+        print()
+        itf.display_warnings()
+
+    print(decorated_centered_message("end vac2fost"))
+
+    # return the Interface object for inspection (tests)
+    return itf
 
 if __name__ == "__main__":
     # Parse the script arguments
