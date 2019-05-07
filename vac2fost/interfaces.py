@@ -1,32 +1,13 @@
-"""A conversion facility for MPI-AMRVAC (.vtu) to MCFOST (.fits)
+"""
+Where interface classes live.
 
-This is a Python package (from vac2fost import main as vac2fost), and
-also a command line script.  Run `python vac2fost.py --help` for
-documentation on command line usage.
+Interface (and its more talkative little sister VerbatimInterface) are the bulk
+of this package, and hold most capabilities.
 
-The main algorithm runs the following steps
-  a) load AMRVAC data with vtk_vacreader.VacDataSorter(), sort it as 2D arrays
-  b) dry-run MCFOST to get the exact output
-  c) interpolate data to the target grid
-  d) convert to 3D (gaussian redistribution of density)
-  e) collect, sort and write output data to a fits file
-
-
-Known limitations
-  1) AMR grids are not supported (.vtu files need to be converted to uniform grids)
-  2) .vtu are assumed to use polar coordinates (r-phi 2D)
-  3) 2D interpolation does not account for the curvature of polar cells
-
-
-Disclaimer
-  This package is using Python3.7 syntax/features and will not be made backward
-  compatible with older versions of Python.
+An Interface instance can be used to translate .vtu files (MPI-AMRVAC)
+to .fits input suited for MCFOST
 """
 
-
-
-# Imports
-# =======================================================================================
 # stdlib
 import os
 from pathlib import Path
@@ -49,12 +30,9 @@ from .mcfost_utils import MINGRAINSIZE_µ, KNOWN_MCFOST_ARGS
 from .mcfost_utils import get_mcfost_grid, write_mcfost_conf
 
 
-# Globals ===============================================================================
+
 DEFAULT_UNITS = dict(distance2au=1.0, time2yr=1.0, mass2solar=1.0)
 
-
-
-# Defintions ============================================================================
 def read_amrvac_parfiles(parfiles: list, location: str = "") -> f90nml.Namelist:
     """Parse one, or a list of MPI-AMRVAC parfiles into a consistent
     configuration.
@@ -87,10 +65,9 @@ def read_amrvac_parfiles(parfiles: list, location: str = "") -> f90nml.Namelist:
 
 
 
-# Main class ============================================================================
 class Interface:
-    '''A class to hold global variables as attributes and give
-    clear and concise structure to the main() function.'''
+    """A data transforming class. Holds most functionalities useful to
+    vac2fost.main()"""
 
     @wait_for_ok("parsing input")
     def __init__(self, config_file,
@@ -555,7 +532,6 @@ class Interface:
 
 
 
-# Verbose version of Interface ==========================================================
 class VerbatimInterface(Interface):
     """A more talkative Interface"""
     @wait_for_ok(f"loading input data")

@@ -1,5 +1,22 @@
 #!/usr/bin/env python3
-"""Shell level script"""
+"""
+A convenient reusable script embedding most of the package's functionality.
+
+For documentation on usage, run `python vac2fost.py --help`
+
+The main algorithm runs the following steps
+  a) load AMRVAC data with vtk_vacreader.VacDataSorter(), sort it as 2D arrays
+  b) dry-run MCFOST to get the exact output
+  c) interpolate data to the target grid
+  d) convert to 3D (gaussian redistribution of density)
+  e) collect, sort and write output data to a fits file
+
+
+Known limitations
+  1) AMR grids are not supported (.vtu files need to be converted to uniform grids)
+  2) .vtu are assumed to use polar coordinates (r-phi 2D)
+  3) 2D interpolation does not account for the curvature of polar cells
+"""
 import sys
 from pathlib import Path
 from argparse import ArgumentParser
@@ -12,7 +29,7 @@ from vac2fost.interfaces import DEFAULT_UNITS, Interface, VerbatimInterface
 
 
 
-
+# Definitions =======================================================================
 def generate_conf_template() -> f90nml.Namelist:
     """Generate a template namelist object with comments instead of default values"""
     amrvac_list = dict(
@@ -35,7 +52,6 @@ def generate_conf_template() -> f90nml.Namelist:
     }
     template = f90nml.Namelist({k: f90nml.Namelist(v) for k, v in sublists.items()})
     return template
-
 
 def main(config_file: str,
          nums: int = None, # or any in-returning interable
@@ -89,6 +105,9 @@ def main(config_file: str,
     # return the Interface object for inspection (tests)
     return itf
 
+
+
+# Script ============================================================================
 if __name__ == "__main__":
     # Parse the script arguments
     parser = ArgumentParser(description="Parse arguments for main app")
