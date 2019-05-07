@@ -74,7 +74,7 @@ shell:
   stage: integration_tests
   script:
     - source activate $PYENV
-    - export VAC2FOST_INSTALL_DIR=`pwd`
+    - export VAC2FOST_INSTALL_DIR=$(pwd)
     - $SLURM_CMD bash tests/test_shell.sh
 
 regression:
