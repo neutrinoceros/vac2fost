@@ -30,9 +30,7 @@ Disclaimer
 # =======================================================================================
 # stdlib
 import os
-import sys
 from pathlib import Path
-from argparse import ArgumentParser
 
 # non standard externals
 import numpy as np
@@ -44,24 +42,12 @@ import f90nml
 # private externals
 from vtk_vacreader import VacDataSorter
 
-# package level dependencies
-# devnote: this state of things is really unsatisfying (dupplicated code), *but it works*
-if __name__ == "__main__":
-    from info import __version__
-    from utils import colorama, RED, CYAN, BOLD
-    from utils import shell_path, wait_for_ok, get_prompt_size, decorated_centered_message
-    from utils import IOinfo, DataInfo, GridShape
-    from mcfost_utils import MINGRAINSIZE_µ, KNOWN_MCFOST_ARGS
-    from mcfost_utils import get_mcfost_grid, write_mcfost_conf
-else:
-    from .info import __version__
-    from .utils import colorama, RED, CYAN, BOLD
-    from .utils import shell_path, wait_for_ok, get_prompt_size, decorated_centered_message
-    from .utils import IOinfo, DataInfo, GridShape
-    from .mcfost_utils import MINGRAINSIZE_µ, KNOWN_MCFOST_ARGS
-    from .mcfost_utils import get_mcfost_grid, write_mcfost_conf
-
-
+from .info import __version__
+from .utils import colorama, RED, CYAN, BOLD
+from .utils import shell_path, wait_for_ok, get_prompt_size, decorated_centered_message
+from .utils import IOinfo, DataInfo, GridShape
+from .mcfost_utils import MINGRAINSIZE_µ, KNOWN_MCFOST_ARGS
+from .mcfost_utils import get_mcfost_grid, write_mcfost_conf
 
 
 # Globals ===============================================================================
@@ -70,29 +56,6 @@ DEFAULT_UNITS = dict(distance2au=1.0, time2yr=1.0, mass2solar=1.0)
 
 
 # Defintions ============================================================================
-def generate_conf_template() -> f90nml.Namelist:
-    """Generate a template namelist object with comments instead of default values"""
-    amrvac_list = dict(
-        hydro_data_dir="path/to/output/data/directory",
-        config="relative/to/<hydro_data_dir>/path/to/amrvac/config/file[s]",
-        nums=0
-    )
-
-    mcfost_list = dict(
-        n_rad=128, n_rad_in=4, n_az=128, nz=10,
-        # aspect ratio is implied by those parameters
-        flaring_exp=1.125,
-        reference_radius=100.0,  # [a.u.]
-        scale_height=1.0,  # [a.u.], at defined at reference_radius
-    )
-    sublists = {
-        "amrvac_input": amrvac_list,
-        "units": DEFAULT_UNITS,
-        "mcfost_output": mcfost_list
-    }
-    template = f90nml.Namelist({k: f90nml.Namelist(v) for k, v in sublists.items()})
-    return template
-
 def read_amrvac_parfiles(parfiles: list, location: str = "") -> f90nml.Namelist:
     """Parse one, or a list of MPI-AMRVAC parfiles into a consistent
     configuration.
@@ -668,108 +631,3 @@ def main(config_file: str,
 
     # return the Interface object for inspection (tests)
     return itf
-
-
-
-# Script part ===========================================================================
-if __name__ == '__main__':
-    # Parse the script arguments
-    parser = ArgumentParser(description='Parse arguments for main app')
-    parser.add_argument(
-        dest='configuration', type=str,
-        nargs='?',
-        default=None,
-        help='configuration file (namelist) for this script'
-    )
-    parser.add_argument(
-        "-n", "--nums", dest="nums", type=int,
-        required=False,
-        default=None,
-        nargs="*",
-        help="output number(s) of the target .vtu VAC output file to be converted"
-    )
-    parser.add_argument(
-        '-o', '--output', dest='output', type=str,
-        required=False,
-        default='.',
-        help='select output directory for generated files'
-    )
-    parser.add_argument(
-        '-dbm', '--dustbinmode', dest='dbm', type=str,
-        required=False,
-        default="auto",
-        help="prefered bin selection mode [dust-only, gas-only, mixed, auto]"
-    )
-    parser.add_argument(
-        "--read_gas_density",
-        action="store_true",
-        help="pass gas density to mcfost"
-    )
-    parser.add_argument(
-        "--read_gas_velocity",
-        action="store_true",
-        help="pass gas velocity to mcfost (keplerian velocity is assumed otherwise)"
-    )
-    parser.add_argument(
-        '-v', '--verbose',
-        action='store_true',
-        help='activate verbose mode'
-    )
-    parser.add_argument(
-        '--mcfost_verbose',
-        action='store_true',
-        help='do not silence mcfost'
-    )
-    parser.add_argument(
-        '--genconf', action='store_true',
-        help="print a default configuration file for vac2fost"
-    )
-    parser.add_argument(
-        '--cprofile',
-        action='store_true',
-        help='activate code profiling'
-    )
-    parser.add_argument(
-        "--version",
-        action="store_true",
-        help="display this code's version"
-    )
-
-    cargs = parser.parse_args()
-
-    if cargs.version:
-        print(__version__)
-        sys.exit(0)
-
-    if cargs.genconf:
-        print(generate_conf_template())
-        print(f"%% automatically generated with vac2fost {__version__}\n")
-        sys.exit(0)
-    elif len(sys.argv) == 1:
-        parser.print_help(sys.stderr)
-        sys.exit(1)
-
-    if cargs.cprofile:
-        import cProfile
-        import pstats
-        import io
-        pr = cProfile.Profile()
-        pr.enable()
-    # -------------------------------------------
-    main(
-        config_file=cargs.configuration,
-        nums=cargs.nums,
-        output_dir=cargs.output.strip(),
-        dust_bin_mode=cargs.dbm,
-        read_gas_density=cargs.read_gas_density,
-        read_gas_velocity=cargs.read_gas_velocity,
-        verbose=cargs.verbose,
-        mcfost_verbose=cargs.mcfost_verbose
-    )
-    # -------------------------------------------
-    if cargs.cprofile:
-        pr.disable()
-        s = io.StringIO()
-        ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')
-        ps.print_stats()
-        print(s.getvalue())
