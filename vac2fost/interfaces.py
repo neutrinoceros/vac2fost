@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """A conversion facility for MPI-AMRVAC (.vtu) to MCFOST (.fits)
 
 This is a Python package (from vac2fost import main as vac2fost), and

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Shell level script"""
 import sys
 from pathlib import Path
