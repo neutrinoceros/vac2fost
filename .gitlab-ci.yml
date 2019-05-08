@@ -39,6 +39,7 @@ download_deps:
 install_mcfost:
   stage: build
   script:
+    - rm -fr $HOME/.mcfost
     - mkdir deps || echo "skip mkdir"
     - cd deps/
     - $SLURM_CMD wget http://ipag.osug.fr/public/pintec/mcfost/linux/mcfost.tgz
@@ -46,7 +47,8 @@ install_mcfost:
     - chmod +x mcfost
     - mkdir -p $MCFOST_UTILS || echo "skip mkdir"
     - $SLURM_CMD ./mcfost -setup
-    - yes | ./mcfost ref3.0.para && rm -fr data_th # agree to licence...
+    - touch $HOME/.mcfost/acceptance_disclaimer_3.0.35
+    - ./mcfost ref3.0.para && rm -fr data_th # agree to licence...
     - cd ../
     - which mcfost
     - mcfost -version
