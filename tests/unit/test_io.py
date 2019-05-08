@@ -4,7 +4,7 @@ import os
 import pytest
 from pathlib import Path
 from amrvac_pywrap import secure_chdir
-from vac2fost.vac2fost import Interface
+from vac2fost import Interface
 
 test_dir = Path(__file__).absolute().parent.parent
 

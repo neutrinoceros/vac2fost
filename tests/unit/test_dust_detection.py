@@ -3,7 +3,8 @@ import numpy as np
 import pytest
 import f90nml
 from vtk_vacreader import VacDataSorter as VDS
-from vac2fost.vac2fost import Interface, MINGRAINSIZE_µ
+from vac2fost import Interface
+from vac2fost.mcfost_utils import MINGRAINSIZE_µ
 
 test_dir = pathlib.Path(__file__).absolute().parent.parent
 output_dir = test_dir / "output/test_dbm"

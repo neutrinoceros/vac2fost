@@ -1,38 +1,16 @@
-#!/usr/bin/env python3
-"""A conversion facility for MPI-AMRVAC (.vtu) to MCFOST (.fits)
+"""
+Where interface classes live.
 
-This is a Python package (from vac2fost import main as vac2fost), and
-also a command line script.  Run `python vac2fost.py --help` for
-documentation on command line usage.
+Interface (and its more talkative little sister VerbatimInterface) are the bulk
+of this package, and hold most capabilities.
 
-The main algorithm runs the following steps
-  a) load AMRVAC data with vtk_vacreader.VacDataSorter(), sort it as 2D arrays
-  b) dry-run MCFOST to get the exact output
-  c) interpolate data to the target grid
-  d) convert to 3D (gaussian redistribution of density)
-  e) collect, sort and write output data to a fits file
-
-
-Known limitations
-  1) AMR grids are not supported (.vtu files need to be converted to uniform grids)
-  2) .vtu are assumed to use polar coordinates (r-phi 2D)
-  3) 2D interpolation does not account for the curvature of polar cells
-
-
-Disclaimer
-  This package is using Python3.7 syntax/features and will not be made backward
-  compatible with older versions of Python.
+An Interface instance can be used to translate .vtu files (MPI-AMRVAC)
+to .fits input suited for MCFOST
 """
 
-
-
-# Imports
-# =======================================================================================
 # stdlib
 import os
-import sys
 from pathlib import Path
-from argparse import ArgumentParser
 
 # non standard externals
 import numpy as np
@@ -44,54 +22,16 @@ import f90nml
 # private externals
 from vtk_vacreader import VacDataSorter
 
-# package level dependencies
-# devnote: this state of things is really unsatisfying (dupplicated code), *but it works*
-if __name__ == "__main__":
-    from info import __version__
-    from utils import colorama, RED, CYAN, BOLD
-    from utils import shell_path, wait_for_ok, get_prompt_size, decorated_centered_message
-    from utils import IOinfo, DataInfo, GridShape
-    from mcfost_utils import MINGRAINSIZE_µ, KNOWN_MCFOST_ARGS
-    from mcfost_utils import get_mcfost_grid, write_mcfost_conf
-else:
-    from .info import __version__
-    from .utils import colorama, RED, CYAN, BOLD
-    from .utils import shell_path, wait_for_ok, get_prompt_size, decorated_centered_message
-    from .utils import IOinfo, DataInfo, GridShape
-    from .mcfost_utils import MINGRAINSIZE_µ, KNOWN_MCFOST_ARGS
-    from .mcfost_utils import get_mcfost_grid, write_mcfost_conf
+from .info import __version__
+from .utils import colorama, RED
+from .utils import shell_path, wait_for_ok
+from .utils import IOinfo, DataInfo, GridShape
+from .mcfost_utils import MINGRAINSIZE_µ, KNOWN_MCFOST_ARGS
+from .mcfost_utils import get_mcfost_grid, write_mcfost_conf
 
 
 
-
-# Globals ===============================================================================
 DEFAULT_UNITS = dict(distance2au=1.0, time2yr=1.0, mass2solar=1.0)
-
-
-
-# Defintions ============================================================================
-def generate_conf_template() -> f90nml.Namelist:
-    """Generate a template namelist object with comments instead of default values"""
-    amrvac_list = dict(
-        hydro_data_dir="path/to/output/data/directory",
-        config="relative/to/<hydro_data_dir>/path/to/amrvac/config/file[s]",
-        nums=0
-    )
-
-    mcfost_list = dict(
-        n_rad=128, n_rad_in=4, n_az=128, nz=10,
-        # aspect ratio is implied by those parameters
-        flaring_exp=1.125,
-        reference_radius=100.0,  # [a.u.]
-        scale_height=1.0,  # [a.u.], at defined at reference_radius
-    )
-    sublists = {
-        "amrvac_input": amrvac_list,
-        "units": DEFAULT_UNITS,
-        "mcfost_output": mcfost_list
-    }
-    template = f90nml.Namelist({k: f90nml.Namelist(v) for k, v in sublists.items()})
-    return template
 
 def read_amrvac_parfiles(parfiles: list, location: str = "") -> f90nml.Namelist:
     """Parse one, or a list of MPI-AMRVAC parfiles into a consistent
@@ -125,13 +65,13 @@ def read_amrvac_parfiles(parfiles: list, location: str = "") -> f90nml.Namelist:
 
 
 
-# Main class ============================================================================
 class Interface:
-    '''A class to hold global variables as attributes and give
-    clear and concise structure to the main() function.'''
+    """A data transforming class. Holds most functionalities useful to
+    vac2fost.main()"""
 
     @wait_for_ok("parsing input")
-    def __init__(self, config_file,
+    def __init__(self,
+                 config_file: Path,
                  nums: int = None, # or any int-returning iterable
                  output_dir: Path = Path.cwd(),
                  dust_bin_mode: str = "auto",
@@ -600,7 +540,6 @@ class Interface:
 
 
 
-# Verbose version of Interface ==========================================================
 class VerbatimInterface(Interface):
     """A more talkative Interface"""
     @wait_for_ok(f"loading input data")
@@ -622,169 +561,3 @@ class VerbatimInterface(Interface):
     @wait_for_ok('building the .fits file')
     def write_output(self) -> None:
         super().write_output()
-
-
-
-# Main function =========================================================================
-def main(config_file: str,
-         nums: int = None, # or any in-returning interable
-         output_dir: Path = Path.cwd(),
-         dust_bin_mode: str = "auto",
-         read_gas_density=False,
-         read_gas_velocity=False,
-         settling=False,
-         verbose=False,
-         mcfost_verbose=False):
-    """Transform a .vtu datfile into a .fits"""
-    print(decorated_centered_message("start vac2fost"))
-    InterfaceType = {True: VerbatimInterface, False: Interface}[verbose]
-    itf = InterfaceType(config_file, nums=nums, output_dir=output_dir,
-                        dust_bin_mode=dust_bin_mode,
-                        read_gas_density=read_gas_density,
-                        read_gas_velocity=read_gas_velocity,
-                        settling=settling,
-                        mcfost_verbose=mcfost_verbose)
-
-    for i, n in enumerate(itf.nums):
-        if verbose or i == 0:
-            print()
-        mess1 = f"current input number: {n}"
-        mess2 = f"({i+1}/{len(itf.nums)})"
-        print((BOLD+" "*(get_prompt_size()-len(mess1)-len(mess2))).join([mess1, mess2]))
-        print("-"*get_prompt_size())
-        try:
-            itf.load_input_data(n)
-        except FileNotFoundError as err:
-            filepath = Path(str(err)).relative_to(Path.cwd())
-            itf.warnings.append(f"file not found: {filepath}")
-            continue
-        itf.write_mcfost_conf_file()
-        itf.gen_2D_arrays()
-        itf.gen_3D_arrays()
-        itf.write_output()
-
-        try:
-            filepath = itf.io.OUT.filepath.relative_to(Path.cwd())
-        except ValueError:
-            filepath = itf.io.OUT.filepath
-        print(CYAN + f" >>> wrote {filepath}")
-
-    if itf.warnings:
-        print()
-        itf.display_warnings()
-
-    print(decorated_centered_message("end vac2fost"))
-
-    # return the Interface object for inspection (tests)
-    return itf
-
-
-
-# Script part ===========================================================================
-if __name__ == '__main__':
-    # Parse the script arguments
-    parser = ArgumentParser(description='Parse arguments for main app')
-    parser.add_argument(
-        dest='configuration', type=str,
-        nargs='?',
-        default=None,
-        help='configuration file (namelist) for this script'
-    )
-    parser.add_argument(
-        "-n", "--nums", dest="nums", type=int,
-        required=False,
-        default=None,
-        nargs="*",
-        help="output number(s) of the target .vtu VAC output file to be converted"
-    )
-    parser.add_argument(
-        '-o', '--output', dest='output', type=str,
-        required=False,
-        default='.',
-        help='select output directory for generated files'
-    )
-    parser.add_argument(
-        '-dbm', '--dustbinmode', dest='dbm', type=str,
-        required=False,
-        default="auto",
-        help="prefered bin selection mode [dust-only, gas-only, mixed, auto]"
-    )
-    parser.add_argument(
-        "--read_gas_density",
-        action="store_true",
-        help="pass gas density to mcfost"
-    )
-    parser.add_argument(
-        "--read_gas_velocity",
-        action="store_true",
-        help="pass gas velocity to mcfost (keplerian velocity is assumed otherwise)"
-    )
-    parser.add_argument(
-        "--settling",
-        action="store_true",
-        help="differentiate scale height according to grain-size"
-    )
-    parser.add_argument(
-        '-v', '--verbose',
-        action='store_true',
-        help='activate verbose mode'
-    )
-    parser.add_argument(
-        '--mcfost_verbose',
-        action='store_true',
-        help='do not silence mcfost'
-    )
-    parser.add_argument(
-        '--genconf', action='store_true',
-        help="print a default configuration file for vac2fost"
-    )
-    parser.add_argument(
-        '--cprofile',
-        action='store_true',
-        help='activate code profiling'
-    )
-    parser.add_argument(
-        "--version",
-        action="store_true",
-        help="display this code's version"
-    )
-
-    cargs = parser.parse_args()
-
-    if cargs.version:
-        print(__version__)
-        sys.exit(0)
-
-    if cargs.genconf:
-        print(generate_conf_template())
-        print(f"%% automatically generated with vac2fost {__version__}\n")
-        sys.exit(0)
-    elif len(sys.argv) == 1:
-        parser.print_help(sys.stderr)
-        sys.exit(1)
-
-    if cargs.cprofile:
-        import cProfile
-        import pstats
-        import io
-        pr = cProfile.Profile()
-        pr.enable()
-    # -------------------------------------------
-    main(
-        config_file=cargs.configuration,
-        nums=cargs.nums,
-        output_dir=cargs.output.strip(),
-        dust_bin_mode=cargs.dbm,
-        read_gas_density=cargs.read_gas_density,
-        read_gas_velocity=cargs.read_gas_velocity,
-        settling=cargs.settling,
-        verbose=cargs.verbose,
-        mcfost_verbose=cargs.mcfost_verbose
-    )
-    # -------------------------------------------
-    if cargs.cprofile:
-        pr.disable()
-        s = io.StringIO()
-        ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')
-        ps.print_stats()
-        print(s.getvalue())
