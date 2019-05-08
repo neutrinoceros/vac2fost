@@ -2,14 +2,14 @@
 
 warning: this work has seen very little usage outside of its author's
 laptop, any user feedback is therefor essential to making this program
-more reliable. Please do report bugs on sight, thanks.
+more reliable. Please do report bugs at sight, thanks.
 
 vac2fost
 ========
 
-vac2fost is a Python 3.6+ program that translates `.vtu`
-formated MPI-AMRVAC output files into `.fits` files compatible with
-mcfost 3D model input format.
+vac2fost is a Python 3.6+ program that translates `.vtu` formated
+MPI-AMRVAC output files into `.fits` files compatible with mcfost 3D
+model input format.
 
 ``vac2fost.py`` can be used for python scripting, importing its ``main()``
 function within Python, or as an command-line executable.
@@ -70,9 +70,7 @@ This is solved by updating conda with `conda update conda``.
 Usage/Finishing installation
 ----------------------------
 
-vac2fost can be used in two fashions:
-
-- as a Python package. Install with
+Install vac2fost Python package
 
     .. code-block:: bash
 
@@ -81,17 +79,24 @@ vac2fost can be used in two fashions:
         #or
         conda develop . # if you wish to actively modify the package as you use it
 
+**warning; equivalent methods exists within pip (i.e. ``pip install -e .``)
+but have not been tested thoroughly
+**
 
-- from command line. The recommended fashion is to create a symbolic
-  link to the main file, as part of your ``$PATH`` and treat it as an
-  executable.  For instance
+``vac2fost.py`` can also be run from command line.  The recommended
+installation method is to put a symbolic link between it and a
+directory accessible through your ``$PATH``, and treat it as an
+executable.  For instance
 
     .. code-block:: bash
-        
-        chmod +x vac2fost/vac2fost.py
+
         ln -s vac2fost/vac2fost.py ~/local/bin/vac2fost.py
-        #or a more standard solution
-        export PATH=$PATH:~/path/to/vac2fost
+
+Alternatively, one can simply add the package directory to their ``$PATH``
+
+    .. code-block:: bash
+
+	export PATH=$PATH:~/path/to/vac2fost
 
 
 
@@ -99,10 +104,10 @@ Testing
 -------
 
 run ``pytest`` to check that the program behaves normally. Tests
-should be able to pass as long as your environment contains all of vac2fost's dependencies,
-even if you did not install vac2fost`` yet.
+should be able to pass as long as your environment contains all of
+vac2fost's dependencies, even if you did not install the package yet.
 
-A demo of how to produce an image with ``vac2fost`` + ``MCFOST`` can
+A demo of how to produce an image with vac2fost + mcfost can
 be found in ``docs/mcfost_demo.sh``.
 
 
@@ -122,26 +127,26 @@ For instance
            /
 
 	   &units
-	   ! conversion factors between dimensionel amrvac outputs and physical units
+	   ! conversion factors between dimensionless AMRVAC outputs and physical units
 	   distance2au = 100.0
 	   time2yr     = 10.
 	   /
 
 	   &mcfost_output
            ! this list describes MCFOST parameters
-           ! named according to vac2fost.MCFOSTUtils.blocks_descriptors
-           n_rad   = 150
+           ! names should follow MCFOST's documentation
+           n_rad = 150
+	   n_rad_in = 30
            n_az = 100
-           nz   = 50
-           n_rad_in = 30  ! need to be < nr
+           nz = 50
 
            flaring_exp = 1.125
-           reference_radius = 100.0    ! [a.u.]
-           scale_height = 10.0   ! [a.u.] defined at ref_radius
+           reference_radius = 100.0  ! [AU]
+           scale_height = 10.0       ! [AU]
 
-           Mstar = 1.8
-           Teff = 6550
-           distance = 157
+           Mstar = 1.8               ! [M_sun]
+           Teff = 6550               ! [K]
+           distance = 157            ! [pc]
 	   /
 
 How to use it
@@ -208,6 +213,6 @@ vac2fost's command line help is displayed upon
 
 	    vac2fost.py --help
 
-	    #or even simplier
+	    #or even simpler
 	    vac2fost.py
 
