@@ -2,7 +2,7 @@
 
 python -c "import vac2fost"
 if [ $? == 1 ] ; then
-    echo "error: vac2fost ins not installed properly"
+    echo "error: vac2fost is not installed properly"
     exit 1
 fi
 
