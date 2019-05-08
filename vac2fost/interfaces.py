@@ -70,7 +70,8 @@ class Interface:
     vac2fost.main()"""
 
     @wait_for_ok("parsing input")
-    def __init__(self, config_file,
+    def __init__(self,
+                 config_file: Path,
                  nums: int = None, # or any int-returning iterable
                  output_dir: Path = Path.cwd(),
                  dust_bin_mode: str = "auto",

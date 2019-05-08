@@ -53,24 +53,13 @@ def generate_conf_template() -> f90nml.Namelist:
     template = f90nml.Namelist({k: f90nml.Namelist(v) for k, v in sublists.items()})
     return template
 
-def main(config_file: str,
-         nums: int = None, # or any in-returning interable
-         output_dir: Path = Path.cwd(),
-         dust_bin_mode: str = "auto",
-         read_gas_density=False,
-         read_gas_velocity=False,
-         verbose=False,
-         mcfost_verbose=False):
+def main(config_file: Path, verbose=False, **itf_kwargs):
     """Transform a .vtu datfile into a .fits"""
 
     print(decorated_centered_message("start vac2fost"))
 
     InterfaceType = {True: VerbatimInterface, False: Interface}[verbose]
-    itf = InterfaceType(config_file, nums=nums, output_dir=output_dir,
-                        dust_bin_mode=dust_bin_mode,
-                        read_gas_density=read_gas_density,
-                        read_gas_velocity=read_gas_velocity,
-                        mcfost_verbose=mcfost_verbose)
+    itf = InterfaceType(config_file, **itf_kwargs)
 
     for i, n in enumerate(itf.nums):
         if verbose or i == 0:
