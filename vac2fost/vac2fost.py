@@ -59,7 +59,7 @@ def main(config_file: Path, verbose=False, **itf_kwargs):
     config_file and itf_kwargs are passed down to Interface.__init__()
     """
 
-    print(decorated_centered_message("start vac2fost"))
+    print(decorated_centered_message(f"start vac2fost {__version__}"))
 
     InterfaceType = {True: VerbatimInterface, False: Interface}[verbose]
     itf = InterfaceType(config_file, **itf_kwargs)
