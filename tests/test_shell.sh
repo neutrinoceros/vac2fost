@@ -1,6 +1,18 @@
 #! /usr/bin/sh
 
-TESTDIR=$ROOTDIR/tests # this required that ROOTDIR be defined as the path to vac2fost installation dir
+python -c "import vac2fost"
+if [ $? == 1 ] ; then
+    echo "error: vac2fost ins not installed properly"
+    exit 1
+fi
+
+if [ -z ${VAC2FOST_INSTALL_DIR+x} ] ; then
+    echo "error: this script requires VAC2FOST_INSTALL_DIR to be defined."
+    exit 1
+fi
+echo "install dir used : $VAC2FOST_INSTALL_DIR"
+
+TESTDIR=$VAC2FOST_INSTALL_DIR/tests
 OUT=$TESTDIR/output
 EXE=$OUT/v2f_exe.py
 
@@ -24,7 +36,7 @@ expect_faillure () {
 
 mkdir -p $OUT
 echo $EXE
-cp $ROOTDIR/vac2fost/vac2fost.py $EXE
+cp $VAC2FOST_INSTALL_DIR/vac2fost/vac2fost.py $EXE
 chmod +x $EXE
 
 echo "Test 1: normal call"
