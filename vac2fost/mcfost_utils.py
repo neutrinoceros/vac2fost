@@ -19,7 +19,7 @@ except ImportError:
 MIN_MCFOST_VERSION = "3.0.35"  # minimal requirement
 MINGRAINSIZE_µ = 0.1
 
-# mcfost detection ======================================================================
+# mcfost detection ==================================================================
 if shutil.which("mcfost") is None:
     raise OSError("could not find mcfost. Please install mcfost before using vac2fost")
 out = run("yes | mcfost -version", shell=True, capture_output=True).stdout #binary
@@ -32,7 +32,7 @@ if DETECTED_MCFOST_VERSION < MIN_MCFOST_VERSION:
 
 
 
-# Definitions ===========================================================================
+# Definitions =======================================================================
 # This nested orderded dictionnary describes a default parafile for mcfost
 #
 # parameter names should match mcfost"s documentation
