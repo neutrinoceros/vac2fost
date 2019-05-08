@@ -54,7 +54,10 @@ def generate_conf_template() -> f90nml.Namelist:
     return template
 
 def main(config_file: Path, verbose=False, **itf_kwargs):
-    """Transform a .vtu datfile into a .fits"""
+    """Transform a .vtu datfile into a .fits
+
+    config_file and itf_kwargs are passed down to Interface.__init__()
+    """
 
     print(decorated_centered_message("start vac2fost"))
 
