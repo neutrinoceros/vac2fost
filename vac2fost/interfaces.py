@@ -77,6 +77,7 @@ class Interface:
                  dust_bin_mode: str = "auto",
                  read_gas_density=False,
                  read_gas_velocity=False,
+                 settling=False,
                  mcfost_verbose=False):
 
         self.warnings = []
@@ -99,6 +100,7 @@ class Interface:
         self._dim = 2  # no support for 3D input yet
         self.mcfost_verbose = mcfost_verbose
         self.read_gas_velocity = read_gas_velocity
+        self.use_settling = settling
 
         # parse configuration file
         self.config = f90nml.read(config_file)
@@ -263,17 +265,17 @@ class Interface:
 
     @property
     def grain_micron_sizes(self) -> np.ndarray:
-        '''Read grain sizes (assumed in [cm]), from AMRVAC parameters and
-        convert to microns.'''
+        """Read grain sizes (assumed in [cm]), from AMRVAC parameters and
+        convert to microns."""
         assert self.dust_binning_mode != "auto"
         if self._µsizes is None:
             µm_sizes = np.empty(0)
             if self._bin_dust():
-                cm_sizes = np.array(
-                    self.sim_conf['usr_dust_list']['grain_size_cm'])
-                µm_sizes = 1e4 * cm_sizes
-            if self._bin_gas():
-                µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
+                µm_sizes = 1e4 * np.array(
+                    self.sim_conf["usr_dust_list"]["grain_size_cm"])
+                assert min(µm_sizes) > 0.1 #in case this triggers, review this code
+            # always associate a grain size to the gas bin
+            µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
             self._µsizes = µm_sizes
         return self._µsizes
 
@@ -414,15 +416,16 @@ class Interface:
         """Write a .fits file suited for MCFOST input."""
         dust_bin_selector = {
             "gas-only": np.zeros(1, dtype="int64"),
-            "dust-only": 1 + self.grain_micron_sizes.argsort(),
+            "dust-only": 1 + self.grain_micron_sizes[1:].argsort(),
             "mixed": self.grain_micron_sizes.argsort()
         }[self.dust_binning_mode]
 
         suppl_hdus = []
+        assert (len(dust_bin_selector) > 1) == (self._bin_dust())
         if len(dust_bin_selector) > 1:
             # mcfost requires an HDU with grain sizes only if more than one population is present
             suppl_hdus.append(
-                fits.ImageHDU(self.grain_micron_sizes[self.grain_micron_sizes.argsort()])
+                fits.ImageHDU(self.grain_micron_sizes[dust_bin_selector])
             )
 
         header = {'read_n_a': 0} # automatic normalization of size-bins from mcfost param file.
@@ -474,9 +477,9 @@ class Interface:
 
     @property
     def aspect_ratio(self):
-        """Dimensionless ratio implied by mcfost parameters"""
-        mcfl = self.config['mcfost_output']
-        return mcfl['scale_height'] / mcfl['reference_radius']
+        """Dimensionless gas scale height implied by mcfost parameters"""
+        mcfl = self.config["mcfost_output"]
+        return mcfl["scale_height"] / mcfl["reference_radius"]
 
     def gen_3D_arrays(self) -> None:
         """Interpolate input data onto full 3D output grid"""
@@ -487,9 +490,13 @@ class Interface:
         self._new_3D_arrays = np.zeros((nbins, nphi, nz, nr))
         for ir, r in enumerate(self.output_grid["rv"]):
             z_vect = self.output_grid["zg"][nz:, ir].reshape(1, nz)
-            local_height = r * self.aspect_ratio
-            gaussian = np.exp(-z_vect**2/ (2*local_height**2)) / (np.sqrt(2*np.pi) * local_height)
-            for i_bin, surface_density in enumerate(self.new_2D_arrays[:, ir, :]):
+            gas_height = r * self.aspect_ratio
+            for i_bin, grain_µsize in enumerate(self.grain_micron_sizes):
+                surface_density = self.new_2D_arrays[i_bin, ir, :]
+                H = gas_height
+                if self.use_settling:
+                    H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
+                gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
                 self._new_3D_arrays[i_bin, :, :, ir] = \
                     gaussian * surface_density.reshape(nphi, 1)
 
