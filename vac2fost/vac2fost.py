@@ -134,6 +134,11 @@ if __name__ == "__main__":
         help="pass gas density to mcfost"
     )
     parser.add_argument(
+        "--settling",
+        action="store_true",
+        help="Dubrulle-style grain settling"
+    )
+    parser.add_argument(
         "--read_gas_velocity",
         action="store_true",
         help="pass gas velocity to mcfost (keplerian velocity is assumed otherwise)"
