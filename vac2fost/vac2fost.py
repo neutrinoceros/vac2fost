@@ -196,6 +196,7 @@ if __name__ == "__main__":
         dust_bin_mode=cargs.dbm,
         read_gas_density=cargs.read_gas_density,
         read_gas_velocity=cargs.read_gas_velocity,
+        settling=cargs.settling,
         verbose=cargs.verbose,
         mcfost_verbose=cargs.mcfost_verbose
     )
