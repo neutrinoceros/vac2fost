@@ -7,7 +7,7 @@ more reliable. Please do report bugs at sight, thanks.
 vac2fost
 ========
 
-vac2fost is a Python 3.6+ program that translates `.vtu` formated
+vac2fost is a Python 3.7+ module to help translate of `.vtu` formated
 MPI-AMRVAC output files into `.fits` files compatible with mcfost 3D
 model input format.
 
@@ -17,7 +17,7 @@ The ``main`` routine can be used for python scripting with
 
     from vac2fost import main
 
-this function is also accessible from command line program ``app/v2f.py``.
+and is also accessible through the command line program ``app/v2f.py``.
 
 
 Content
