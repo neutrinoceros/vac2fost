@@ -2,7 +2,7 @@
 """
 A convenient reusable script embedding most of the package's functionality.
 
-For documentation on usage, run `python vac2fost.py --help`
+For documentation on usage, run `python v2f.py --help`
 
 The main algorithm runs the following steps
   a) load AMRVAC data with vtk_vacreader.VacDataSorter(), sort it as 2D arrays
