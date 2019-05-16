@@ -96,7 +96,14 @@ following line to your ``~/.bashrc`` (or ``~/.bash_profile``...)
 
 	export PATH=$PATH:~/path/to/vac2fost-project/app
 
+so that v2f.py can be run from anywhere on the system.
+It is also possible to alias it with a symbolic link such as:
 
+    .. code-block:: bash
+
+        ln -s ~/path/to/vac2fost-project/app/v2f.py ~/existing/member/of/PATH/vac2fost
+
+so that the scipt can be call as "vac2fost" from command line.
 
 Testing
 -------
