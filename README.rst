@@ -11,8 +11,13 @@ vac2fost is a Python 3.6+ program that translates `.vtu` formated
 MPI-AMRVAC output files into `.fits` files compatible with mcfost 3D
 model input format.
 
-``vac2fost.py`` can be used for python scripting, importing its ``main()``
-function within Python, or as an command-line executable.
+The ``main`` routine can be used for python scripting with
+
+.. code ::
+
+    from vac2fost import main
+
+this function is also accessible from command line program ``app/v2f.py``.
 
 
 Content
@@ -83,20 +88,13 @@ Install vac2fost Python package
 but have not been tested thoroughly
 **
 
-``vac2fost.py`` can also be run from command line.  The recommended
-installation method is to put a symbolic link between it and a
-directory accessible through your ``$PATH``, and treat it as an
-executable.  For instance
+``app/v2f.py`` is a command line program.  The recommended
+installation method is to add ``app/`` to your ``PATH`` by adding the
+following line to your ``~/.bashrc`` (or ``~/.bash_profile``...)
 
     .. code-block:: bash
 
-        ln -s vac2fost/vac2fost.py ~/local/bin/vac2fost.py
-
-Alternatively, one can simply add the package directory to their ``$PATH``
-
-    .. code-block:: bash
-
-	export PATH=$PATH:~/path/to/vac2fost
+	export PATH=$PATH:~/path/to/vac2fost-project/app
 
 
 
