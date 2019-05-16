@@ -14,7 +14,7 @@ echo "install dir used : $VAC2FOST_INSTALL_DIR"
 
 TESTDIR=$VAC2FOST_INSTALL_DIR/tests
 OUT=$TESTDIR/output
-EXE=$OUT/v2f.py
+EXE=$VAC2FOST_INSTALL_DIR/app/v2f.py
 
 
 expect_success () {
@@ -35,9 +35,6 @@ expect_faillure () {
 
 
 mkdir -p $OUT
-echo $EXE
-cp $VAC2FOST_INSTALL_DIR/vac2fost/handle/v2f.py $EXE
-chmod +x $EXE
 
 echo "Test 1: normal call"
 $EXE $TESTDIR/sample/vac2fost_conf_quick.nml --output $OUT/shell_1
