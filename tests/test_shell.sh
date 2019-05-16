@@ -36,7 +36,7 @@ expect_faillure () {
 
 mkdir -p $OUT
 echo $EXE
-cp $VAC2FOST_INSTALL_DIR/vac2fost/vac2fost.py $EXE
+cp $VAC2FOST_INSTALL_DIR/vac2fost/handle/vac2fost.py $EXE
 chmod +x $EXE
 
 echo "Test 1: normal call"
