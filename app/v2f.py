@@ -24,6 +24,7 @@ from argparse import ArgumentParser
 import f90nml
 
 from vac2fost.info import __version__
+from vac2fost.mcfost_utils import blocks_descriptors
 from vac2fost.utils import CYAN, BOLD, get_prompt_size, decorated_centered_message
 from vac2fost.interfaces import DEFAULT_UNITS, Interface, VerbatimInterface
 from vac2fost.main import main
@@ -54,6 +55,15 @@ def generate_conf_template() -> f90nml.Namelist:
     return template
 
 
+def print_mcfost_default_conf():
+    from pprint import pprint
+    for block_name, lines in blocks_descriptors.items():
+        print(block_name)
+        print("="*len(block_name))
+        for line in lines:
+            for k, v in line.items():
+                print(f"{k} = {v}")
+        print()
 
 # Script ============================================================================
 if __name__ == "__main__":
@@ -114,6 +124,10 @@ if __name__ == "__main__":
         help="print a default configuration file for vac2fost"
     )
     parser.add_argument(
+        "--print_mcfost_defaults", action="store_true",
+        help="print internal default values for all mcfost parameters as returned by vac2fost"
+    )
+    parser.add_argument(
         "--cprofile",
         action="store_true",
         help="activate code profiling"
@@ -130,9 +144,13 @@ if __name__ == "__main__":
         print(__version__)
         sys.exit(0)
 
+    # special cases -----------------------------
     if cargs.genconf:
         print(generate_conf_template())
         print(f"%% automatically generated with vac2fost {__version__}\n")
+        sys.exit(0)
+    elif cargs.print_mcfost_defaults:
+        print_mcfost_default_conf()
         sys.exit(0)
     elif len(sys.argv) == 1:
         parser.print_help(sys.stderr)
