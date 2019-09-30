@@ -3,8 +3,16 @@
 import os
 import pytest
 from pathlib import Path
-from amrvac_pywrap import secure_chdir
+from contextlib import contextmanager
 from vac2fost import Interface
+
+@contextmanager
+def secure_chdir(path):
+    '''A context manager that cd back to original location at closing.'''
+    origin = os.getcwd()
+    os.chdir(path)
+    try: yield
+    finally: os.chdir(origin)
 
 test_dir = Path(__file__).absolute().parent.parent
 
