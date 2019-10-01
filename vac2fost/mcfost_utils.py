@@ -96,8 +96,8 @@ blocks_descriptors = od(
             od([("Mie_hg", 1)]) # *
         )),
         ("Symmetries", (
-            od([("image_symmetry", True)]),
-            od([("central_symmetry", True)]),
+            od([("image_symmetry", False)]),
+            od([("central_symmetry", False)]),
             od([("plane_symmetry", True)]),
         )),
         ("Disk physics", (
