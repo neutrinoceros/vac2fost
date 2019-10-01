@@ -199,10 +199,7 @@ def write_mcfost_conf(output_file: Path, custom: dict = None, verbose=False):
             for line in lines:
                 parameters = []
                 for param, default in line.items():
-                    if param.lower() in custom:
-                        val = custom[param.lower()]
-                    else:
-                        val = default
+                    val = custom[param.lower()] if param.lower() in custom else default
                     parameters.append(str(val))
                 fi.write("  " + "  ".join(parameters).ljust(36)
                          + "  " + ", ".join(line.keys()))
