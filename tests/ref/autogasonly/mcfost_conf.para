@@ -27,8 +27,8 @@
   1                                     Mie_hg
 
 # Symmetries
-  True                                  image_symmetry
-  True                                  central_symmetry
+  False                                 image_symmetry
+  False                                 central_symmetry
   True                                  plane_symmetry
 
 # Disk physics
@@ -74,6 +74,6 @@
 
 
 
-%% automatically generated with vac2fost 2.3.3
+%% automatically generated with vac2fost 2.5.1
 %% via mcfost 3.0.35
-%% run by clm on beelzebot.home
+%% run by clm on dhcp7-33.oca.eu
