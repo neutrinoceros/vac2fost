@@ -22,10 +22,13 @@ MINGRAINSIZE_µ = 0.1
 # mcfost detection ==================================================================
 if shutil.which("mcfost") is None:
     raise OSError("could not find mcfost. Please install mcfost before using vac2fost")
-out = run("mcfost -version", shell=True, capture_output=True).stdout #binary
-out = "".join(map(chr, out))
-DETECTED_MCFOST_VERSION = out.split("\n")[0].split()[-1]
-del out
+try:
+    out = run("mcfost -version", shell=True, capture_output=True, check=True).stdout
+    out = "".join(map(chr, out))
+    DETECTED_MCFOST_VERSION = out.split("\n")[0].split()[-1]
+    del out
+except CalledProcessError:
+    raise OSError("could not parse mcfost version")
 
 if not (Path.home()/f".mcfost/accept_disclaimer_{DETECTED_MCFOST_VERSION}").is_file():
     raise OSError("you need to accept mcfost's diclaimer for {MIN_MCFOST_VERSION}")
