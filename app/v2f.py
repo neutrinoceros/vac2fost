@@ -110,6 +110,11 @@ if __name__ == "__main__":
         help="pass gas velocity to mcfost (keplerian velocity is assumed otherwise)"
     )
     parser.add_argument(
+        "--axisymmetry",
+        action="store_true",
+        help="generate a r-z slice"
+    )
+    parser.add_argument(
         "-v", "--verbose",
         action="store_true",
         help="activate verbose mode"
@@ -171,6 +176,7 @@ if __name__ == "__main__":
         read_gas_density=cargs.read_gas_density,
         read_gas_velocity=cargs.read_gas_velocity,
         settling=cargs.settling,
+        axisymmetry=cargs.axisymmetry,
         verbose=cargs.verbose,
         mcfost_verbose=cargs.mcfost_verbose
     )

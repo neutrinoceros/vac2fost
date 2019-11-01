@@ -78,6 +78,7 @@ class Interface:
                  read_gas_density=False,
                  read_gas_velocity=False,
                  settling=False,
+                 axisymmetry=False,
                  mcfost_verbose=False):
 
         self.warnings = []
@@ -101,6 +102,7 @@ class Interface:
         self.mcfost_verbose = mcfost_verbose
         self.read_gas_velocity = read_gas_velocity
         self.use_settling = settling
+        self.use_axisymmetry = axisymmetry
 
         # parse configuration file
         self.config = f90nml.read(config_file)
@@ -390,17 +392,25 @@ class Interface:
         return parameters
 
     def write_mcfost_conf_file(self) -> None:
-        '''Customize defaults with user specifications'''
-        custom = {}
-        custom.update(self._translate_amrvac_config())
-        unknown_args = self._scan_for_unknown_arguments()
+        """Create a complete mcfost conf file using
+        - amrvac initial configuration : self._translate_amrvac_config()
+        - user specifications : self.config['mcfost_output']
+        - defaults (defined in mcfost_utils.py)
+        """
+        mcfost_parameters = {}
+        mcfost_parameters.update(self._translate_amrvac_config())
+        unknown_args = self._scan_for_unknown_arguments() # python 3.8: walrus operator here
         if unknown_args:
             raise KeyError(f'Unrecognized MCFOST argument(s): {unknown_args}')
-        custom.update(self.config['mcfost_output'])
+        mcfost_parameters.update(self.config['mcfost_output'])
+        if self.use_axisymmetry:
+            if self.config['mcfost_output'].get("n_az", 2) > 1:
+                self.warnings.append("user specified 'n_az'>1 but axisymmetry flag present, overriding n_az=1")
+            mcfost_parameters.update({"n_az": 1})
 
         write_mcfost_conf(
             output_file=self.mcfost_conf_file,
-            custom=custom,
+            custom_parameters=mcfost_parameters,
             verbose=self.mcfost_verbose
         )
 
@@ -497,11 +507,13 @@ class Interface:
                 if self.use_settling:
                     H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
                 gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
+                #todo: numpy ellipsis ? "..."
                 self._new_3D_arrays[i_bin, :, :, ir] = \
                     gaussian * surface_density.reshape(nphi, 1)
 
     @property
     def new_2D_arrays(self) -> list:
+        #todo: rename me
         '''Last minute generation is used if required'''
         if self._new_2D_arrays is None:
             self.gen_2D_arrays()
@@ -510,6 +522,7 @@ class Interface:
     @property
     def new_3D_arrays(self) -> list:
         '''Last minute generation is used if required'''
+        #todo: rename me
         if self._new_3D_arrays is None:
             self.gen_3D_arrays()
         return self._new_3D_arrays

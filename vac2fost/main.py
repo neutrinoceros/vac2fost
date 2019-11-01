@@ -31,8 +31,11 @@ def main(config_file: Path, verbose=False, **itf_kwargs):
             itf.warnings.append(f"file not found: {filepath}")
             continue
         itf.write_mcfost_conf_file()
-        itf.gen_2D_arrays()
-        itf.gen_3D_arrays()
+        if itf_kwargs.get("axisymmetry", False):
+            itf.gen_rz_slice()
+        else:
+            itf.gen_2D_arrays() # todo: rename this method
+            itf.gen_3D_arrays() # todo: rename this method
         itf.write_output()
 
         try:
