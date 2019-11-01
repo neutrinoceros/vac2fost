@@ -86,11 +86,11 @@ regression:
     - source activate $PYENV
     - $SLURM_CMD pytest tests/test_regression.py
 
-code_quality:
-  stage: final
-  script:
-    - source activate $PYENV
-    - pylint --rcfile .pylintrc vac2fost/*.py
+#code_quality:
+#  stage: final
+#  script:
+#    - source activate $PYENV
+#    - pylint --rcfile .pylintrc vac2fost/*.py
 
 run_demo:
   stage: final
