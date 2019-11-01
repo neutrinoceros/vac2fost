@@ -20,8 +20,7 @@ numpy>=1.15
 astropy>=3.1.1
 f90nml>=1.0.2
 vtk>=8.1.2
-matplotlib>=2.2
-matplotlib<3.0 # unstable on MacOSas of jan 6 2019
+matplotlib>=3.1 #matplotlib 3.0 was unstable on MacOS
 
 
 # Env validation
