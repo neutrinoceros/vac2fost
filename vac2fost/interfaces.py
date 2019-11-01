@@ -16,7 +16,7 @@ from pathlib import Path
 import numpy as np
 from astropy import units
 from astropy.io import fits
-from scipy.interpolate import interp2d
+from scipy.interpolate import interp1d, interp2d
 import f90nml
 
 # private externals
@@ -106,6 +106,10 @@ class Interface:
 
         # parse configuration file
         self.config = f90nml.read(config_file)
+        if self.use_axisymmetry and self.config['mcfost_output'].get("n_az", 2) > 1:
+            self.warnings.append("user specified 'n_az'>1 but axisymmetry flag present, overriding n_az=1")
+            self.config["mcfost_output"].update({"n_az": 1})
+
         if nums is None:
             nums = self.config["amrvac_input"]["nums"]
         if isinstance(nums, int):
@@ -320,13 +324,14 @@ class Interface:
                 'array': target_grid,
                 # (nr, nphi) 2D grids
                 'rg': target_grid[0, :, 0, :],
-                'phig': target_grid[2, :, 0, :],
                 # (nr, nz) 2D grid (z points do not depend on phi)
                 'zg': target_grid[1, 0, :, :],
                 # vectors (1D arrays)
                 'rv': target_grid[0, 0, 0, :],
-                'phiv': target_grid[2, :, 0, 0],
             }
+            if target_grid.shape[0] > 2: # usually the case unless 2D axisym grid !
+                self._output_grid.update({'phig': target_grid[2, :, 0, :],
+                                          'phiv': target_grid[2, :, 0, 0]})
         return self._output_grid
 
     @property
@@ -403,10 +408,6 @@ class Interface:
         if unknown_args:
             raise KeyError(f'Unrecognized MCFOST argument(s): {unknown_args}')
         mcfost_parameters.update(self.config['mcfost_output'])
-        if self.use_axisymmetry:
-            if self.config['mcfost_output'].get("n_az", 2) > 1:
-                self.warnings.append("user specified 'n_az'>1 but axisymmetry flag present, overriding n_az=1")
-            mcfost_parameters.update({"n_az": 1})
 
         write_mcfost_conf(
             output_file=self.mcfost_conf_file,
@@ -430,6 +431,13 @@ class Interface:
             "mixed": self.grain_micron_sizes.argsort()
         }[self.dust_binning_mode]
 
+        if self.use_axisymmetry:
+            gas_field = self._rz_slice[0]
+            dust_fields = self._rz_slice[dust_bin_selector]
+        else:
+            gas_field = self.new_3D_arrays[0]
+            dust_fields = self.new_3D_arrays[dust_bin_selector]
+
         suppl_hdus = []
         assert (len(dust_bin_selector) > 1) == (self._bin_dust())
         if len(dust_bin_selector) > 1:
@@ -442,14 +450,14 @@ class Interface:
         if self.read_gas_density:
             #devnote: add try statement here ?
             header.update(dict(gas_to_dust=self.sim_conf["usr_dust_list"]["gas2dust_ratio"]))
-            suppl_hdus.append(fits.ImageHDU(self.new_3D_arrays[0]))
+            suppl_hdus.append(fits.ImageHDU(gas_field))
             header.update(dict(read_gas_density=1))
 
         if self.read_gas_velocity:
             header.update(dict(read_gas_velocity=1))
             suppl_hdus.append(fits.ImageHDU(self.new_3D_gas_velocity))
 
-        dust_densities_HDU = fits.PrimaryHDU(self.new_3D_arrays[dust_bin_selector])
+        dust_densities_HDU = fits.PrimaryHDU(dust_fields)
         for k, v in header.items():
             # this is the canonical way to avoid HIERARCH-related warnings from astropy
             if len(k) > 8:
@@ -474,14 +482,51 @@ class Interface:
         interpolator = interp2d(
             self.input_grid["phiv"],
             self.input_grid["rv"],
-            self.input_data[datakey], kind="cubic"
+            self.input_data[datakey],
+            kind="cubic",
+            copy=False # test
         )
         return interpolator(self.output_grid["phiv"], self.output_grid["rv"])
 
+    def _interpolate1D(self, datakey: str) -> np.ndarray:
+        interpolator = interp1d(
+            self.input_grid["rv"],
+            self.input_data[datakey][:,0], # radial profile
+            kind="cubic",
+            copy=False,
+            fill_value="extrapolate"
+        )
+        return interpolator(self.output_grid["rv"])
+
+    @property
+    def density_keys(self) -> list:
+        return sorted(filter(lambda k: "rho" in k, self.input_data.fields.keys()))
+
+    def gen_rz_slice(self) -> None:
+        radial_profiles = np.array([self._interpolate1D(datakey=k) for k in self.density_keys])
+        oshape = self.io.OUT.gridshape
+        nr, nz = oshape.nr, oshape.nz
+
+        nbins = len(radial_profiles)
+        self._rz_slice = np.zeros((nbins, nz, nr))
+        for ir, r in enumerate(self.output_grid["rv"]):
+            #breakpoint()
+            z_vect = self.output_grid["zg"][:, ir]
+            gas_height = r * self.aspect_ratio
+            for i_bin, (grain_µsize, rprofile) in enumerate(zip(self.grain_micron_sizes, radial_profiles)):
+                H = gas_height
+                if self.use_settling:
+                    H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
+                gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
+                #breakpoint()
+                self._rz_slice[i_bin, :, ir] = gaussian * rprofile[ir]
+
+
+
     def gen_2D_arrays(self) -> None:
         """Interpolate input data density fields from input coords to output coords"""
-        density_keys = sorted(filter(lambda k: "rho" in k, self.input_data.fields.keys()))
-        self._new_2D_arrays = np.array([self._interpolate2D(datakey=k) for k in density_keys])
+
+        self._new_2D_arrays = np.array([self._interpolate2D(datakey=k) for k in self.density_keys])
         assert self._new_2D_arrays[0].shape == (self.io.OUT.gridshape.nr,
                                                 self.io.OUT.gridshape.nphi)
 
