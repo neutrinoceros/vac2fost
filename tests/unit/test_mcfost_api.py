@@ -31,7 +31,7 @@ def test_writter_null():
 def test_writter_args():
     write_mcfost_conf(
         outdir/"writter_out_2.para",
-        custom={"nphot_sed": 2}
+        custom_parameters={"nphot_sed": 2}
     )
 
 

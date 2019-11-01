@@ -186,12 +186,12 @@ for descriptor in blocks_descriptors.items():
     for di in descriptor[1]:
         KNOWN_MCFOST_ARGS += [k.lower() for k in di.keys()]
 
-def write_mcfost_conf(output_file: Path, custom: dict = None, verbose=False):
-    """Write a configuration file for mcfost using values from <custom>,
+def write_mcfost_conf(output_file: Path, custom_parameters: dict = None, verbose=False):
+    """Write a configuration file for mcfost using values from <mcfost_parameters>,
     and falling back to defaults found in block_descriptor defined above
     """
-    if custom is None:
-        custom = {}
+    if custom_parameters is None:
+        custom_parameters = {}
     if output_file.exists() and verbose:
         print(f"Warning: {output_file} already exists, and will be overwritten.")
     with open(output_file, mode="wt") as fi:
@@ -202,7 +202,7 @@ def write_mcfost_conf(output_file: Path, custom: dict = None, verbose=False):
             for line in lines:
                 parameters = []
                 for param, default in line.items():
-                    val = custom[param.lower()] if param.lower() in custom else default
+                    val = custom_parameters[param.lower()] if param.lower() in custom_parameters else default
                     parameters.append(str(val))
                 fi.write("  " + "  ".join(parameters).ljust(36)
                          + "  " + ", ".join(line.keys()))
