@@ -87,6 +87,8 @@ class Interface:
             raise TypeError(config_file)
         if not isinstance(output_dir, (str, Path)):
             raise TypeError(output_dir)
+        if axisymmetry and read_gas_velocity:
+            raise NotImplementedError
 
         # attribute storage
         self._base_args = {
