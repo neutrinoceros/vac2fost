@@ -107,7 +107,7 @@ class Interface:
         # parse configuration file
         self.config = f90nml.read(config_file)
         if self.use_axisymmetry and self.config['mcfost_output'].get("n_az", 2) > 1:
-            self.warnings.append("user specified 'n_az'>1 but axisymmetry flag present, overriding n_az=1")
+            self.warnings.append("specified 'n_az'>1 but axisymmetry flag present, overriding n_az=1")
             self.config["mcfost_output"].update({"n_az": 1})
 
         if nums is None:
@@ -150,6 +150,7 @@ class Interface:
         self._output_grid = None
         self._new_2D_arrays = None
         self._new_3D_arrays = None
+        self._rz_slice = None
         self._dust_binning_mode = None
 
         self._set_dust_binning_mode(dust_bin_mode, warning=False)
@@ -491,7 +492,7 @@ class Interface:
     def _interpolate1D(self, datakey: str) -> np.ndarray:
         interpolator = interp1d(
             self.input_grid["rv"],
-            self.input_data[datakey][:,0], # radial profile
+            self.input_data[datakey][:, 0], # radial profile
             kind="cubic",
             copy=False,
             fill_value="extrapolate"
@@ -510,22 +511,20 @@ class Interface:
         nbins = len(radial_profiles)
         self._rz_slice = np.zeros((nbins, nz, nr))
         for ir, r in enumerate(self.output_grid["rv"]):
-            #breakpoint()
             z_vect = self.output_grid["zg"][:, ir]
             gas_height = r * self.aspect_ratio
-            for i_bin, (grain_µsize, rprofile) in enumerate(zip(self.grain_micron_sizes, radial_profiles)):
+            for i_bin, (grain_µsize, rprofile) in enumerate(zip(self.grain_micron_sizes,
+                                                                radial_profiles)):
                 H = gas_height
                 if self.use_settling:
                     H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
                 gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
-                #breakpoint()
                 self._rz_slice[i_bin, :, ir] = gaussian * rprofile[ir]
 
 
 
     def gen_2D_arrays(self) -> None:
         """Interpolate input data density fields from input coords to output coords"""
-
         self._new_2D_arrays = np.array([self._interpolate2D(datakey=k) for k in self.density_keys])
         assert self._new_2D_arrays[0].shape == (self.io.OUT.gridshape.nr,
                                                 self.io.OUT.gridshape.nphi)
