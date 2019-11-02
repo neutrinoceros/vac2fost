@@ -18,15 +18,13 @@ Known limitations
   3) 2D interpolation does not account for the curvature of polar cells
 """
 import sys
-from pathlib import Path
 from argparse import ArgumentParser
 
 import f90nml
 
 from vac2fost.info import __version__
 from vac2fost.mcfost_utils import blocks_descriptors
-from vac2fost.utils import CYAN, BOLD, get_prompt_size, decorated_centered_message
-from vac2fost.interfaces import DEFAULT_UNITS, Interface, VerbatimInterface
+from vac2fost.interfaces import DEFAULT_UNITS
 from vac2fost.main import main
 
 
@@ -56,7 +54,6 @@ def generate_conf_template() -> f90nml.Namelist:
 
 
 def print_mcfost_default_conf():
-    from pprint import pprint
     for block_name, lines in blocks_descriptors.items():
         print(block_name)
         print("="*len(block_name))
