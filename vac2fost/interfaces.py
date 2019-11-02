@@ -77,8 +77,7 @@ class Interface:
                  read_gas_density=False,
                  read_gas_velocity=False,
                  settling=False,
-                 axisymmetry=False,
-                 mcfost_verbose=False):
+                 axisymmetry=False):
 
         # input checking
         if not isinstance(config_file, (str, Path)):
@@ -99,7 +98,6 @@ class Interface:
         }
 
         self._dim = 2  # no support for 3D input yet
-        self.mcfost_verbose = mcfost_verbose
         self.read_gas_velocity = read_gas_velocity
         self.use_settling = settling
         self.use_axisymmetry = axisymmetry
@@ -413,11 +411,8 @@ class Interface:
             raise KeyError(f'Unrecognized MCFOST argument(s): {unknown_args}')
         mcfost_parameters.update(self.config['mcfost_output'])
 
-        write_mcfost_conf(
-            output_file=self.mcfost_conf_file,
-            custom_parameters=mcfost_parameters,
-            verbose=self.mcfost_verbose
-        )
+        write_mcfost_conf(output_file=self.mcfost_conf_file,
+                          custom_parameters=mcfost_parameters)
         return self.mcfost_conf_file
 
     def _scan_for_unknown_arguments(self) -> list:

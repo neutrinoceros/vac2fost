@@ -117,11 +117,6 @@ if __name__ == "__main__":
         help="verbose logging"
     )
     parser.add_argument(
-        "--mcfost_verbose",
-        action="store_true",
-        help="do not silence mcfost"
-    )
-    parser.add_argument(
         "--genconf", action="store_true",
         help="print a default configuration file for vac2fost"
     )
@@ -175,7 +170,6 @@ if __name__ == "__main__":
         settling=cargs.settling,
         axisymmetry=cargs.axisymmetry,
         loglevel={True: 0, False: 30}[cargs.verbose],
-        mcfost_verbose=cargs.mcfost_verbose # wip
     )
     # -------------------------------------------
     if cargs.cprofile:
