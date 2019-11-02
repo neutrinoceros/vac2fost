@@ -69,7 +69,6 @@ class Interface:
     """A data transforming class. Holds most functionalities useful to
     vac2fost.main()"""
 
-    @wait_for_ok("parsing input")
     def __init__(self,
                  config_file: Path,
                  nums: int = None, # or any int-returning iterable
@@ -303,7 +302,7 @@ class Interface:
         """Locate output configuration file for mcfost"""
         return self.io.OUT.directory / "mcfost_conf.para"
 
-    def load_input_data(self) -> None:
+    def load_input_data(self) -> str:
         '''Use vtkvacreader.VacDataSorter to load AMRVAC data'''
         #reset output attributes
         self._output_grid = None
@@ -311,10 +310,12 @@ class Interface:
         self._new_3D_arrays = None
         self._rz_slice = None
 
+        file_name = str(self.io.IN.filepath)
         self._input_data = VacDataSorter(
-            file_name=str(self.io.IN.filepath),
+            file_name=file_name,
             shape=(self.io.IN.gridshape.nr, self.io.IN.gridshape.nphi)
         )
+        return file_name
 
     @property
     def input_data(self):
@@ -407,7 +408,7 @@ class Interface:
             self.warnings.append("&disk_list not found. Assuming default values")
         return parameters
 
-    def write_mcfost_conf_file(self) -> None:
+    def write_mcfost_conf_file(self) -> str:
         """Create a complete mcfost conf file using
         - amrvac initial configuration : self._translate_amrvac_config()
         - user specifications : self.config['mcfost_output']
@@ -425,6 +426,7 @@ class Interface:
             custom_parameters=mcfost_parameters,
             verbose=self.mcfost_verbose
         )
+        return self.mcfost_conf_file
 
     def _scan_for_unknown_arguments(self) -> list:
         """Get unrecognized arguments found in mcfost_output"""
@@ -434,7 +436,7 @@ class Interface:
                 unknowns.append(arg)
         return unknowns
 
-    def write_output(self) -> None:
+    def write_output(self) -> str:
         """Write a .fits file suited for MCFOST input."""
         dust_bin_selector = {
             "gas-only": np.zeros(1, dtype="int64"),
@@ -478,6 +480,8 @@ class Interface:
         with open(self.io.OUT.filepath, mode="wb") as fo:
             hdul = fits.HDUList(hdus=[dust_densities_HDU] + suppl_hdus)
             hdul.writeto(fo)
+
+        return str(self.io.OUT.filepath)
 
     @property
     def input_grid(self) -> dict:
