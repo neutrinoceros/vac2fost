@@ -24,8 +24,9 @@ stages:
   - unit_tests
   - integration_tests
   - final
+  - clean
 
-update_pyenv:
+install_pyenv:
   stage: build
   script:
     - export CONDA_INST="--name $PYENV --file environment.yml --channel conda-forge --yes"
@@ -57,44 +58,44 @@ install_mcfost:
 install_pymodules:
   stage: install
   script:
+    - echo $PYENV # temp
     - source activate $PYENV
     - $SLURM_CMD pip install `pwd`/deps/vtk_vacreader-project
     - $SLURM_CMD pip install .
 
-unit:
+.unit:
   stage: unit_tests
   script:
     - source activate $PYENV
     - $SLURM_CMD pytest tests/unit
 
-integration:
+.integration:
   stage: integration_tests
   script:
     - source activate $PYENV
     - $SLURM_CMD pytest tests/int
 
-shell:
+.shell:
   stage: integration_tests
   script:
     - source activate $PYENV
     - export VAC2FOST_INSTALL_DIR=$(pwd)
     - $SLURM_CMD bash tests/test_shell.sh
 
-regression:
+.regression:
   stage: integration_tests
   script:
     - source activate $PYENV
     - $SLURM_CMD pytest tests/test_regression.py
 
-code_quality:
+.code_quality:
   stage: final
   script:
     - source activate $PYENV
     - pylint --rcfile .pylintrc vac2fost/*.py
 
-run_demo:
+.run_demo:
   stage: final
   script:
     - source activate $PYENV
     - $SLURM_CMD python docs/demo.py
-
