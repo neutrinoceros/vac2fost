@@ -112,6 +112,7 @@ class Interface:
             self.warnings.append("specified 'n_az'>1 but axisymmetry flag present, overriding n_az=1")
             self.config["mcfost_output"].update({"n_az": 1})
 
+        # init iteration counter
         if nums is None:
             nums = self.config["amrvac_input"]["nums"]
         if isinstance(nums, int):
