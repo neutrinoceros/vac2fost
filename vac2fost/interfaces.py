@@ -199,9 +199,6 @@ class AbstractInterface:
             rgd = True
         return rgd
 
-
-    # dust binning mode API
-    # ================================================================
     def _set_dbm(self, dbm=None) -> None:
         """Define binning strategy
         - (gas-only)  : use only gas as a proxy for dust
@@ -291,7 +288,7 @@ class AbstractInterface:
             log.warning(f"could not find &usr_dust_list:gas2dust_ratio, assume {res}")
         return res
 
-    def estimate_dust_mass(self) -> float:
+    def _estimate_dust_mass(self) -> float:
         """Estimate the total dust mass in the grid, in solar masses"""
         # devnote : this assumes a linearly spaced grid
         dphi = 2*np.pi / self.io.IN.gridshape.nphi
@@ -327,7 +324,7 @@ class AbstractInterface:
         if self._bin_dust:
             parameters.update({
                 "gas_to_dust_ratio": self.g2d_ratio,
-                "dust_mass": self.estimate_dust_mass()
+                "dust_mass": self._estimate_dust_mass()
             })
             # Grains
             sizes_µm = self.grain_micron_sizes
@@ -351,22 +348,20 @@ class AbstractInterface:
         """
         mcfost_parameters = {}
         mcfost_parameters.update(self._translate_amrvac_config())
-        unknown_args = self._scan_for_unknown_arguments() # python 3.8: walrus operator here
-        if unknown_args:
-            raise KeyError(f'Unrecognized MCFOST argument(s): {unknown_args}')
-        mcfost_parameters.update(self.config['mcfost_output'])
 
+        #Get unrecognized arguments found in mcfost_output
+        unknown_args = []
+        for arg in self.config["mcfost_output"].keys():
+            if not arg.lower() in KNOWN_MCFOST_ARGS:
+                unknown_args.append(arg)
+        if unknown_args:
+            raise ValueError(f'Unrecognized MCFOST argument(s): {unknown_args}')
+
+        mcfost_parameters.update(self.config['mcfost_output'])
         write_mcfost_conf(output_file=self.mcfost_conf_file,
                           custom_parameters=mcfost_parameters)
         log.info(f"successfully wrot {self.mcfost_conf_file}")
 
-    def _scan_for_unknown_arguments(self) -> list:
-        """Get unrecognized arguments found in mcfost_output"""
-        unknowns = []
-        for arg in self.config["mcfost_output"].keys():
-            if not arg.lower() in KNOWN_MCFOST_ARGS:
-                unknowns.append(arg)
-        return unknowns
 
     def write_output(self) -> None:
         """Write a .fits file suited for MCFOST input."""

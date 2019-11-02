@@ -38,7 +38,7 @@ def test_writter_args():
 
 
 def test_unrecognized_mcfost_parameter():
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError):
         app(
             str(testdir / "sample/vac2fost_conf_fake_params.nml"),
             output_dir=testdir/"output/fake_params"
