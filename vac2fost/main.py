@@ -17,18 +17,18 @@ def main(config_file: Path, verbose=False, **itf_kwargs):
     InterfaceType = {True: VerbatimInterface, False: Interface}[verbose]
     itf = InterfaceType(config_file, **itf_kwargs)
 
-    for i, n in enumerate(itf.nums):
-        if verbose or i == 0:
-            print()
-        mess1 = f"current input number: {n}"
-        mess2 = f"({i+1}/{len(itf.nums)})"
+    while 1:
+        mess1 = f"current input number: {itf.current_num}"
+        mess2 = f"({itf.iter_count}/{itf.iter_max})"
         print((BOLD+" "*(get_prompt_size()-len(mess1)-len(mess2))).join([mess1, mess2]))
         print("-"*get_prompt_size())
         try:
-            itf.load_input_data(n)
+            itf.load_input_data()
         except FileNotFoundError as err:
             filepath = Path(str(err)).relative_to(Path.cwd())
             itf.warnings.append(f"file not found: {filepath}")
+            if itf.iter_count == itf.iter_max:
+                break
             continue
         itf.write_mcfost_conf_file()
         if itf_kwargs.get("axisymmetry", False):
@@ -42,8 +42,10 @@ def main(config_file: Path, verbose=False, **itf_kwargs):
             filepath = itf.io.OUT.filepath.relative_to(Path.cwd())
         except ValueError:
             filepath = itf.io.OUT.filepath
-        print(CYAN + f" >>> wrote {filepath}")
-
+        try:
+            itf.advance_iteration() # set itf.current_num to next value
+        except StopIteration:
+            break
     if itf.warnings:
         print()
         itf.display_warnings()
