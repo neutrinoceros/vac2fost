@@ -13,7 +13,7 @@ before_script:
   - echo $GITLAB_USER_ID
   - echo $GITLAB_USER_NAME
   - echo $GITLAB_USER_LOGIN
-  - module load userspace/170135
+  - module load userspace/OCA
   - module load python/3.6.3_anaconda3
   - export PATH=$PATH:`pwd`/deps
   - export MCFOST_UTILS=`pwd`/deps/mcfost_utils
