@@ -26,7 +26,7 @@ def main(config_file: Path, logto=None, loglevel=logging.WARNING, **itf_kwargs):
         logging.info(f"current input number: {itf.current_num}\t({itf.iter_count}/{itf.iter_max})")
         try:
             filename = itf.load_input_data()
-            logging.info(f"sucessfully loaded {filename}")
+            logging.info(f"successfully loaded {filename}")
         except FileNotFoundError as err:
             filepath = Path(str(err)).relative_to(Path.cwd())
             logging.warning(f"missing file: {filepath}, attempting to pursue iteration")
