@@ -117,7 +117,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "-v", "--verbose",
         action="store_true",
-        help="activate verbose mode"
+        help="verbose logging"
+    )
+    parser.add_argument(
+        "--log", type=str,
+        required=False,
+        default=None,
+        help="log to a file"
     )
     parser.add_argument(
         "--mcfost_verbose",
@@ -177,8 +183,9 @@ if __name__ == "__main__":
         read_gas_velocity=cargs.read_gas_velocity,
         settling=cargs.settling,
         axisymmetry=cargs.axisymmetry,
-        verbose=cargs.verbose,
-        mcfost_verbose=cargs.mcfost_verbose
+        logto=cargs.log,
+        loglevel={True: 0, False: 30}[cargs.verbose],
+        mcfost_verbose=cargs.mcfost_verbose # wip
     )
     # -------------------------------------------
     if cargs.cprofile:
