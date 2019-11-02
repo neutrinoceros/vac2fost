@@ -13,10 +13,15 @@ handle.setFormatter(logging.Formatter("%(name)s | %(levelname)s - %(message)s"))
 v2flogger.addHandler(handle)
 v2flogger.propagate = False
 
-def main(config_file: Path, loglevel=logging.WARNING, **itf_kwargs):
+def main(config_file: Path, loglevel: int = logging.WARNING, **itf_kwargs):
     """Transform a .vtu datfile into a .fits
 
     config_file and itf_kwargs are passed down to Interface.__init__()
+    loglevel values: 10 debug
+                     20 info
+                     30 warning
+                     40 error
+                     50 critical
     """
     v2flogger.setLevel(loglevel)
     itf = Interface(config_file, **itf_kwargs)
