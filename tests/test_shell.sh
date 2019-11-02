@@ -25,12 +25,12 @@ expect_success () {
     echo "PASS"
 }
 
-expect_faillure () {
+expect_failure () {
     if [[ $? == 0 ]] ; then
 	echo FAIL
         exit 1
     fi
-    echo "PASS (expected faillure)"
+    echo "PASS (expected failure)"
 }
 
 
@@ -59,4 +59,4 @@ expect_success
 echo
 echo "Test 5: Broken call"
 $EXE $TESTDIR/sample/vac2fost_conf_quick_no_number.nml --output $OUT/shell_5
-expect_faillure
+expect_failure
