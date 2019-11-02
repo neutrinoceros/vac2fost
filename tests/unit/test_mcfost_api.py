@@ -6,7 +6,8 @@ import pytest
 
 from vac2fost.mcfost_utils import blocks_descriptors, write_mcfost_conf
 from vac2fost.logger import v2flogger as log
-from vac2fost import Interface, main as app
+from vac2fost import VtuFileInterface as Interface, main as app
+
 
 testdir = Path(__file__).parent.parent
 outdir = testdir/"output"
