@@ -1,7 +1,6 @@
 """This main routine creates and uses an Interface instance."""
 from pathlib import Path
 
-import os
 from vac2fost.info import __version__
 from vac2fost.interfaces import Interface
 from .logger import v2flogger as log

@@ -1,7 +1,6 @@
 """Elementary internal functions and small dataclasses"""
 from pathlib import Path
 from os.path import expandvars
-from shutil import get_terminal_size
 from dataclasses import dataclass
 
 def shell_path(pin: str) -> Path:
