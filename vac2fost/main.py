@@ -1,8 +1,8 @@
 """This main routine creates and uses an Interface instance."""
 from pathlib import Path
 
-from vac2fost.info import __version__
-from vac2fost.interfaces import DatFileInterface, VtuFileInterface
+from .info import __version__
+from .interfaces import DatFileInterface, VtuFileInterface
 from .logger import v2flogger as log
 
 
