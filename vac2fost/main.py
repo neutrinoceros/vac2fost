@@ -5,10 +5,10 @@ import os
 from vac2fost.info import __version__
 from vac2fost.utils import CYAN, BOLD, get_prompt_size, decorated_centered_message
 from vac2fost.interfaces import Interface, VerbatimInterface
-from .logger import log as log
+from .logger import v2flogger as log
 
 
-def main(config_file: Path, loglevel: int = logging.WARNING, **itf_kwargs):
+def main(config_file: Path, loglevel: int = 30, **itf_kwargs):
     """Transform a .vtu datfile into a .fits
 
     config_file and itf_kwargs are passed down to Interface.__init__()
@@ -21,7 +21,7 @@ def main(config_file: Path, loglevel: int = logging.WARNING, **itf_kwargs):
     log.setLevel(loglevel)
     itf = Interface(config_file, **itf_kwargs)
 
-    log.info(f"start vac2fost {__version__}")
+    log.info(f"start vac2fost {__version__} main loop")
     while 1:
         log.info(f"current input number: {itf.current_num}\t({itf.iter_count}/{itf.iter_max})")
         try:

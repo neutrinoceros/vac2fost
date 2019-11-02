@@ -257,12 +257,12 @@ class Interface:
 
         if warning:
             w = ["dust-binning mode was switched"]
-            old = self._dust_binning_mode
+            old = self._dust_binning_mode # python 3.8 : walrus operator here
             if old is not None:
                 w.append(f'''from "{old}"''')
             w.append(f'''to "{new_dbm}"''')
             if reason is not None:
-                w.append(f"\n   REASON: {reason}")
+                w.append(f"\t({reason})")
             log.warning(" ".join(w))
         self._dust_binning_mode = new_dbm
 
