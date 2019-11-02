@@ -11,10 +11,8 @@ from tempfile import TemporaryDirectory
 import numpy as np
 from astropy.io import fits
 
-try:
-    from .info import __version__
-except ImportError:
-    from info import __version__
+from .info import __version__
+from .logger import v2flogger as log
 
 MIN_MCFOST_VERSION = "3.0.35"  # minimal requirement
 MINGRAINSIZE_µ = 0.1
@@ -186,14 +184,14 @@ for descriptor in blocks_descriptors.items():
     for di in descriptor[1]:
         KNOWN_MCFOST_ARGS += [k.lower() for k in di.keys()]
 
-def write_mcfost_conf(output_file: Path, custom_parameters: dict = None, verbose=False):
+def write_mcfost_conf(output_file: Path, custom_parameters: dict = None):
     """Write a configuration file for mcfost using values from <mcfost_parameters>,
     and falling back to defaults found in block_descriptor defined above
     """
     if custom_parameters is None:
         custom_parameters = {}
-    if output_file.exists() and verbose:
-        print(f"Warning: {output_file} already exists, and will be overwritten.")
+
+    log.warning(f"{output_file} already exists, and will be overwritten.")
     with open(output_file, mode="wt") as fi:
         fi.write(".".join(MIN_MCFOST_VERSION.split(".")[:2]).ljust(10) +
                  "mcfost minimal version prescribed by vac2fost\n\n")
@@ -212,8 +210,6 @@ def write_mcfost_conf(output_file: Path, custom_parameters: dict = None, verbose
         fi.write(f"%% automatically generated with vac2fost {__version__}\n")
         fi.write(f"%% via mcfost {DETECTED_MCFOST_VERSION}\n")
         fi.write(f"%% run by {os.environ['USER']} on {gethostname()}\n")
-    if verbose:
-        print(f"wrote {output_file}")
 
 def get_mcfost_grid(itf) -> np.ndarray:
     """Pre-run MCFOST with -disk_struct flag to get the exact grid used."""
@@ -236,7 +232,7 @@ def get_mcfost_grid(itf) -> np.ndarray:
             os.chdir(tmp_mcfost_dir)
             try:
                 run(["mcfost", "mcfost_conf.para", "-disk_struct"], check=True,
-                    capture_output=(not itf.mcfost_verbose))
+                    capture_output=(log.level < 20)) # if in debug mode, output will be printed
 
                 shutil.move("data_disk/grid.fits.gz", grid_file_name)
             except CalledProcessError as exc:

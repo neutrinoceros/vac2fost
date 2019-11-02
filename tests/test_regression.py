@@ -1,4 +1,3 @@
-
 import pickle
 from pathlib import Path
 import shutil
@@ -6,6 +5,7 @@ import numpy as np
 from astropy.io import fits
 
 from vac2fost import main as app
+from vac2fost.logger import v2flogger
 import pytest
 
 test_dir = Path(__file__).parent.resolve()
@@ -35,7 +35,8 @@ def regold(itf, reffile, morekeys:list = None):
 
 class TestRegressionMain:
     subrefdir = REFOUT_DIR / "default"
-    itf = instanciate_interface(conffile="vac2fost_conf.nml", read_gas_velocity=True, mcfost_verbose=True)
+    v2flogger.setLevel(10) # debug
+    itf = instanciate_interface(conffile="vac2fost_conf.nml", read_gas_velocity=True)
     itf.tag = itf._base_args['config_file'].stem
 
     def test_mcfost_conf(self):

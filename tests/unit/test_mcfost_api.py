@@ -5,6 +5,7 @@ import multiprocessing as mp
 import pytest
 
 from vac2fost.mcfost_utils import blocks_descriptors, write_mcfost_conf
+from vac2fost.logger import v2flogger as log
 from vac2fost import Interface, main as app
 
 testdir = Path(__file__).parent.parent
@@ -49,8 +50,9 @@ def gen_mcfost_grid(output_dir):
     """
     if output_dir.exists():
         rmtree(output_dir)
+    log.setLevel(10)
     myitf = Interface(config_file=testdir / "sample/vac2fost_conf.nml",
-                      output_dir=output_dir, mcfost_verbose=True)
+                      output_dir=output_dir)
     return myitf.output_grid
 
 class TestMcfostGridGen:

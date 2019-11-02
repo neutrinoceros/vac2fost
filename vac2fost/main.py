@@ -2,41 +2,45 @@
 from pathlib import Path
 
 from vac2fost.info import __version__
-from vac2fost.utils import CYAN, BOLD, get_prompt_size, decorated_centered_message
-from vac2fost.interfaces import Interface, VerbatimInterface
+from vac2fost.interfaces import Interface
+from .logger import v2flogger as log
 
 
-def main(config_file: Path, verbose=False, **itf_kwargs):
+def main(config_file: Path, loglevel: int = 30, **itf_kwargs):
     """Transform a .vtu datfile into a .fits
 
     config_file and itf_kwargs are passed down to Interface.__init__()
+    loglevel values: 10 debug
+                     20 info
+                     30 warning
+                     40 error
+                     50 critical
     """
+    log.setLevel(loglevel)
+    itf = Interface(config_file, **itf_kwargs)
 
-    print(decorated_centered_message(f"start vac2fost {__version__}"))
-
-    InterfaceType = {True: VerbatimInterface, False: Interface}[verbose]
-    itf = InterfaceType(config_file, **itf_kwargs)
-
+    log.info(f"start vac2fost {__version__} main loop")
     while 1:
-        mess1 = f"current input number: {itf.current_num}"
-        mess2 = f"({itf.iter_count}/{itf.iter_max})"
-        print((BOLD+" "*(get_prompt_size()-len(mess1)-len(mess2))).join([mess1, mess2]))
-        print("-"*get_prompt_size())
+        log.info(f"current input number: {itf.current_num}\t({itf.iter_count}/{itf.iter_max})")
         try:
-            itf.load_input_data()
+            filename = itf.load_input_data()
+            log.info(f"successfully loaded {filename}")
         except FileNotFoundError as err:
             filepath = Path(str(err)).relative_to(Path.cwd())
-            itf.warnings.append(f"file not found: {filepath}")
+            log.warning(f"missing file: {filepath}, attempting to pursue iteration")
             if itf.iter_count == itf.iter_max:
                 break
             continue
-        itf.write_mcfost_conf_file()
+        mcfost_conffile = itf.write_mcfost_conf_file()
+        log.info(f"successfully wrote {mcfost_conffile}")
+
         if itf_kwargs.get("axisymmetry", False):
             itf.gen_rz_slice()
         else:
             itf.gen_2D_arrays() # todo: rename this method
             itf.gen_3D_arrays() # todo: rename this method
-        itf.write_output()
+        output_file = itf.write_output()
+        log.info(f"successfully wrote {output_file}")
 
         try:
             filepath = itf.io.OUT.filepath.relative_to(Path.cwd())
@@ -46,11 +50,7 @@ def main(config_file: Path, verbose=False, **itf_kwargs):
             itf.advance_iteration() # set itf.current_num to next value
         except StopIteration:
             break
-    if itf.warnings:
-        print()
-        itf.display_warnings()
 
-    print(decorated_centered_message("end vac2fost"))
-
+    log.info("end vac2fost")
     # return the Interface object for inspection (tests)
     return itf

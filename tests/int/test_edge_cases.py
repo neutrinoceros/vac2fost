@@ -5,6 +5,7 @@ from pathlib import Path
 from astropy.io import fits
 import f90nml
 from vac2fost import main as app
+from vac2fost.logger import v2flogger
 import pytest
 
 testdir = Path(__file__).parent.parent
@@ -74,8 +75,9 @@ class TestReadGasDensity:
     if outdir.is_dir():
         rmtree(outdir)
     conf_file = testdir/"sample/vac2fost_conf_quick.nml"
+    v2flogger.setLevel(10)
     itf = app(conf_file, output_dir=outdir,
-              dust_bin_mode="dust-only", read_gas_density=True, mcfost_verbose=True)
+              dust_bin_mode="dust-only", read_gas_density=True)
 
     def test_read_gas_density_header(self):
         header = fits.open(__class__.itf.io.OUT.filepath)[0].header

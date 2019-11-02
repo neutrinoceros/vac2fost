@@ -2,6 +2,7 @@
 from shutil import rmtree
 from pathlib import Path
 
+from vac2fost.logger import v2flogger as log
 from vac2fost import main as app
 
 
@@ -16,17 +17,16 @@ class TestSettling:
     conf_file = testdir/"sample/vac2fost_conf_quick.nml"
 
     def test_default_settling(self):
-        itf = app(__class__.conf_file, output_dir=__class__.outdir, mcfost_verbose=True)
+        log.setLevel(10)
+        itf = app(__class__.conf_file, output_dir=__class__.outdir)
         assert not itf.use_settling
 
     def test_activate_settling(self):
-        itf = app(__class__.conf_file, output_dir=__class__.outdir,
-                  settling=True,
-                  mcfost_verbose=True)
+        log.setLevel(10)
+        itf = app(__class__.conf_file, output_dir=__class__.outdir, settling=True)
         assert itf.use_settling
 
     def test_run_settling(self):
-        itf = app(__class__.conf_file, output_dir=__class__.outdir,
-                  settling=True,
-                  mcfost_verbose=True)
+        log.setLevel(10)
+        itf = app(__class__.conf_file, output_dir=__class__.outdir, settling=True)
         itf.new_3D_arrays

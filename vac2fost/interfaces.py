@@ -23,11 +23,11 @@ import f90nml
 from vtk_vacreader import VacDataSorter
 
 from .info import __version__
-from .utils import colorama, RED
-from .utils import shell_path, wait_for_ok
+from .utils import shell_path
 from .utils import IOinfo, DataInfo, GridShape
 from .mcfost_utils import MINGRAINSIZE_µ, KNOWN_MCFOST_ARGS
 from .mcfost_utils import get_mcfost_grid, write_mcfost_conf
+from .logger import v2flogger as log
 
 
 
@@ -69,7 +69,6 @@ class Interface:
     """A data transforming class. Holds most functionalities useful to
     vac2fost.main()"""
 
-    @wait_for_ok("parsing input")
     def __init__(self,
                  config_file: Path,
                  nums: int = None, # or any int-returning iterable
@@ -78,10 +77,8 @@ class Interface:
                  read_gas_density=False,
                  read_gas_velocity=False,
                  settling=False,
-                 axisymmetry=False,
-                 mcfost_verbose=False):
+                 axisymmetry=False):
 
-        self.warnings = []
         # input checking
         if not isinstance(config_file, (str, Path)):
             raise TypeError(config_file)
@@ -101,7 +98,6 @@ class Interface:
         }
 
         self._dim = 2  # no support for 3D input yet
-        self.mcfost_verbose = mcfost_verbose
         self.read_gas_velocity = read_gas_velocity
         self.use_settling = settling
         self.use_axisymmetry = axisymmetry
@@ -109,7 +105,7 @@ class Interface:
         # parse configuration file
         self.config = f90nml.read(config_file)
         if self.use_axisymmetry and self.config['mcfost_output'].get("n_az", 2) > 1:
-            self.warnings.append("specified 'n_az'>1 but axisymmetry flag present, overriding n_az=1")
+            log.warning("specified 'n_az'>1 but axisymmetry flag present, overriding n_az=1")
             self.config["mcfost_output"].update({"n_az": 1})
 
         # init iteration counter
@@ -168,15 +164,15 @@ class Interface:
 
         if not self.io.OUT.directory.exists():
             os.makedirs(self.io.OUT.directory)
-            self.warnings.append(f"dir {self.io.OUT.directory} was created")
+            log.warning(f"dir {self.io.OUT.directory} was created")
 
         if not self.config.get("units"):
-            self.warnings.append(f"&units parameter list not found. Assuming {DEFAULT_UNITS}")
+            log.warning(f"&units parameter list not found. Assuming {DEFAULT_UNITS}")
             self.config["units"] = f90nml.Namelist(DEFAULT_UNITS)
         else:
             for k, v in DEFAULT_UNITS.items():
                 if not self.config["units"].get(k):
-                    self.warnings.append(f"&units:{k} parameter not found. Assuming default {v}")
+                    log.warning(f"&units:{k} parameter not found. Assuming default {v}")
                     self.config["units"][k] = v
 
     def advance_iteration(self):
@@ -220,19 +216,12 @@ class Interface:
         if not self._base_args["read_gas_density"]:
             rgd = False
         elif self._bin_gas():
-            self.warnings.append(
+            log.warning(
                 f"read_gas_density asked but redundant in '{self.dust_binning_mode}' mode, ignored")
             rgd = False
         else:
             rgd = True
         return rgd
-
-    def display_warnings(self):
-        """A colorful way to print the warning list."""
-        print(" WARNINGS:")
-        print(RED+"\n".join([f" - {w}" for w in self.warnings]))
-        if colorama is not None:
-            print(colorama.Style.RESET_ALL, end="")
 
 
     # dust binning mode API
@@ -265,13 +254,13 @@ class Interface:
 
         if warning:
             w = ["dust-binning mode was switched"]
-            old = self._dust_binning_mode
+            old = self._dust_binning_mode # python 3.8 : walrus operator here
             if old is not None:
                 w.append(f'''from "{old}"''')
             w.append(f'''to "{new_dbm}"''')
             if reason is not None:
-                w.append(f"\n   REASON: {reason}")
-            self.warnings.append(" ".join(w))
+                w.append(f"\t({reason})")
+            log.warning(" ".join(w))
         self._dust_binning_mode = new_dbm
 
     def _bin_dust(self) -> bool:
@@ -303,7 +292,7 @@ class Interface:
         """Locate output configuration file for mcfost"""
         return self.io.OUT.directory / "mcfost_conf.para"
 
-    def load_input_data(self) -> None:
+    def load_input_data(self) -> str:
         '''Use vtkvacreader.VacDataSorter to load AMRVAC data'''
         #reset output attributes
         self._output_grid = None
@@ -311,10 +300,12 @@ class Interface:
         self._new_3D_arrays = None
         self._rz_slice = None
 
+        file_name = str(self.io.IN.filepath)
         self._input_data = VacDataSorter(
-            file_name=str(self.io.IN.filepath),
+            file_name=file_name,
             shape=(self.io.IN.gridshape.nr, self.io.IN.gridshape.nphi)
         )
+        return file_name
 
     @property
     def input_data(self):
@@ -352,7 +343,7 @@ class Interface:
         try:
             res = self.sim_conf["usr_dust_list"]["gas2dust_ratio"]
         except KeyError:
-            self.warnings.append(f"could not find &usr_dust_list:gas2dust_ratio, assume {res}")
+            log.warning(f"could not find &usr_dust_list:gas2dust_ratio, assume {res}")
         return res
 
     def estimate_dust_mass(self) -> float:
@@ -404,10 +395,10 @@ class Interface:
         try:
             parameters.update({"star_mass": self.sim_conf["disk_list"]["central_mass"]})
         except KeyError:
-            self.warnings.append("&disk_list not found. Assuming default values")
+            log.warning("&disk_list not found. Assuming default values")
         return parameters
 
-    def write_mcfost_conf_file(self) -> None:
+    def write_mcfost_conf_file(self) -> str:
         """Create a complete mcfost conf file using
         - amrvac initial configuration : self._translate_amrvac_config()
         - user specifications : self.config['mcfost_output']
@@ -420,11 +411,9 @@ class Interface:
             raise KeyError(f'Unrecognized MCFOST argument(s): {unknown_args}')
         mcfost_parameters.update(self.config['mcfost_output'])
 
-        write_mcfost_conf(
-            output_file=self.mcfost_conf_file,
-            custom_parameters=mcfost_parameters,
-            verbose=self.mcfost_verbose
-        )
+        write_mcfost_conf(output_file=self.mcfost_conf_file,
+                          custom_parameters=mcfost_parameters)
+        return self.mcfost_conf_file
 
     def _scan_for_unknown_arguments(self) -> list:
         """Get unrecognized arguments found in mcfost_output"""
@@ -434,7 +423,7 @@ class Interface:
                 unknowns.append(arg)
         return unknowns
 
-    def write_output(self) -> None:
+    def write_output(self) -> str:
         """Write a .fits file suited for MCFOST input."""
         dust_bin_selector = {
             "gas-only": np.zeros(1, dtype="int64"),
@@ -478,6 +467,8 @@ class Interface:
         with open(self.io.OUT.filepath, mode="wb") as fo:
             hdul = fits.HDUList(hdus=[dust_densities_HDU] + suppl_hdus)
             hdul.writeto(fo)
+
+        return str(self.io.OUT.filepath)
 
     @property
     def input_grid(self) -> dict:
@@ -604,27 +595,3 @@ class Interface:
         vel2kms = dimvel.to(units.m / units.s).value
         velarr = np.stack([vx, vy, vz], axis=3) * vel2kms
         return velarr.transpose()
-
-
-
-class VerbatimInterface(Interface):
-    """A more talkative Interface"""
-    @wait_for_ok(f"loading input data")
-    def load_input_data(self) -> None:
-        super().load_input_data()
-
-    @wait_for_ok('writing mcfost configuration file')
-    def write_mcfost_conf_file(self) -> None:
-        super().write_mcfost_conf_file()
-
-    @wait_for_ok('interpolating to mcfost grid')
-    def gen_2D_arrays(self):
-        super().gen_2D_arrays()
-
-    @wait_for_ok('converting 2D arrays to 3D')
-    def gen_3D_arrays(self):
-        super().gen_3D_arrays()
-
-    @wait_for_ok('building the .fits file')
-    def write_output(self) -> None:
-        super().write_output()
