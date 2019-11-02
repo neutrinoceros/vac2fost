@@ -154,7 +154,6 @@ class AbstractInterface:
         self._new_2D_arrays = None
         self._new_3D_arrays = None
         self._rz_slice = None
-        self._dust_binning_mode = None
 
         self._set_dbm(dust_bin_mode)
 
@@ -192,7 +191,7 @@ class AbstractInterface:
         """
         if not self._base_args["read_gas_density"]:
             rgd = False
-        elif self._bin_gas():
+        elif self._bin_gas:
             log.warning(
                 f"read_gas_density asked but redundant in '{self._dust_binning_mode}' mode, ignored")
             rgd = False
@@ -226,13 +225,11 @@ class AbstractInterface:
                     reason = f"smallest size found > {MINGRAINSIZE_µ}µm"
             log.warning(f"switched to '{self._dust_binning_mode}' dbm ({reason})")
 
-    def _bin_dust(self) -> bool:
-        """Should dust fluids be passed to mcfost ?"""
-        return self._dust_binning_mode in {"dust-only", "mixed"}
+        # should dust fluids be passed to mcfost ?
+        self._bin_dust = self._dust_binning_mode in {"dust-only", "mixed"}
 
-    def _bin_gas(self) -> bool:
-        """Should gas be passed to mcfost ?"""
-        return self._dust_binning_mode in {'gas-only', 'mixed'}
+        # should gas be passed to mcfost ?
+        self._bin_gas = self._dust_binning_mode in {'gas-only', 'mixed'}
 
     @property
     def grain_micron_sizes(self) -> np.ndarray:
@@ -241,7 +238,7 @@ class AbstractInterface:
         assert self._dust_binning_mode != "auto"
         if self._µsizes is None:
             µm_sizes = np.empty(0)
-            if self._bin_dust():
+            if self._bin_dust:
                 µm_sizes = 1e4 * np.array(
                     self.sim_conf["usr_dust_list"]["grain_size_cm"])
                 assert min(µm_sizes) > 0.1 #in case this triggers, review this code
@@ -327,7 +324,7 @@ class AbstractInterface:
             'maps_size': 2*mesh['xprobmax1']*conv2au,
         })
 
-        if self._bin_dust(): #devnote : using a private method outside of class...
+        if self._bin_dust:
             parameters.update({
                 "gas_to_dust_ratio": self.g2d_ratio,
                 "dust_mass": self.estimate_dust_mass()
@@ -387,7 +384,7 @@ class AbstractInterface:
             dust_fields = self.new_3D_arrays[dust_bin_selector]
 
         suppl_hdus = []
-        assert (len(dust_bin_selector) > 1) == (self._bin_dust())
+        assert (len(dust_bin_selector) > 1) == (self._bin_dust)
         if len(dust_bin_selector) > 1:
             # mcfost requires an HDU with grain sizes only if more than one population is present
             suppl_hdus.append(
