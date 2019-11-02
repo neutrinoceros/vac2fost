@@ -50,7 +50,6 @@ install mcfost:
     - $SLURM_CMD ./mcfost -setup
     - mkdir $HOME/.mcfost
     - touch $HOME/.mcfost/accept_disclaimer_3.0.35
-    - ./mcfost ref3.0.para && rm -fr data_th # agree to licence...
     - cd ../
     - which mcfost
     - mcfost -version
@@ -63,38 +62,38 @@ install private dependencies:
     - $SLURM_CMD pip install `pwd`/deps/vtk_vacreader-project
     - $SLURM_CMD pip install .
 
-.unit:
+unit:
   stage: unit_tests
   script:
     - source activate $PYENV
     - $SLURM_CMD pytest tests/unit
 
-.integration:
+integration:
   stage: integration_tests
   script:
     - source activate $PYENV
     - $SLURM_CMD pytest tests/int
 
-.shell:
+shell:
   stage: integration_tests
   script:
     - source activate $PYENV
     - export VAC2FOST_INSTALL_DIR=$(pwd)
     - $SLURM_CMD bash tests/test_shell.sh
 
-.regression:
+regression:
   stage: integration_tests
   script:
     - source activate $PYENV
     - $SLURM_CMD pytest tests/test_regression.py
 
-.check code quality:
+check code quality:
   stage: final
   script:
     - source activate $PYENV
     - pylint --rcfile .pylintrc vac2fost/*.py
 
-.run demo:
+run demo:
   stage: final
   script:
     - source activate $PYENV
