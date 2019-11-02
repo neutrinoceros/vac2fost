@@ -3,8 +3,7 @@ from pathlib import Path
 
 import os
 from vac2fost.info import __version__
-from vac2fost.utils import CYAN, BOLD, get_prompt_size, decorated_centered_message
-from vac2fost.interfaces import Interface, VerbatimInterface
+from vac2fost.interfaces import Interface
 from .logger import v2flogger as log
 
 

@@ -23,8 +23,7 @@ import f90nml
 from vtk_vacreader import VacDataSorter
 
 from .info import __version__
-from .utils import colorama, RED
-from .utils import shell_path, wait_for_ok
+from .utils import shell_path
 from .utils import IOinfo, DataInfo, GridShape
 from .mcfost_utils import MINGRAINSIZE_µ, KNOWN_MCFOST_ARGS
 from .mcfost_utils import get_mcfost_grid, write_mcfost_conf
@@ -601,27 +600,3 @@ class Interface:
         vel2kms = dimvel.to(units.m / units.s).value
         velarr = np.stack([vx, vy, vz], axis=3) * vel2kms
         return velarr.transpose()
-
-
-
-class VerbatimInterface(Interface):
-    """A more talkative Interface"""
-    @wait_for_ok(f"loading input data")
-    def load_input_data(self) -> None:
-        super().load_input_data()
-
-    @wait_for_ok('writing mcfost configuration file')
-    def write_mcfost_conf_file(self) -> None:
-        super().write_mcfost_conf_file()
-
-    @wait_for_ok('interpolating to mcfost grid')
-    def gen_2D_arrays(self):
-        super().gen_2D_arrays()
-
-    @wait_for_ok('converting 2D arrays to 3D')
-    def gen_3D_arrays(self):
-        super().gen_3D_arrays()
-
-    @wait_for_ok('building the .fits file')
-    def write_output(self) -> None:
-        super().write_output()

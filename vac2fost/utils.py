@@ -3,35 +3,11 @@ from pathlib import Path
 from os.path import expandvars
 from shutil import get_terminal_size
 from dataclasses import dataclass
-try:
-    import colorama
-    colorama.init(autoreset=True)
-    BOLD = colorama.Style.BRIGHT
-    RED = BOLD + colorama.Fore.RED
-    CYAN = colorama.Fore.CYAN
-except ImportError:
-    colorama = None
-    BOLD = RED = CYAN = ""
 
-
-
-# Terminal shenanigans  =============================================================
 def shell_path(pin: str) -> Path:
     """Transform <pin> to a Path, expanding included env variables."""
     return Path(expandvars(str(pin)))
 
-def get_prompt_size():
-    """size of command line interface messages sized to window. Caps at 80."""
-    cols, _ = get_terminal_size()
-    return min(cols, 80)
-
-def decorated_centered_message(mess: str, dec: str = "=") -> str:
-    """Return a decorated version of <mess>"""
-    ndecor = int((get_prompt_size() - (len(mess)+2)) / 2)
-    return BOLD + " ".join([dec*ndecor, mess, dec*ndecor])
-
-
-# Dataclasses =======================================================================
 @dataclass
 class GridShape:
     """Describe number of cells in cylindrical coordinates in a grid"""
@@ -61,25 +37,3 @@ class IOinfo:
     """Hold input and output data information"""
     IN: DataInfo
     OUT: DataInfo
-
-
-
-# Decorators ========================================================================
-def parameterized(dec):
-    """meta decorator, allow definition of decorators with parameters
-    source: https://stackoverflow.com/questions/5929107/decorators-with-parameters"""
-    def layer(*args, **kwargs):
-        def repl(f):
-            return dec(f, *args, **kwargs)
-        return repl
-    return layer
-
-@parameterized
-def wait_for_ok(func, mess, lenght=get_prompt_size()-7):
-    """decorator, sandwich the function execution with '<mess>  ...' & 'ok'"""
-    def modfunc(*args, **kwargs):
-        print(mess.ljust(lenght), end="... ", flush=True)
-        result = func(*args, **kwargs)
-        print("ok")
-        return result
-    return modfunc
