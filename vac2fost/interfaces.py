@@ -1,11 +1,11 @@
 """
 Where interface classes live.
 
-Interface (and its more talkative little sister VerbatimInterface) are the bulk
-of this package, and hold most capabilities.
+interfaces are the bulk of this package, and hold most capabilities,
+they are used to translate (MPI-AMRVAC) output files to .fits input suited for MCFOST.
 
-An Interface instance can be used to translate .vtu files (MPI-AMRVAC)
-to .fits input suited for MCFOST
+VtuFileInterface is the historic class, and will soon be deprecated
+DatFileInterface is the future of this package (wip)
 """
 
 # stdlib
@@ -37,7 +37,7 @@ def read_amrvac_parfiles(parfiles: list, location: str = "") -> f90nml.Namelist:
     """Parse one, or a list of MPI-AMRVAC parfiles into a consistent
     configuration.
 
-    <location> : path of the directory where parfiles are found.
+    <location> : pathlike of the directory where parfiles are found.
     Can be either a PathLike object or a str. The later can include
     "$" shell env variables such as "$HOME".
 

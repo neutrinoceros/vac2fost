@@ -1,4 +1,4 @@
-"""This main routine creates and uses an Interface instance."""
+"""This main routine creates and uses an interface instance."""
 from pathlib import Path
 
 from .info import __version__
