@@ -28,6 +28,7 @@ from .utils import shell_path, wait_for_ok
 from .utils import IOinfo, DataInfo, GridShape
 from .mcfost_utils import MINGRAINSIZE_µ, KNOWN_MCFOST_ARGS
 from .mcfost_utils import get_mcfost_grid, write_mcfost_conf
+from .logger import v2flogger as log
 
 
 
@@ -80,7 +81,6 @@ class Interface:
                  axisymmetry=False,
                  mcfost_verbose=False):
 
-        self.warnings = []
         # input checking
         if not isinstance(config_file, (str, Path)):
             raise TypeError(config_file)
@@ -108,7 +108,7 @@ class Interface:
         # parse configuration file
         self.config = f90nml.read(config_file)
         if self.use_axisymmetry and self.config['mcfost_output'].get("n_az", 2) > 1:
-            self.warnings.append("specified 'n_az'>1 but axisymmetry flag present, overriding n_az=1")
+            log.warning("specified 'n_az'>1 but axisymmetry flag present, overriding n_az=1")
             self.config["mcfost_output"].update({"n_az": 1})
 
         # init iteration counter
@@ -167,15 +167,15 @@ class Interface:
 
         if not self.io.OUT.directory.exists():
             os.makedirs(self.io.OUT.directory)
-            self.warnings.append(f"dir {self.io.OUT.directory} was created")
+            log.warning(f"dir {self.io.OUT.directory} was created")
 
         if not self.config.get("units"):
-            self.warnings.append(f"&units parameter list not found. Assuming {DEFAULT_UNITS}")
+            log.warning(f"&units parameter list not found. Assuming {DEFAULT_UNITS}")
             self.config["units"] = f90nml.Namelist(DEFAULT_UNITS)
         else:
             for k, v in DEFAULT_UNITS.items():
                 if not self.config["units"].get(k):
-                    self.warnings.append(f"&units:{k} parameter not found. Assuming default {v}")
+                    log.warning(f"&units:{k} parameter not found. Assuming default {v}")
                     self.config["units"][k] = v
 
     def advance_iteration(self):
@@ -219,19 +219,12 @@ class Interface:
         if not self._base_args["read_gas_density"]:
             rgd = False
         elif self._bin_gas():
-            self.warnings.append(
+            log.warning(
                 f"read_gas_density asked but redundant in '{self.dust_binning_mode}' mode, ignored")
             rgd = False
         else:
             rgd = True
         return rgd
-
-    def display_warnings(self):
-        """A colorful way to print the warning list."""
-        print(" WARNINGS:")
-        print(RED+"\n".join([f" - {w}" for w in self.warnings]))
-        if colorama is not None:
-            print(colorama.Style.RESET_ALL, end="")
 
 
     # dust binning mode API
@@ -270,7 +263,7 @@ class Interface:
             w.append(f'''to "{new_dbm}"''')
             if reason is not None:
                 w.append(f"\n   REASON: {reason}")
-            self.warnings.append(" ".join(w))
+            log.warning(" ".join(w))
         self._dust_binning_mode = new_dbm
 
     def _bin_dust(self) -> bool:
@@ -353,7 +346,7 @@ class Interface:
         try:
             res = self.sim_conf["usr_dust_list"]["gas2dust_ratio"]
         except KeyError:
-            self.warnings.append(f"could not find &usr_dust_list:gas2dust_ratio, assume {res}")
+            log.warning(f"could not find &usr_dust_list:gas2dust_ratio, assume {res}")
         return res
 
     def estimate_dust_mass(self) -> float:
@@ -405,7 +398,7 @@ class Interface:
         try:
             parameters.update({"star_mass": self.sim_conf["disk_list"]["central_mass"]})
         except KeyError:
-            self.warnings.append("&disk_list not found. Assuming default values")
+            log.warning("&disk_list not found. Assuming default values")
         return parameters
 
     def write_mcfost_conf_file(self) -> str:
