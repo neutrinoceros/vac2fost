@@ -2,11 +2,11 @@
 from pathlib import Path
 
 from .info import __version__
-from .interfaces import DatFileInterface, VtuFileInterface
+from .interfaces import AbstractInterface, DatFileInterface, VtuFileInterface
 from .logger import v2flogger as log
 
 
-def main(config_file: Path, loglevel: int = 30, input_data_format="vtu", **itf_kwargs):
+def main(config_file: Path, loglevel: int = 30, input_data_format="vtu", **itf_kwargs) -> AbstractInterface:
     """Transform a .vtu datfile into a .fits
 
     config_file and itf_kwargs are passed down to Interface.__init__()
@@ -18,7 +18,9 @@ def main(config_file: Path, loglevel: int = 30, input_data_format="vtu", **itf_k
     """
     log.setLevel(loglevel)
     log.info(f"start vac2fost {__version__} main loop")
-    Interface = {"dat": DatFileInterface, "vtu": VtuFileInterface}[input_data_format]
+    if input_data_format != "vtu":
+        raise NotImplementedError
+    Interface = {"dat": DatFileInterface, "vtu": VtuFileInterface}[input_data_format] # wip
     itf = Interface(config_file, **itf_kwargs)
     while 1:
         log.info(f"current input number: {itf.current_num}\t({itf.iter_count}/{itf.iter_max})")
@@ -49,5 +51,4 @@ def main(config_file: Path, loglevel: int = 30, input_data_format="vtu", **itf_k
             break
 
     log.info("end vac2fost")
-    # return the Interface object for inspection (tests)
-    return itf
+    return itf  # return the interface object for inspection (tests)
