@@ -13,7 +13,7 @@ before_script:
   - echo $GITLAB_USER_ID
   - echo $GITLAB_USER_NAME
   - echo $GITLAB_USER_LOGIN
-  - module load userspace/170135
+  - module load userspace/OCA
   - module load python/3.6.3_anaconda3
   - export PATH=$PATH:`pwd`/deps
   - export MCFOST_UTILS=`pwd`/deps/mcfost_utils
@@ -24,19 +24,20 @@ stages:
   - unit_tests
   - integration_tests
   - final
+  - clean
 
-update_pyenv:
+install or update pyenv:
   stage: build
   script:
     - export CONDA_INST="--name $PYENV --file environment.yml --channel conda-forge --yes"
     - $SLURM_CMD conda create $CONDA_INST || $SLURM_CMD conda install $CONDA_INST
 
-download_deps:
+download private dependencies:
   stage: build
   script:
     - $SLURM_CMD bash dl_deps.sh
 
-install_mcfost:
+install mcfost:
   stage: build
   script:
     - rm -fr $HOME/.mcfost
@@ -49,14 +50,14 @@ install_mcfost:
     - $SLURM_CMD ./mcfost -setup
     - mkdir $HOME/.mcfost
     - touch $HOME/.mcfost/accept_disclaimer_3.0.35
-    - ./mcfost ref3.0.para && rm -fr data_th # agree to licence...
     - cd ../
     - which mcfost
     - mcfost -version
 
-install_pymodules:
+install private dependencies:
   stage: install
   script:
+    - echo $PYENV # temp
     - source activate $PYENV
     - $SLURM_CMD pip install `pwd`/deps/vtk_vacreader-project
     - $SLURM_CMD pip install .
@@ -86,15 +87,14 @@ regression:
     - source activate $PYENV
     - $SLURM_CMD pytest tests/test_regression.py
 
-code_quality:
+check code quality:
   stage: final
   script:
     - source activate $PYENV
     - pylint --rcfile .pylintrc vac2fost/*.py
 
-run_demo:
+run demo:
   stage: final
   script:
     - source activate $PYENV
     - $SLURM_CMD python docs/demo.py
-
