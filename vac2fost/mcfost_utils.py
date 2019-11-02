@@ -226,8 +226,7 @@ def get_mcfost_grid(itf) -> np.ndarray:
         os.makedirs(output_dir)
 
     grid_file_name = output_dir / "mcfost_grid.fits.gz"
-
-    if itf.current_num == itf.nums[0]:
+    if itf.iter_count == 0:
         assert mcfost_conf_path.exists()
         # generate a grid data file with mcfost itself and extract it
         tmp_mcfost_dir = output_dir / f"TMP_VAC2FOST_MCFOST_GRID_{uuid()}"

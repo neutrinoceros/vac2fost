@@ -115,10 +115,15 @@ class Interface:
         if nums is None:
             nums = self.config["amrvac_input"]["nums"]
         if isinstance(nums, int):
-            self.nums = [nums]  # make it iterable
-        else:
-            self.nums = list(set(nums))  #make it iterable, filter out duplicates and sort them
-        self.current_num = self.nums[0]
+            nums = [nums]  # make it iterable
+        nums = list(set(nums))  # filter out duplicates and sort them
+        def _iter_nums():
+            for n in nums:
+                yield n
+        self._iter_nums = _iter_nums()
+        self.iter_count = 0
+        self.iter_max = len(nums)
+        self.current_num = next(self._iter_nums)
 
         hydro_data_dir = shell_path(self.config["amrvac_input"]["hydro_data_dir"])
         if not hydro_data_dir.is_absolute():
@@ -172,6 +177,10 @@ class Interface:
                 if not self.config["units"].get(k):
                     self.warnings.append(f"&units:{k} parameter not found. Assuming default {v}")
                     self.config["units"][k] = v
+
+    def advance_iteration(self):
+        self.iter_count += 1
+        self.current_num = next(self._iter_nums)
 
     @property
     def io(self) -> IOinfo:
@@ -293,16 +302,14 @@ class Interface:
         """Locate output configuration file for mcfost"""
         return self.io.OUT.directory / "mcfost_conf.para"
 
-    def load_input_data(self, n: int = None) -> None:
+    def load_input_data(self) -> None:
         '''Use vtkvacreader.VacDataSorter to load AMRVAC data'''
-        if n is not None:
-            assert n in self.nums
-            #reinit properties
-            self._input_data = None
-            self._output_grid = None
-            self._new_2D_arrays = None
-            self._new_3D_arrays = None
-            self.current_num = n
+        #reset output attributes
+        self._output_grid = None
+        self._new_2D_arrays = None
+        self._new_3D_arrays = None
+        self._rz_slice = None
+
         self._input_data = VacDataSorter(
             file_name=str(self.io.IN.filepath),
             shape=(self.io.IN.gridshape.nr, self.io.IN.gridshape.nphi)
@@ -312,7 +319,7 @@ class Interface:
     def input_data(self):
         '''Load input simulation data'''
         if self._input_data is None:
-            self.load_input_data(self.current_num)
+            self.load_input_data()
         return self._input_data
 
     @property
