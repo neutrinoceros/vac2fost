@@ -305,7 +305,8 @@ class Interface:
             file_name=file_name,
             shape=(self.io.IN.gridshape.nr, self.io.IN.gridshape.nphi)
         )
-        return file_name
+        log.info(f"successfully loaded {file_name}")
+
 
     @property
     def input_data(self):
@@ -398,7 +399,7 @@ class Interface:
             log.warning("&disk_list not found. Assuming default values")
         return parameters
 
-    def write_mcfost_conf_file(self) -> str:
+    def write_mcfost_conf_file(self) -> None:
         """Create a complete mcfost conf file using
         - amrvac initial configuration : self._translate_amrvac_config()
         - user specifications : self.config['mcfost_output']
@@ -413,7 +414,7 @@ class Interface:
 
         write_mcfost_conf(output_file=self.mcfost_conf_file,
                           custom_parameters=mcfost_parameters)
-        return self.mcfost_conf_file
+        log.info(f"successfully wrot {self.mcfost_conf_file}")
 
     def _scan_for_unknown_arguments(self) -> list:
         """Get unrecognized arguments found in mcfost_output"""
@@ -423,7 +424,7 @@ class Interface:
                 unknowns.append(arg)
         return unknowns
 
-    def write_output(self) -> str:
+    def write_output(self) -> None:
         """Write a .fits file suited for MCFOST input."""
         dust_bin_selector = {
             "gas-only": np.zeros(1, dtype="int64"),
@@ -467,8 +468,8 @@ class Interface:
         with open(self.io.OUT.filepath, mode="wb") as fo:
             hdul = fits.HDUList(hdus=[dust_densities_HDU] + suppl_hdus)
             hdul.writeto(fo)
+        log.info(f"successfully wrote {self.io.OUT.filepath}")
 
-        return str(self.io.OUT.filepath)
 
     @property
     def input_grid(self) -> dict:
