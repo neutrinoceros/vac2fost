@@ -6,7 +6,7 @@ from pathlib import Path
 from socket import gethostname
 from subprocess import run, CalledProcessError
 from collections import OrderedDict as od
-from uuid import uuid4 as uuid
+from tempfile import TemporaryDirectory
 
 import numpy as np
 from astropy.io import fits
@@ -229,33 +229,27 @@ def get_mcfost_grid(itf) -> np.ndarray:
     if itf.iter_count == 0:
         assert mcfost_conf_path.exists()
         # generate a grid data file with mcfost itself and extract it
-        tmp_mcfost_dir = output_dir / f"TMP_VAC2FOST_MCFOST_GRID_{uuid()}"
-        os.makedirs(tmp_mcfost_dir)
-        try:
-            shutil.copyfile(mcfost_conf_path.resolve(),
-                            tmp_mcfost_dir/mcfost_conf_path.name)
-        except shutil.SameFileError:
-            pass
-
         pile = Path.cwd()
-        os.chdir(tmp_mcfost_dir)
-        try:
-            run(["mcfost", "mcfost_conf.para", "-disk_struct"], check=True,
-                capture_output=(not itf.mcfost_verbose))
+        with TemporaryDirectory() as tmp_mcfost_dir:
+            shutil.copyfile(mcfost_conf_path.resolve(),
+                            Path(tmp_mcfost_dir)/mcfost_conf_path.name)
+            os.chdir(tmp_mcfost_dir)
+            try:
+                run(["mcfost", "mcfost_conf.para", "-disk_struct"], check=True,
+                    capture_output=(not itf.mcfost_verbose))
 
-            shutil.move("data_disk/grid.fits.gz", grid_file_name)
-        except CalledProcessError as exc:
-            errtip = f"\nError in MCFOST, exited with exitcode {exc.returncode}"
-            if exc.returncode == 174:
-                errtip += (
-                    "\nThis is probably a memory issue. "
-                    "Try reducing the target resolution or,"
-                    " alternatively, give more cpu memory to this task."
-                )
-            raise RuntimeError(errtip) from exc
-        finally:
-            os.chdir(pile)
-            shutil.rmtree(tmp_mcfost_dir)
+                shutil.move("data_disk/grid.fits.gz", grid_file_name)
+            except CalledProcessError as exc:
+                errtip = f"\nError in MCFOST, exited with exitcode {exc.returncode}"
+                if exc.returncode == 174:
+                    errtip += (
+                        "\nThis is probably a memory issue. "
+                        "Try reducing the target resolution or,"
+                        " alternatively, give more cpu memory to this task."
+                    )
+                raise RuntimeError(errtip) from exc
+            finally:
+                os.chdir(pile)
     with fits.open(grid_file_name, mode="readonly") as fi:
         target_grid = fi[0].data
     return target_grid
