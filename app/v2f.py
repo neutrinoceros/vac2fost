@@ -77,7 +77,13 @@ if __name__ == "__main__":
         required=False,
         default=None,
         nargs="*",
-        help="output number(s) of the target .vtu VAC output file to be converted"
+        help="output number(s) of the target .vtu VAC output file to be converted" #TODO: rewrite this
+    )
+    parser.add_argument(
+        "-df", "--datfmt", type=str,
+        required=False,
+        default="vtu",
+        help="prefered AMRVAC datfile format (must be vtu or dat)"
     )
     parser.add_argument(
         "-o", "--output", dest="output", type=str,
@@ -163,6 +169,7 @@ if __name__ == "__main__":
     main(
         config_file=cargs.configuration,
         nums=cargs.nums,
+        input_data_format=cargs.datfmt,
         output_dir=cargs.output.strip(),
         dust_bin_mode=cargs.dbm,
         read_gas_density=cargs.read_gas_density,

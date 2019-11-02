@@ -65,7 +65,7 @@ def read_amrvac_parfiles(parfiles: list, location: str = "") -> f90nml.Namelist:
 
 
 
-class Interface:
+class AbstractInterface:
     """A data transforming class. Holds most functionalities useful to
     vac2fost.main()"""
 
@@ -175,33 +175,14 @@ class Interface:
                     log.warning(f"&units:{k} parameter not found. Assuming default {v}")
                     self.config["units"][k] = v
 
-    def advance_iteration(self):
-        self.iter_count += 1
+    def advance_iteration(self) -> None:
+        """Reset output attributes and step to next output number."""
+        self._output_grid = None
+        self._new_2D_arrays = None
+        self._new_3D_arrays = None
+        self._rz_slice = None
         self.current_num = next(self._iter_nums)
-
-    @property
-    def io(self) -> IOinfo:
-        """Give up-to-date information on data location and naming (.i: input, .o: output)"""
-        vtu_filename = "".join([self.sim_conf["filelist"]["base_filename"],
-                                str(self.current_num).zfill(4),
-                                ".vtu"])
-
-        geomdefs = {"nr": 1, "nphi": 2}
-        _input = DataInfo(
-            directory=shell_path(self.config["amrvac_input"]["hydro_data_dir"]).resolve(),
-            filename=vtu_filename,
-            gridshape=GridShape(**{k: self.sim_conf["meshlist"][f"domain_nx{n}"]
-                                   for k, n in geomdefs.items()})
-        )
-
-        trad_keys = {"nr": "n_rad", "nphi": "n_az", "nz": "nz"}
-        _output = DataInfo(
-            directory=Path(self._base_args["output_dir"]),
-            filename=_input.filestem+".fits",
-            gridshape=GridShape(**{k1: self.config["mcfost_output"][k2]
-                                   for k1, k2 in trad_keys.items()})
-        )
-        return IOinfo(IN=_input, OUT=_output)
+        self.iter_count += 1
 
     @property
     def read_gas_density(self) -> bool:
@@ -292,27 +273,11 @@ class Interface:
         """Locate output configuration file for mcfost"""
         return self.io.OUT.directory / "mcfost_conf.para"
 
-    def load_input_data(self) -> str:
-        '''Use vtkvacreader.VacDataSorter to load AMRVAC data'''
-        #reset output attributes
-        self._output_grid = None
-        self._new_2D_arrays = None
-        self._new_3D_arrays = None
-        self._rz_slice = None
-
-        file_name = str(self.io.IN.filepath)
-        self._input_data = VacDataSorter(
-            file_name=file_name,
-            shape=(self.io.IN.gridshape.nr, self.io.IN.gridshape.nphi)
-        )
-        log.info(f"successfully loaded {file_name}")
-
-
     @property
     def input_data(self):
         '''Load input simulation data'''
         if self._input_data is None:
-            self.load_input_data()
+            self.load_input_data() # this method is abstract here
         return self._input_data
 
     @property
@@ -596,3 +561,56 @@ class Interface:
         vel2kms = dimvel.to(units.m / units.s).value
         velarr = np.stack([vx, vy, vz], axis=3) * vel2kms
         return velarr.transpose()
+
+
+class VtuFileInterface(AbstractInterface):
+    """An interface dedicated to fixed-resolution vtu files (to be deprecated !)"""
+    @property
+    def io(self) -> IOinfo:
+        """Give up-to-date information on data location and naming (.i: input, .o: output)"""
+        vtufile_name = "".join([self.sim_conf["filelist"]["base_filename"],
+                                str(self.current_num).zfill(4),
+                                ".vtu"])
+
+        geomdefs = {"nr": 1, "nphi": 2}
+        _input = DataInfo(
+            directory=shell_path(self.config["amrvac_input"]["hydro_data_dir"]).resolve(),
+            filename=vtufile_name,
+            gridshape=GridShape(**{k: self.sim_conf["meshlist"][f"domain_nx{n}"]
+                                   for k, n in geomdefs.items()})
+        )
+
+        trad_keys = {"nr": "n_rad", "nphi": "n_az", "nz": "nz"}
+        _output = DataInfo(
+            directory=Path(self._base_args["output_dir"]),
+            filename=_input.filestem+".fits",
+            gridshape=GridShape(**{k1: self.config["mcfost_output"][k2]
+                                   for k1, k2 in trad_keys.items()})
+        )
+        return IOinfo(IN=_input, OUT=_output)
+
+    def load_input_data(self, n: int = None) -> None:
+        """Use vtkvacreader.VacDataSorter to load AMRVAC data"""
+        self._input_data = VacDataSorter(
+            file_name=str(self.io.IN.filepath),
+            shape=(self.io.IN.gridshape.nr, self.io.IN.gridshape.nphi)
+        )
+        log.info(f"successfully loaded {self.io.IN.filepath}")
+
+class DatFileInterface(AbstractInterface):
+    @property
+    def io(self) -> IOinfo:
+        """Give up-to-date information on data location and naming (.i: input, .o: output)"""
+        pass
+
+    def load_input_data(self, n: int = None) -> None:
+        """wip"""
+        import yt
+        from yt import mylog as ytlogger
+        ytlogger.setLevel(50) # silence all but critical messages from yt
+        dims = self.io.IN.gridshape
+        print(dims)
+        ag = ds.arbitrary_grid(ds.domain_left_edge, ds.domain_right_edge, dims=dims)
+        d = ag["rho"].squeeze().to_ndarray()
+        # TODO: use yt to set self._input_data here
+        #log.info(f"successfully loaded {filename}")
