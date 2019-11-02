@@ -97,7 +97,6 @@ class AbstractInterface:
             'read_gas_velocity': read_gas_velocity
         }
 
-        self._dim = 2  # no support for 3D input yet
         self.read_gas_velocity = read_gas_velocity
         self.use_settling = settling
         self.use_axisymmetry = axisymmetry
