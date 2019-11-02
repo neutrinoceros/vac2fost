@@ -29,4 +29,5 @@ class TestSettling:
     def test_run_settling(self):
         log.setLevel(10)
         itf = app(__class__.conf_file, output_dir=__class__.outdir, settling=True)
+        itf.preroll_mcfost()
         itf.new_3D_arrays

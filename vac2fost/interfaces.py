@@ -150,7 +150,7 @@ class AbstractInterface:
 
         self._µsizes = None
         self._input_data = None
-        self._output_grid = None
+        self.output_grid = None
         self._new_2D_arrays = None
         self._new_3D_arrays = None
         self._rz_slice = None
@@ -172,7 +172,7 @@ class AbstractInterface:
 
     def advance_iteration(self) -> None:
         """Reset output attributes and step to next output number."""
-        self._output_grid = None
+        self.output_grid = None
         self._new_2D_arrays = None
         self._new_3D_arrays = None
         self._rz_slice = None
@@ -245,26 +245,41 @@ class AbstractInterface:
         return self._µsizes
 
     @property
-    def mcfost_conf_file(self) -> Path:
-        """Locate output configuration file for mcfost"""
-        return self.io.OUT.directory / "mcfost_conf.para"
-
-    @property
     def input_data(self):
         '''Load input simulation data'''
         if self._input_data is None:
             self.load_input_data() # this method is abstract here
         return self._input_data
 
-    @property
-    def output_grid(self) -> dict:
-        '''Store info on 3D output grid specifications
-        as vectors "v", and (r-phi)grids "g"'''
-        if self._output_grid is None:
-            if not self.mcfost_conf_file.is_file():
-                self.write_mcfost_conf_file()
-            target_grid = get_mcfost_grid(self)
-            self._output_grid = {
+    def preroll_mcfost(self) -> None:
+        mcfost_conf_file = self.io.OUT.directory / "mcfost_conf.para"
+
+        if not mcfost_conf_file.is_file():
+            """Create a complete mcfost conf file using
+            - amrvac initial configuration : self._translate_amrvac_config()
+            - user specifications : self.config['mcfost_output']
+            - defaults (defined in mcfost_utils.py)
+            """
+            mcfost_parameters = {}
+            mcfost_parameters.update(self._translate_amrvac_config())
+
+            #Get unrecognized arguments found in mcfost_output
+            unknown_args = []
+            for arg in self.config["mcfost_output"].keys():
+                if not arg.lower() in KNOWN_MCFOST_ARGS:
+                    unknown_args.append(arg)
+            if unknown_args:
+                raise ValueError(f'Unrecognized MCFOST argument(s): {unknown_args}')
+
+            mcfost_parameters.update(self.config['mcfost_output'])
+            write_mcfost_conf(output_file=mcfost_conf_file,
+                             custom_parameters=mcfost_parameters)
+            log.info(f"successfully wrote {mcfost_conf_file}")
+
+        target_grid = get_mcfost_grid(self, mcfost_conf_file,
+                                    output_dir=self.io.OUT.directory,
+                                    require_run=(self.iter_count==0))
+        self.output_grid = {
                 'array': target_grid,
                 # (nr, nphi) 2D grids
                 'rg': target_grid[0, :, 0, :],
@@ -272,11 +287,10 @@ class AbstractInterface:
                 'zg': target_grid[1, 0, :, :],
                 # vectors (1D arrays)
                 'rv': target_grid[0, 0, 0, :],
-            }
-            if target_grid.shape[0] > 2: # usually the case unless 2D axisym grid !
-                self._output_grid.update({'phig': target_grid[2, :, 0, :],
-                                          'phiv': target_grid[2, :, 0, 0]})
-        return self._output_grid
+        }
+        if target_grid.shape[0] > 2: # usually the case unless 2D axisym grid !
+            self.output_grid.update({'phig': target_grid[2, :, 0, :],
+                                    'phiv': target_grid[2, :, 0, 0]})
 
     @property
     def g2d_ratio(self):
@@ -339,29 +353,6 @@ class AbstractInterface:
         except KeyError:
             log.warning("&disk_list not found. Assuming default values")
         return parameters
-
-    def write_mcfost_conf_file(self) -> None:
-        """Create a complete mcfost conf file using
-        - amrvac initial configuration : self._translate_amrvac_config()
-        - user specifications : self.config['mcfost_output']
-        - defaults (defined in mcfost_utils.py)
-        """
-        mcfost_parameters = {}
-        mcfost_parameters.update(self._translate_amrvac_config())
-
-        #Get unrecognized arguments found in mcfost_output
-        unknown_args = []
-        for arg in self.config["mcfost_output"].keys():
-            if not arg.lower() in KNOWN_MCFOST_ARGS:
-                unknown_args.append(arg)
-        if unknown_args:
-            raise ValueError(f'Unrecognized MCFOST argument(s): {unknown_args}')
-
-        mcfost_parameters.update(self.config['mcfost_output'])
-        write_mcfost_conf(output_file=self.mcfost_conf_file,
-                          custom_parameters=mcfost_parameters)
-        log.info(f"successfully wrot {self.mcfost_conf_file}")
-
 
     def write_output(self) -> None:
         """Write a .fits file suited for MCFOST input."""

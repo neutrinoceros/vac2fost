@@ -37,6 +37,7 @@ class TestRegressionMain:
     subrefdir = REFOUT_DIR / "default"
     v2flogger.setLevel(10) # debug
     itf = instanciate_interface(conffile="vac2fost_conf.nml", read_gas_velocity=True)
+    itf.preroll_mcfost()
     itf.tag = itf._base_args['config_file'].stem
 
     def test_mcfost_conf(self):
@@ -93,6 +94,7 @@ class TestRegressionMain:
 class TestRegressionMutliNums:
     subrefdir = REFOUT_DIR / "multinums"
     itf = instanciate_interface(conffile="vac2fost_conf_quick.nml", nums=[0, 1, 2])
+    itf.preroll_mcfost()
     itf.tag = itf._base_args['config_file'].stem + "multinums"
 
     def test_multinums_output(self):
@@ -108,6 +110,7 @@ class TestRegressionMutliNums:
 class TestRegressionNonAxisym:
     subrefdir = REFOUT_DIR / "nonaxisym"
     itf = instanciate_interface(conffile="vac2fost_conf_nonaxisym.nml")
+    itf.preroll_mcfost()
     itf.tag = itf._base_args['config_file'].stem
 
     def test_out(self):
@@ -146,6 +149,7 @@ class TestRegressionNonAxisym:
 class TestRegressionAutoGasOnly:
     subrefdir = REFOUT_DIR / "autogasonly"
     itf = instanciate_interface(conffile="autogasonly/rwi.nml")
+    itf.preroll_mcfost()
     itf.tag = itf._base_args['config_file'].stem
 
     def test_mcfost_conf(self):

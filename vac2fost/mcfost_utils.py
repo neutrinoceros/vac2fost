@@ -211,18 +211,15 @@ def write_mcfost_conf(output_file: Path, custom_parameters: dict = None):
         fi.write(f"%% via mcfost {DETECTED_MCFOST_VERSION}\n")
         fi.write(f"%% run by {os.environ['USER']} on {gethostname()}\n")
 
-def get_mcfost_grid(itf) -> np.ndarray:
+def get_mcfost_grid(itf, mcfost_conf_file:str, output_dir:str, require_run:bool) -> np.ndarray:
     """Pre-run MCFOST with -disk_struct flag to get the exact grid used."""
-    mcfost_conf_file = itf.mcfost_conf_file
-    output_dir = itf.io.OUT.directory
-
     output_dir = Path(output_dir).resolve()
     mcfost_conf_path = Path(mcfost_conf_file)
     if not output_dir.exists():
         os.makedirs(output_dir)
 
     grid_file_name = output_dir / "mcfost_grid.fits.gz"
-    if itf.iter_count == 0:
+    if require_run:
         assert mcfost_conf_path.exists()
         # generate a grid data file with mcfost itself and extract it
         pile = Path.cwd()
