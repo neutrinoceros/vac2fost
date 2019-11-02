@@ -610,8 +610,8 @@ class Interface:
 class VerbatimInterface(Interface):
     """A more talkative Interface"""
     @wait_for_ok(f"loading input data")
-    def load_input_data(self, n: int = None) -> None:
-        super().load_input_data(n)
+    def load_input_data(self) -> None:
+        super().load_input_data()
 
     @wait_for_ok('writing mcfost configuration file')
     def write_mcfost_conf_file(self) -> None:
