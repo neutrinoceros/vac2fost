@@ -402,15 +402,24 @@ class AbstractInterface(ABC):
 
     # output generation
     def _get_output_ndarray(self) -> np.ndarray:
-        #notes:
         nbins = len(self.density_keys)
         oshape = self.io.OUT.gridshape
         nr, nphi, nz = oshape.nr, oshape.nphi, oshape.nz
         if self.use_axisymmetry:
-            raise NotImplementedError
             r_profiles = np.zeros((nbins, nr))
             rz_slice = np.zeros((nbins, nz, nr)) # todo: rename to ???
-            #itf.gen_rz_slice()
+
+            r_profiles[:] = np.array([self._interpolate1D(datakey=k) for k in self.density_keys])
+            for ir, r in enumerate(self.output_grid["ticks_r"]):
+                z_vect = self.output_grid["phi-slice_z"][:, ir]
+                gas_height = r * self.aspect_ratio
+                for i_bin, (grain_µsize, r_profile) in enumerate(zip(self.grain_micron_sizes,
+                                                                    r_profiles)):
+                    H = gas_height
+                    if self.use_settling:
+                        H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
+                    gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
+                    rz_slice[i_bin, :, ir] = gaussian * r_profile[ir]
             output_ndarray = rz_slice
         else:
             new_2D_arrays = np.zeros((nbins, nr, nphi)) # todo: rename to new_z_slice
@@ -432,8 +441,6 @@ class AbstractInterface(ABC):
             output_ndarray = new_3D_arrays
         return output_ndarray
 
-
-
     def _interpolate2D(self, datakey: str) -> np.ndarray:
         """Transform a polar field from MPI-AMRVAC coords to mcfost coords"""
         interpolator = interp2d(
@@ -454,25 +461,6 @@ class AbstractInterface(ABC):
             fill_value="extrapolate"
         )
         return interpolator(self.output_grid["ticks_r"])
-
-
-    def gen_rz_slice(self) -> None:
-        radial_profiles = np.array([self._interpolate1D(datakey=k) for k in self.density_keys])
-        oshape = self.io.OUT.gridshape
-        nr, nz = oshape.nr, oshape.nz
-
-        nbins = len(radial_profiles)
-        self._rz_slice = np.zeros((nbins, nz, nr))
-        for ir, r in enumerate(self.output_grid["ticks_r"]):
-            z_vect = self.output_grid["phi-slice_z"][:, ir]
-            gas_height = r * self.aspect_ratio
-            for i_bin, (grain_µsize, rprofile) in enumerate(zip(self.grain_micron_sizes,
-                                                                radial_profiles)):
-                H = gas_height
-                if self.use_settling:
-                    H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
-                gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
-                self._rz_slice[i_bin, :, ir] = gaussian * rprofile[ir]
 
     @property
     def new_3D_gas_velocity(self) -> np.ndarray:
