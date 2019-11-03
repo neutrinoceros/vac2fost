@@ -33,12 +33,6 @@ def main(config_file: Path, loglevel: int = 30, input_data_format="vtu", **itf_k
                 break
             continue
         itf.preroll_mcfost()
-
-        if itf_kwargs.get("axisymmetry", False):
-            itf.gen_rz_slice()
-        else:
-            itf.gen_2D_arrays() # todo: rename this method
-            itf.gen_3D_arrays() # todo: rename this method
         itf.write_output()
 
         try:

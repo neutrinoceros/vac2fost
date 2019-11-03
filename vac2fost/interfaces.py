@@ -253,12 +253,9 @@ class AbstractInterface(ABC):
             "mixed": self.grain_micron_sizes.argsort()
         }[self._dust_binning_mode]
 
-        if self.use_axisymmetry:
-            gas_field = self._rz_slice[0]
-            dust_fields = self._rz_slice[dust_bin_selector]
-        else:
-            gas_field = self._new_3D_arrays[0]
-            dust_fields = self._new_3D_arrays[dust_bin_selector]
+        output_ndarray = self._get_output_ndarray()
+        gas_field = output_ndarray[0]
+        dust_fields = output_ndarray[dust_bin_selector]
 
         suppl_hdus = []
         assert (len(dust_bin_selector) > 1) == (self._bin_dust)
@@ -404,15 +401,36 @@ class AbstractInterface(ABC):
 
 
     # output generation
-    def _get_output_ndarray() -> np.ndarray:
+    def _get_output_ndarray(self) -> np.ndarray:
         #notes:
         nbins = len(self.density_keys)
         oshape = self.io.OUT.gridshape
         nr, nphi, nz = oshape.nr, oshape.nphi, oshape.nz
-        self._rz_slice = np.zeros((nbins, nz, nr))
-        self._new_2D_arrays = np.zeros((nbins, nr, nphi)) # this is never output !
-        self._new_3D_arrays = np.zeros((nbins, nphi, nz, nr))
-        pass
+        if self.use_axisymmetry:
+            raise NotImplementedError
+            r_profiles = np.zeros((nbins, nr))
+            rz_slice = np.zeros((nbins, nz, nr)) # todo: rename to ???
+            #itf.gen_rz_slice()
+            output_ndarray = rz_slice
+        else:
+            new_2D_arrays = np.zeros((nbins, nr, nphi)) # todo: rename to new_z_slice
+            new_3D_arrays = np.zeros((nbins, nphi, nz, nr)) # todo: rename to full_3D_densities
+            new_2D_arrays[:] = np.array([self._interpolate2D(datakey=k) for k in self.density_keys])
+
+            for ir, r in enumerate(self.output_grid["ticks_r"]):
+                z_vect = self.output_grid["phi-slice_z"][nz:, ir].reshape(1, nz)
+                gas_height = r * self.aspect_ratio
+                for i_bin, grain_µsize in enumerate(self.grain_micron_sizes):
+                    surface_density = new_2D_arrays[i_bin, ir, :]
+                    H = gas_height
+                    if self.use_settling:
+                        H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
+                    gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
+                    #todo: numpy ellipsis ? "..."
+                    new_3D_arrays[i_bin, :, :, ir] = \
+                        gaussian * surface_density.reshape(nphi, 1)
+            output_ndarray = new_3D_arrays
+        return output_ndarray
 
 
 
@@ -455,35 +473,6 @@ class AbstractInterface(ABC):
                     H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
                 gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
                 self._rz_slice[i_bin, :, ir] = gaussian * rprofile[ir]
-
-    def gen_2D_arrays(self) -> None:
-        """Interpolate input data density fields from input coords to output coords"""
-        nbins = len(self.density_keys)
-        oshape = self.io.OUT.gridshape
-        nr, nphi = oshape.nr, oshape.nphi
-
-        self._new_2D_arrays = np.array([self._interpolate2D(datakey=k) for k in self.density_keys])
-        assert(self._new_2D_arrays.shape == (nbins, nr, nphi))
-
-    def gen_3D_arrays(self) -> None:
-        """Interpolate input data onto full 3D output grid"""
-        oshape = self.io.OUT.gridshape
-        nr, nphi, nz = oshape.nr, oshape.nphi, oshape.nz
-
-        nbins = len(self._new_2D_arrays)
-        self._new_3D_arrays = np.zeros((nbins, nphi, nz, nr))
-        for ir, r in enumerate(self.output_grid["ticks_r"]):
-            z_vect = self.output_grid["phi-slice_z"][nz:, ir].reshape(1, nz)
-            gas_height = r * self.aspect_ratio
-            for i_bin, grain_µsize in enumerate(self.grain_micron_sizes):
-                surface_density = self._new_2D_arrays[i_bin, ir, :]
-                H = gas_height
-                if self.use_settling:
-                    H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
-                gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
-                #todo: numpy ellipsis ? "..."
-                self._new_3D_arrays[i_bin, :, :, ir] = \
-                    gaussian * surface_density.reshape(nphi, 1)
 
     @property
     def new_3D_gas_velocity(self) -> np.ndarray:
