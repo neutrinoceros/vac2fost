@@ -399,44 +399,46 @@ class AbstractInterface(ABC):
         nbins = len(self.density_keys)
         oshape = self.io.OUT.gridshape
         nr, nphi, nz = oshape.nr, oshape.nphi, oshape.nz
+
+        r_profile_densities = np.zeros((nbins, nr))
+        phi_slice_densities = np.zeros((nbins, nz, nr))
+        new_plane_densities = np.zeros((nbins, nr, nphi))
+        full3D_densities = np.zeros((nbins, nphi, nz, nr))
+
         if self.use_axisymmetry:
-            r_profile_densities = np.zeros((nbins, nr))
-            phi_slice_densities = np.zeros((nbins, nz, nr))
-            output_ndarray = phi_slice_densities  # this is a reference, not a copy
             zvect_shape = (nz,)
             hyperplane_shape = (None,) # do not reshape
-
             r_profile_densities[:] = np.array([self._interpolate1D(datakey=k) for k in self.density_keys])
-            for ir, r in enumerate(self.output_grid["ticks_r"]):
-                z_vect = self.output_grid["phi-slice_z"][:, ir].reshape(*zvect_shape)
-                gas_height = r * self.aspect_ratio
-                for i_bin, (grain_µsize, r_profile) in enumerate(zip(self.grain_micron_sizes,
-                                                                    r_profile_densities)):
-                    H = gas_height
-                    if self.use_settling:
-                        H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
-                    gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
-                    phi_slice_densities[i_bin, ..., ir] = gaussian * r_profile[ir].reshape(*hyperplane_shape)
+
+            # those are references, not copies
+            hyperplane_densities = r_profile_densities
+            output_ndarray = phi_slice_densities
 
         else:
-            new_plane_densities = np.zeros((nbins, nr, nphi))
-            full3D_densities = np.zeros((nbins, nphi, nz, nr))
-            output_ndarray = full3D_densities  # this is a reference, not a copy
             zvect_shape = (1, nz)
             hyperplane_shape = (nphi, 1)
-
             new_plane_densities[:] = np.array([self._interpolate2D(datakey=k) for k in self.density_keys])
-            for ir, r in enumerate(self.output_grid["ticks_r"]):
+
+            # those are references, not copies
+            hyperplane_densities = new_plane_densities
+            output_ndarray = full3D_densities
+
+        for ir, r in enumerate(self.output_grid["ticks_r"]): # todo: rename i_bin -> ibin
+            if self.use_axisymmetry: #tmp
+                z_vect = self.output_grid["phi-slice_z"][:, ir].reshape(*zvect_shape)
+            else:
                 z_vect = self.output_grid["phi-slice_z"][nz:, ir].reshape(*zvect_shape)
-                gas_height = r * self.aspect_ratio
-                for i_bin, grain_µsize in enumerate(self.grain_micron_sizes):
-                    surface_density = new_plane_densities[i_bin, ir, :]
-                    H = gas_height
-                    if self.use_settling:
-                        H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
-                    gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
-                    full3D_densities[i_bin, ..., ir] = \
-                        gaussian * surface_density.reshape(*hyperplane_shape)
+            gas_height = r * self.aspect_ratio
+            for i_bin, grain_µsize in enumerate(self.grain_micron_sizes):
+                if self.use_axisymmetry: #tmp
+                    hpp_dens = hyperplane_densities[i_bin, ir]
+                else:
+                    hpp_dens = hyperplane_densities[i_bin, ir, :]
+                H = gas_height
+                if self.use_settling:
+                    H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
+                gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
+                output_ndarray[i_bin, ..., ir] = gaussian * hpp_dens.reshape(*hyperplane_shape)
 
         return output_ndarray
 
