@@ -69,7 +69,7 @@ class TestReadGasVelocity:
 
 
 
-@pytest.mark.incremental #each test is run only if the previous one passed
+#@pytest.mark.incremental #each test is run only if the previous one passed
 class TestReadGasDensity:
     outdir = testdir / "output/test_read_gas_density"
     if outdir.is_dir():

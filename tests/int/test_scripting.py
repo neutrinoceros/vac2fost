@@ -11,7 +11,7 @@ from vac2fost.logger import v2flogger as log
 
 testdir = pathlib.Path(__file__).absolute().parent.parent
 
-@pytest.mark.incremental #each test is run only if the previous one passed
+#@pytest.mark.incremental #each test is run only if the previous one passed
 class TestPyScripting():
     output_dir = testdir / "output/TestPyScripting"
     if output_dir.exists():
