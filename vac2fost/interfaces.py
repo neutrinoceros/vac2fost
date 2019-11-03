@@ -103,14 +103,14 @@ class AbstractInterface(ABC):
         self.use_axisymmetry = axisymmetry
 
         # parse configuration file
-        self.config = f90nml.read(config_file)
-        if self.use_axisymmetry and self.config['mcfost_output'].get("n_az", 2) > 1:
+        self.conf = f90nml.read(config_file)
+        if self.use_axisymmetry and self.conf['mcfost_output'].get("n_az", 2) > 1:
             log.warning("specified 'n_az'>1 but axisymmetry flag present, overriding n_az=1")
-            self.config["mcfost_output"].update({"n_az": 1})
+            self.conf["mcfost_output"].update({"n_az": 1})
 
         # init iteration counter
         if nums is None:
-            nums = self.config["amrvac_input"]["nums"]
+            nums = self.conf["amrvac_input"]["nums"]
         if isinstance(nums, int):
             nums = [nums]  # make it iterable
         nums = list(set(nums))  # filter out duplicates and sort them
@@ -122,9 +122,9 @@ class AbstractInterface(ABC):
         self.iter_max = len(nums)
         self.current_num = next(self._iter_nums)
 
-        hydro_data_dir = shell_path(self.config["amrvac_input"]["hydro_data_dir"])
+        hydro_data_dir = shell_path(self.conf["amrvac_input"]["hydro_data_dir"])
         if not hydro_data_dir.is_absolute():
-            options = self.config['amrvac_input']
+            options = self.conf['amrvac_input']
             p1 = Path.cwd()
             p2 = (Path(config_file).parent/hydro_data_dir).resolve()
 
@@ -143,10 +143,10 @@ class AbstractInterface(ABC):
                 raise FileNotFoundError(hydro_data_dir/options['config'][0])
 
             p = (p1, p2)[found.index(True)]
-            self.config['amrvac_input'].update({'hydro_data_dir': p.resolve()})
-        self.sim_conf = read_amrvac_parfiles(
-            parfiles=self.config['amrvac_input']['config'],
-            location=self.config['amrvac_input']['hydro_data_dir']
+            self.conf['amrvac_input'].update({'hydro_data_dir': p.resolve()})
+        self.amrvac_conf = read_amrvac_parfiles(
+            parfiles=self.conf['amrvac_input']['config'],
+            location=self.conf['amrvac_input']['hydro_data_dir']
         )
 
         self._µsizes = None
@@ -162,14 +162,14 @@ class AbstractInterface(ABC):
             os.makedirs(self.io.OUT.directory)
             log.warning(f"dir {self.io.OUT.directory} was created")
 
-        if not self.config.get("units"):
+        if not self.conf.get("units"):
             log.warning(f"&units parameter list not found. Assuming {DEFAULT_UNITS}")
-            self.config["units"] = f90nml.Namelist(DEFAULT_UNITS)
+            self.conf["units"] = f90nml.Namelist(DEFAULT_UNITS)
         else:
             for k, v in DEFAULT_UNITS.items():
-                if not self.config["units"].get(k):
+                if not self.conf["units"].get(k):
                     log.warning(f"&units:{k} parameter not found. Assuming default {v}")
-                    self.config["units"][k] = v
+                    self.conf["units"][k] = v
 
     # abstract bits
     @abstractmethod
@@ -203,20 +203,20 @@ class AbstractInterface(ABC):
         if not mcfost_conf_file.is_file():
             # Create a complete mcfost conf file using (by decreasing priority)
             # - amrvac initial configuration : self._translate_amrvac_config()
-            # - user specifications : self.config['mcfost_output']
+            # - user specifications : self.conf['mcfost_output']
             # - defaults (defined in mcfost_utils.py)
             mcfost_parameters = {}
             mcfost_parameters.update(self._translate_amrvac_config())
 
             #Get unrecognized arguments found in mcfost_output
             unknown_args = []
-            for arg in self.config["mcfost_output"].keys():
+            for arg in self.conf["mcfost_output"].keys():
                 if not arg.lower() in KNOWN_MCFOST_ARGS:
                     unknown_args.append(arg)
             if unknown_args:
                 raise ValueError(f'Unrecognized MCFOST argument(s): {unknown_args}')
 
-            mcfost_parameters.update(self.config['mcfost_output'])
+            mcfost_parameters.update(self.conf['mcfost_output'])
             write_mcfost_conf(output_file=mcfost_conf_file,
                               custom_parameters=mcfost_parameters)
             log.info(f"successfully wrote {mcfost_conf_file}")
@@ -263,7 +263,7 @@ class AbstractInterface(ABC):
         header = {'read_n_a': 0} # automatic normalization of size-bins from mcfost param file.
         if self.read_gas_density:
             #devnote: add try statement here ?
-            header.update(dict(gas_to_dust=self.sim_conf["usr_dust_list"]["gas2dust_ratio"]))
+            header.update(dict(gas_to_dust=self.amrvac_conf["usr_dust_list"]["gas2dust_ratio"]))
             suppl_hdus.append(fits.ImageHDU(gas_field))
             header.update(dict(read_gas_density=1))
 
@@ -320,7 +320,7 @@ class AbstractInterface(ABC):
             µm_sizes = np.empty(0)
             if self._bin_dust:
                 µm_sizes = 1e4 * np.array(
-                    self.sim_conf["usr_dust_list"]["grain_size_cm"])
+                    self.amrvac_conf["usr_dust_list"]["grain_size_cm"])
                 assert min(µm_sizes) > 0.1 #in case this triggers, review this code
             # always associate a grain size to the gas bin
             µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
@@ -330,14 +330,14 @@ class AbstractInterface(ABC):
     @property
     def aspect_ratio(self):
         """Dimensionless gas scale height implied by mcfost parameters"""
-        mcfl = self.config["mcfost_output"]
+        mcfl = self.conf["mcfost_output"]
         return mcfl["scale_height"] / mcfl["reference_radius"]
 
     @property
     def input_grid(self) -> dict:
         """Store physical coordinates (vectors) about the input grid specifications."""
         ig = {
-            "rv": self._input_data.get_ticks("r") * self.config["units"]["distance2au"],
+            "rv": self._input_data.get_ticks("r") * self.conf["units"]["distance2au"],
             "phiv": self._input_data.get_ticks("phi")
         }
         return ig
@@ -355,7 +355,7 @@ class AbstractInterface(ABC):
             raise ValueError(f"Unrecognized dbm value {dbm}")
         else: # automatic setting
             try: # todo: make this try block more robust
-                smallest_gs_µm = 1e4* min(np.array(self.sim_conf['usr_dust_list']['grain_size_cm']))
+                smallest_gs_µm = 1e4* min(np.array(self.amrvac_conf['usr_dust_list']['grain_size_cm']))
             except KeyError:
                 self._dust_binning_mode = "gas-only"
                 reason = "could not find grain sizes"
@@ -389,15 +389,15 @@ class AbstractInterface(ABC):
                             for i in range(self.io.IN.gridshape.nphi)])
         if self._dust_binning_mode == "gas-only":
             mass /= self.g2d_ratio
-        mass *= self.config["units"]["mass2solar"]
+        mass *= self.conf["units"]["mass2solar"]
         return mass
 
     def _translate_amrvac_config(self) -> dict:
         parameters = {}
 
         # Zone
-        mesh = self.sim_conf['meshlist']
-        conv2au = self.config["units"]["distance2au"]
+        mesh = self.amrvac_conf['meshlist']
+        conv2au = self.conf["units"]["distance2au"]
         parameters.update({
             'rin': mesh['xprobmin1']*conv2au,
             'rout': mesh['xprobmax1']*conv2au,
@@ -418,7 +418,7 @@ class AbstractInterface(ABC):
             })
         #Star
         try:
-            parameters.update({"star_mass": self.sim_conf["disk_list"]["central_mass"]})
+            parameters.update({"star_mass": self.amrvac_conf["disk_list"]["central_mass"]})
         except KeyError:
             log.warning("&disk_list not found. Assuming default values")
         return parameters
@@ -525,7 +525,7 @@ class AbstractInterface(ABC):
             np.testing.assert_array_equal(v.shape, (oshape.nr, oshape.nz, oshape.nphi))
 
         # unit conversion
-        conv = self.config["units"]
+        conv = self.conf["units"]
         dimvel = conv["distance2au"]*units.au / (conv["time2yr"]*units.yr)
         vel2kms = dimvel.to(units.m / units.s).value
         velarr = np.stack([vx, vy, vz], axis=3) * vel2kms
@@ -537,15 +537,15 @@ class VtuFileInterface(AbstractInterface):
     @property
     def io(self) -> IOinfo:
         """Give up-to-date information on data location and naming (.i: input, .o: output)"""
-        vtufile_name = "".join([self.sim_conf["filelist"]["base_filename"],
+        vtufile_name = "".join([self.amrvac_conf["filelist"]["base_filename"],
                                 str(self.current_num).zfill(4),
                                 ".vtu"])
 
         geomdefs = {"nr": 1, "nphi": 2}
         _input = DataInfo(
-            directory=shell_path(self.config["amrvac_input"]["hydro_data_dir"]).resolve(),
+            directory=shell_path(self.conf["amrvac_input"]["hydro_data_dir"]).resolve(),
             filename=vtufile_name,
-            gridshape=GridShape(**{k: self.sim_conf["meshlist"][f"domain_nx{n}"]
+            gridshape=GridShape(**{k: self.amrvac_conf["meshlist"][f"domain_nx{n}"]
                                    for k, n in geomdefs.items()})
         )
 
@@ -553,7 +553,7 @@ class VtuFileInterface(AbstractInterface):
         _output = DataInfo(
             directory=Path(self._base_args["output_dir"]),
             filename=_input.filestem+".fits",
-            gridshape=GridShape(**{k1: self.config["mcfost_output"][k2]
+            gridshape=GridShape(**{k1: self.conf["mcfost_output"][k2]
                                    for k1, k2 in trad_keys.items()})
         )
         return IOinfo(IN=_input, OUT=_output)
@@ -573,7 +573,7 @@ class VtuFileInterface(AbstractInterface):
     @property
     def g2d_ratio(self):
         """Gas to dust ratio"""
-        return self.sim_conf["usr_dust_list"].get("gas2dust_ratio", 100.)
+        return self.amrvac_conf["usr_dust_list"].get("gas2dust_ratio", 100.)
 
 
 class DatFileInterface(AbstractInterface):

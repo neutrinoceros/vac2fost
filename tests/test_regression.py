@@ -67,7 +67,7 @@ class TestRegressionMain:
 
         out_ref = pickle.load(open(reffile, mode="rb"))
         assert itf._dust_binning_mode == out_ref['dust_binning_mode']
-        assert itf.sim_conf == out_ref['sim_conf']
+        assert itf.amrvac_conf == out_ref['sim_conf'] # variable name changed since last regold
         np.testing.assert_array_equal(itf.input_grid['rv'], out_ref['input_grid']['rv'])
         np.testing.assert_array_equal(itf.input_grid['phiv'], out_ref['input_grid']['phiv'])
         np.testing.assert_array_equal(itf.output_grid['rv'], out_ref['output_grid']['rv'])
@@ -122,7 +122,7 @@ class TestRegressionNonAxisym:
 
         out_ref = pickle.load(open(reffile, mode="rb"))
         assert itf._dust_binning_mode == out_ref['dust_binning_mode']
-        assert itf.sim_conf == out_ref['sim_conf']
+        assert itf.amrvac_conf == out_ref['sim_conf'] # variable name changed since last regold
         np.testing.assert_array_equal(itf.input_grid['rv'], out_ref['input_grid']['rv'])
         np.testing.assert_array_equal(itf.input_grid['phiv'], out_ref['input_grid']['phiv'])
         np.testing.assert_array_equal(itf.output_grid['rv'], out_ref['output_grid']['rv'])
@@ -170,7 +170,7 @@ class TestRegressionAutoGasOnly:
 
         out_ref = pickle.load(open(reffile, mode="rb"))
         assert itf._dust_binning_mode == out_ref["dust_binning_mode"]
-        assert itf.sim_conf == out_ref["sim_conf"]
+        assert itf.amrvac_conf == out_ref["sim_conf"] # variable name changed since last regold
         np.testing.assert_array_equal(itf.input_grid["rv"], out_ref["input_grid"]["rv"])
         np.testing.assert_array_equal(itf.input_grid["phiv"], out_ref["input_grid"]["phiv"])
         np.testing.assert_array_equal(itf.output_grid["rv"], out_ref["output_grid"]["rv"])
