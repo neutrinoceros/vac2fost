@@ -190,8 +190,8 @@ def write_mcfost_conf(output_file: Path, custom_parameters: dict = None):
     """
     if custom_parameters is None:
         custom_parameters = {}
-
-    log.warning(f"{output_file} already exists, and will be overwritten.")
+    if Path(output_file).exists():
+        log.warning(f"{output_file} already exists, and will be overwritten.")
     with open(output_file, mode="wt") as fi:
         fi.write(".".join(MIN_MCFOST_VERSION.split(".")[:2]).ljust(10) +
                  "mcfost minimal version prescribed by vac2fost\n\n")
