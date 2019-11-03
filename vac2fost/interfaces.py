@@ -257,8 +257,8 @@ class AbstractInterface(ABC):
             gas_field = self._rz_slice[0]
             dust_fields = self._rz_slice[dust_bin_selector]
         else:
-            gas_field = self.new_3D_arrays[0]
-            dust_fields = self.new_3D_arrays[dust_bin_selector]
+            gas_field = self._new_3D_arrays[0]
+            dust_fields = self._new_3D_arrays[dust_bin_selector]
 
         suppl_hdus = []
         assert (len(dust_bin_selector) > 1) == (self._bin_dust)
@@ -411,7 +411,7 @@ class AbstractInterface(ABC):
             self.input_grid["ticks_r"],
             self._input_data[datakey],
             kind="cubic",
-            copy=False # test
+            copy=False
         )
         return interpolator(self.output_grid["ticks_phi"], self.output_grid["ticks_r"])
 
@@ -455,13 +455,13 @@ class AbstractInterface(ABC):
         oshape = self.io.OUT.gridshape
         nr, nphi, nz = oshape.nr, oshape.nphi, oshape.nz
 
-        nbins = len(self.new_2D_arrays)
+        nbins = len(self._new_2D_arrays)
         self._new_3D_arrays = np.zeros((nbins, nphi, nz, nr))
         for ir, r in enumerate(self.output_grid["ticks_r"]):
             z_vect = self.output_grid["phi-slice_z"][nz:, ir].reshape(1, nz)
             gas_height = r * self.aspect_ratio
             for i_bin, grain_µsize in enumerate(self.grain_micron_sizes):
-                surface_density = self.new_2D_arrays[i_bin, ir, :]
+                surface_density = self._new_2D_arrays[i_bin, ir, :]
                 H = gas_height
                 if self.use_settling:
                     H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
@@ -469,22 +469,6 @@ class AbstractInterface(ABC):
                 #todo: numpy ellipsis ? "..."
                 self._new_3D_arrays[i_bin, :, :, ir] = \
                     gaussian * surface_density.reshape(nphi, 1)
-
-    @property
-    def new_2D_arrays(self) -> list:
-        #todo: rename me
-        '''Last minute generation is used if required'''
-        if self._new_2D_arrays is None:
-            self.gen_2D_arrays()
-        return self._new_2D_arrays
-
-    @property
-    def new_3D_arrays(self) -> list:
-        '''Last minute generation is used if required'''
-        #todo: rename me
-        if self._new_3D_arrays is None:
-            self.gen_3D_arrays()
-        return self._new_3D_arrays
 
     @property
     def new_3D_gas_velocity(self) -> np.ndarray:
