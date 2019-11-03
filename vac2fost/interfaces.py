@@ -424,12 +424,12 @@ class AbstractInterface(ABC):
                 z_vect = self.output_grid["phi-slice_z"][nz:, ir]
             gas_height = r * self.aspect_ratio
             for ibin, grain_µsize in enumerate(self.grain_micron_sizes):
-                hpp_dens = hyperplane_densities[ibin, ir, ...]
+                hpd = hyperplane_densities[ibin, ir, ...]
                 H = gas_height
                 if self.use_settling:
                     H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
                 gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
-                output_ndarray[ibin, ..., ir] = np.outer(hpp_dens, gaussian)
+                output_ndarray[ibin, ..., ir] = np.outer(hpd, gaussian)
         return output_ndarray
 
     def _interpolate2D(self, datakey: str) -> np.ndarray:
