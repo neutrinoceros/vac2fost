@@ -221,21 +221,23 @@ class AbstractInterface(ABC):
                               custom_parameters=mcfost_parameters)
             log.info(f"successfully wrote {mcfost_conf_file}")
 
-        target_grid = get_mcfost_grid(self, mcfost_conf_file,
+        grid = get_mcfost_grid(self, mcfost_conf_file,
                                       output_dir=self.io.OUT.directory,
                                       require_run=(self.iter_count == 0))
+
         self.output_grid = {
-            "array": target_grid,
-            # (nr, nphi) 2D grids
-            "z-slice_r": target_grid[0, :, 0, :],
-            # (nr, nz) 2D grid (z points do not depend on phi)
-            "phi-slice_z": target_grid[1, 0, :, :],
-            # vectors (1D arrays)
-            "ticks_r": target_grid[0, 0, 0, :],
+            "array": grid,
+            # r coords
+            "ticks_r": grid[0, 0, 0, :],
+            "z-slice_r": grid[0, :, 0, :],
+            "phi-slice_r": grid[0, 0, :, :],
+            # z coords
+            # note: we purposedly do not define a "ticks-z" 1D array because its value varies with r
+            "phi-slice_z": grid[1, 0, :, :]
         }
-        if target_grid.shape[0] > 2: # usually the case unless 2D axisym grid !
-            self.output_grid.update({"z-slice_phi": target_grid[2, :, 0, :],
-                                     "ticks_phi": target_grid[2, :, 0, 0]})
+        if grid.shape[0] > 2: # usually the case unless 2D axisym grid !
+            self.output_grid.update({"ticks_phi": grid[2, :, 0, 0],
+                                     "z-slice_phi": grid[2, :, 0, :]})
 
     def write_output(self) -> None:
         """Write a .fits file suited for MCFOST input."""
