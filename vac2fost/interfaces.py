@@ -227,15 +227,15 @@ class AbstractInterface(ABC):
         self.output_grid = {
             "array": target_grid,
             # (nr, nphi) 2D grids
-            "rg": target_grid[0, :, 0, :],
+            "z-slice_r": target_grid[0, :, 0, :],
             # (nr, nz) 2D grid (z points do not depend on phi)
-            "zg": target_grid[1, 0, :, :],
+            "phi-slice_z": target_grid[1, 0, :, :],
             # vectors (1D arrays)
-            "rv": target_grid[0, 0, 0, :],
+            "ticks_r": target_grid[0, 0, 0, :],
         }
         if target_grid.shape[0] > 2: # usually the case unless 2D axisym grid !
-            self.output_grid.update({'phig': target_grid[2, :, 0, :],
-                                     'phiv': target_grid[2, :, 0, 0]})
+            self.output_grid.update({"z-slice_phi": target_grid[2, :, 0, :],
+                                     "ticks_phi": target_grid[2, :, 0, 0]})
 
     def write_output(self) -> None:
         """Write a .fits file suited for MCFOST input."""
@@ -337,8 +337,8 @@ class AbstractInterface(ABC):
     def input_grid(self) -> dict:
         """Store physical coordinates (vectors) about the input grid specifications."""
         ig = {
-            "rv": self._input_data.get_ticks("r") * self.conf["units"]["distance2au"],
-            "phiv": self._input_data.get_ticks("phi")
+            "ticks_r": self._input_data.get_ticks("r") * self.conf["units"]["distance2au"],
+            "ticks_phi": self._input_data.get_ticks("phi")
         }
         return ig
 
@@ -428,23 +428,23 @@ class AbstractInterface(ABC):
     def _interpolate2D(self, datakey: str) -> np.ndarray:
         """Transform a polar field from MPI-AMRVAC coords to mcfost coords"""
         interpolator = interp2d(
-            self.input_grid["phiv"],
-            self.input_grid["rv"],
+            self.input_grid["ticks_phi"],
+            self.input_grid["ticks_r"],
             self._input_data[datakey],
             kind="cubic",
             copy=False # test
         )
-        return interpolator(self.output_grid["phiv"], self.output_grid["rv"])
+        return interpolator(self.output_grid["ticks_phi"], self.output_grid["ticks_r"])
 
     def _interpolate1D(self, datakey: str) -> np.ndarray:
         interpolator = interp1d(
-            self.input_grid["rv"],
+            self.input_grid["ticks_r"],
             self._input_data[datakey][:, 0], # radial profile
             kind="cubic",
             copy=False,
             fill_value="extrapolate"
         )
-        return interpolator(self.output_grid["rv"])
+        return interpolator(self.output_grid["ticks_r"])
 
 
     def gen_rz_slice(self) -> None:
@@ -454,8 +454,8 @@ class AbstractInterface(ABC):
 
         nbins = len(radial_profiles)
         self._rz_slice = np.zeros((nbins, nz, nr))
-        for ir, r in enumerate(self.output_grid["rv"]):
-            z_vect = self.output_grid["zg"][:, ir]
+        for ir, r in enumerate(self.output_grid["ticks_r"]):
+            z_vect = self.output_grid["phi-slice_z"][:, ir]
             gas_height = r * self.aspect_ratio
             for i_bin, (grain_µsize, rprofile) in enumerate(zip(self.grain_micron_sizes,
                                                                 radial_profiles)):
@@ -478,8 +478,8 @@ class AbstractInterface(ABC):
 
         nbins = len(self.new_2D_arrays)
         self._new_3D_arrays = np.zeros((nbins, nphi, nz, nr))
-        for ir, r in enumerate(self.output_grid["rv"]):
-            z_vect = self.output_grid["zg"][nz:, ir].reshape(1, nz)
+        for ir, r in enumerate(self.output_grid["ticks_r"]):
+            z_vect = self.output_grid["phi-slice_z"][nz:, ir].reshape(1, nz)
             gas_height = r * self.aspect_ratio
             for i_bin, grain_µsize in enumerate(self.grain_micron_sizes):
                 surface_density = self.new_2D_arrays[i_bin, ir, :]
@@ -512,7 +512,7 @@ class AbstractInterface(ABC):
         """Derive the 3D velocity field for gas velocity, in km/s"""
         rho, mr, mphi = map(self._interpolate2D, ["rho", "m1", "m2"])
         vr, vphi = map(lambda x: x/rho, [mr, mphi])
-        phig = self.output_grid["phig"].transpose()
+        phig = self.output_grid["z-slice_phi"].transpose()
         vx = vr * np.cos(phig) - vphi * np.sin(phig)
         vy = vr * np.sin(phig) + vphi * np.cos(phig)
 
