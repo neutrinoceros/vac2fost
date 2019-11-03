@@ -174,22 +174,27 @@ class AbstractInterface(ABC):
     # abstract bits
     @abstractmethod
     def load_input_data(self) -> None:
-        pass
+        """Set self._input_data"""
+
+    @property
+    @abstractmethod
+    def g2d_ratio(self):
+        """Parse the gas to dust ratio."""
+        # todo: make this part of load_input_data()
+
+    @property
+    @abstractmethod
+    def density_keys(self) -> list:
+        """Get the ordered list of density keys (gas, ds1, ds2, ds3...)
+        where 'ds' reads 'dust species'
+        """
+        # todo: make this part of load_input_data()
 
     @property
     @abstractmethod
     def io(self) -> IOinfo:
         pass
 
-    @property
-    @abstractmethod
-    def density_keys(self) -> list:
-        pass
-
-    @property
-    @abstractmethod
-    def g2d_ratio(self):
-        pass
 
     # public facing methods
     def preroll_mcfost(self) -> None:
