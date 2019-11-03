@@ -144,9 +144,6 @@ class AbstractInterface(ABC):
         self._µsizes = None
         self._input_data = None
         self.output_grid = None
-        self._new_2D_arrays = None
-        self._new_3D_arrays = None
-        self._rz_slice = None
 
         self._set_dbm(dust_bin_mode)
         self._read_gas_density = False
