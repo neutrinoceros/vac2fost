@@ -402,10 +402,13 @@ class AbstractInterface(ABC):
         if self.use_axisymmetry:
             r_profile_densities = np.zeros((nbins, nr))
             phi_slice_densities = np.zeros((nbins, nz, nr))
+            output_ndarray = phi_slice_densities  # this is a reference, not a copy
+            zvect_shape = (nz,)
+            hyperplane_shape = (None,) # do not reshape
 
             r_profile_densities[:] = np.array([self._interpolate1D(datakey=k) for k in self.density_keys])
             for ir, r in enumerate(self.output_grid["ticks_r"]):
-                z_vect = self.output_grid["phi-slice_z"][:, ir]
+                z_vect = self.output_grid["phi-slice_z"][:, ir].reshape(*zvect_shape)
                 gas_height = r * self.aspect_ratio
                 for i_bin, (grain_µsize, r_profile) in enumerate(zip(self.grain_micron_sizes,
                                                                     r_profile_densities)):
@@ -413,15 +416,18 @@ class AbstractInterface(ABC):
                     if self.use_settling:
                         H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
                     gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
-                    phi_slice_densities[i_bin, :, ir] = gaussian * r_profile[ir]
-            output_ndarray = phi_slice_densities
+                    phi_slice_densities[i_bin, ..., ir] = gaussian * r_profile[ir].reshape(*hyperplane_shape)
+
         else:
             new_plane_densities = np.zeros((nbins, nr, nphi))
             full3D_densities = np.zeros((nbins, nphi, nz, nr))
-            new_plane_densities[:] = np.array([self._interpolate2D(datakey=k) for k in self.density_keys])
+            output_ndarray = full3D_densities  # this is a reference, not a copy
+            zvect_shape = (1, nz)
+            hyperplane_shape = (nphi, 1)
 
+            new_plane_densities[:] = np.array([self._interpolate2D(datakey=k) for k in self.density_keys])
             for ir, r in enumerate(self.output_grid["ticks_r"]):
-                z_vect = self.output_grid["phi-slice_z"][nz:, ir].reshape(1, nz)
+                z_vect = self.output_grid["phi-slice_z"][nz:, ir].reshape(*zvect_shape)
                 gas_height = r * self.aspect_ratio
                 for i_bin, grain_µsize in enumerate(self.grain_micron_sizes):
                     surface_density = new_plane_densities[i_bin, ir, :]
@@ -429,10 +435,9 @@ class AbstractInterface(ABC):
                     if self.use_settling:
                         H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
                     gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
-                    #todo: numpy ellipsis ? "..."
-                    full3D_densities[i_bin, :, :, ir] = \
-                        gaussian * surface_density.reshape(nphi, 1)
-            output_ndarray = full3D_densities
+                    full3D_densities[i_bin, ..., ir] = \
+                        gaussian * surface_density.reshape(*hyperplane_shape)
+
         return output_ndarray
 
     def _interpolate2D(self, datakey: str) -> np.ndarray:
