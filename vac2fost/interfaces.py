@@ -181,6 +181,16 @@ class AbstractInterface(ABC):
     def io(self) -> IOinfo:
         pass
 
+    @property
+    @abstractmethod
+    def density_keys(self) -> list:
+        pass
+
+    @property
+    @abstractmethod
+    def g2d_ratio(self):
+        pass
+
     # public facing methods
     def preroll_mcfost(self) -> None:
         mcfost_conf_file = self.io.OUT.directory / "mcfost_conf.para"
@@ -313,16 +323,6 @@ class AbstractInterface(ABC):
         return self._µsizes
 
     @property
-    def g2d_ratio(self):
-        """Gas to dust ratio"""
-        res = 0.01
-        try:
-            res = self.sim_conf["usr_dust_list"]["gas2dust_ratio"]
-        except KeyError:
-            log.warning(f"could not find &usr_dust_list:gas2dust_ratio, assume {res}")
-        return res
-
-    @property
     def aspect_ratio(self):
         """Dimensionless gas scale height implied by mcfost parameters"""
         mcfl = self.config["mcfost_output"]
@@ -336,10 +336,6 @@ class AbstractInterface(ABC):
             "phiv": self._input_data.get_ticks("phi")
         }
         return ig
-
-    @property
-    def density_keys(self) -> list:
-        return sorted(filter(lambda k: "rho" in k, self._input_data.fields.keys()))
 
     # private methods
     def _set_dbm(self, dbm=None) -> None:
@@ -564,6 +560,16 @@ class VtuFileInterface(AbstractInterface):
             shape=(self.io.IN.gridshape.nr, self.io.IN.gridshape.nphi)
         )
         log.info(f"successfully loaded {self.io.IN.filepath}")
+
+    @property
+    def density_keys(self) -> list:
+        return sorted(filter(lambda k: "rho" in k, self._input_data.fields.keys()))
+
+    @property
+    def g2d_ratio(self):
+        """Gas to dust ratio"""
+        return self.sim_conf["usr_dust_list"].get("gas2dust_ratio", 100.)
+
 
 class DatFileInterface(AbstractInterface):
     @property
