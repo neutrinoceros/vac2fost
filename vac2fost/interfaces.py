@@ -286,10 +286,7 @@ class AbstractInterface(ABC):
         log.info(f"successfully wrote {self.io.OUT.filepath}")
 
     def advance_iteration(self) -> None:
-        """Reset output attributes and step to next output number."""
-        self._new_2D_arrays = None
-        self._new_3D_arrays = None
-        self._rz_slice = None
+        """Step to next output number."""
         self.current_num = next(self._iter_nums)
         self.iter_count += 1
 
