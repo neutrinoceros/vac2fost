@@ -73,6 +73,8 @@ class TestMassEstimate:
                           output_dir=output_dir,
                           dust_bin_mode=dbm)
                 for dbm in ("mixed", "gas-only", "dust-only")]
+        for itf in itfs:
+            itf.load_input_data()
         estimates = [itf._estimate_dust_mass() for itf in itfs]
         ref = estimates.pop(0)
         for e in estimates:
@@ -88,4 +90,5 @@ class TestMassEstimate:
         ref = np.pi * sig0 * (rmax**2 - rmin**2) / g2d
         for dbm in ("mixed", "gas-only", "dust-only"):
             itf = Interface(test_dir/"sample/vac2fost_conf_flatdisk.nml", dust_bin_mode=dbm)
+            itf.load_input_data()
             assert abs(itf._estimate_dust_mass() - ref) / ref < 1e-7

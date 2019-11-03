@@ -186,7 +186,7 @@ class AbstractInterface(ABC):
         mcfost_conf_file = self.io.OUT.directory / "mcfost_conf.para"
 
         if not mcfost_conf_file.is_file():
-            # Create a complete mcfost conf file using (by decreasing priority):
+            # Create a complete mcfost conf file using (by decreasing priority)
             # - amrvac initial configuration : self._translate_amrvac_config()
             # - user specifications : self.config['mcfost_output']
             # - defaults (defined in mcfost_utils.py)
@@ -301,7 +301,6 @@ class AbstractInterface(ABC):
     def grain_micron_sizes(self) -> np.ndarray:
         """Read grain sizes (assumed in [cm]), from AMRVAC parameters and
         convert to microns."""
-        assert self._dust_binning_mode != "auto"
         if self._µsizes is None:
             µm_sizes = np.empty(0)
             if self._bin_dust:
@@ -312,13 +311,6 @@ class AbstractInterface(ABC):
             µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
             self._µsizes = µm_sizes
         return self._µsizes
-
-    @property
-    def input_data(self):
-        '''Load input simulation data'''
-        if self._input_data is None:
-            self.load_input_data() # this method is abstract here
-        return self._input_data
 
     @property
     def g2d_ratio(self):
@@ -340,14 +332,14 @@ class AbstractInterface(ABC):
     def input_grid(self) -> dict:
         """Store physical coordinates (vectors) about the input grid specifications."""
         ig = {
-            "rv": self.input_data.get_ticks("r") * self.config["units"]["distance2au"],
-            "phiv": self.input_data.get_ticks("phi")
+            "rv": self._input_data.get_ticks("r") * self.config["units"]["distance2au"],
+            "phiv": self._input_data.get_ticks("phi")
         }
         return ig
 
     @property
     def density_keys(self) -> list:
-        return sorted(filter(lambda k: "rho" in k, self.input_data.fields.keys()))
+        return sorted(filter(lambda k: "rho" in k, self._input_data.fields.keys()))
 
     # private methods
     def _set_dbm(self, dbm=None) -> None:
@@ -377,21 +369,22 @@ class AbstractInterface(ABC):
 
         # should gas be passed to mcfost ?
         self._bin_gas = self._dust_binning_mode in {'gas-only', 'mixed'}
+
     def _estimate_dust_mass(self) -> float:
         """Estimate the total dust mass in the grid, in solar masses"""
         # devnote : this assumes a linearly spaced grid
         dphi = 2*np.pi / self.io.IN.gridshape.nphi
-        rvect = self.input_data.get_ticks(0)
+        rvect = self._input_data.get_ticks("r")
         dr = rvect[1] - rvect[0]
         cell_surfaces = dphi/2 * ((rvect + dr/2)**2 - (rvect - dr/2)**2)
 
         if self._dust_binning_mode == "gas-only":
             keys = ["rho"]
         else:
-            keys = [k for k, _ in self.input_data if "rhod" in k]
+            keys = [k for k, _ in self._input_data if "rhod" in k]
         mass = 0.0
         for key in keys:
-            mass += np.sum([cell_surfaces * self.input_data[key][:, i]
+            mass += np.sum([cell_surfaces * self._input_data[key][:, i]
                             for i in range(self.io.IN.gridshape.nphi)])
         if self._dust_binning_mode == "gas-only":
             mass /= self.g2d_ratio
@@ -436,7 +429,7 @@ class AbstractInterface(ABC):
         interpolator = interp2d(
             self.input_grid["phiv"],
             self.input_grid["rv"],
-            self.input_data[datakey],
+            self._input_data[datakey],
             kind="cubic",
             copy=False # test
         )
@@ -445,7 +438,7 @@ class AbstractInterface(ABC):
     def _interpolate1D(self, datakey: str) -> np.ndarray:
         interpolator = interp1d(
             self.input_grid["rv"],
-            self.input_data[datakey][:, 0], # radial profile
+            self._input_data[datakey][:, 0], # radial profile
             kind="cubic",
             copy=False,
             fill_value="extrapolate"
