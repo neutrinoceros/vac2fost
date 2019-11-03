@@ -423,19 +423,19 @@ class AbstractInterface(ABC):
             hyperplane_densities = new_plane_densities
             output_ndarray = full3D_densities
 
-        for ir, r in enumerate(self.output_grid["ticks_r"]): # todo: rename i_bin -> ibin
-            if self.use_axisymmetry: #tmp
+        for ir, r in enumerate(self.output_grid["ticks_r"]):
+            if self.use_axisymmetry: # todo: unify these two lines ?
                 z_vect = self.output_grid["phi-slice_z"][:, ir].reshape(*zvect_shape)
             else:
                 z_vect = self.output_grid["phi-slice_z"][nz:, ir].reshape(*zvect_shape)
             gas_height = r * self.aspect_ratio
-            for i_bin, grain_µsize in enumerate(self.grain_micron_sizes):
-                hpp_dens = hyperplane_densities[i_bin, ir, ...]
+            for ibin, grain_µsize in enumerate(self.grain_micron_sizes):
+                hpp_dens = hyperplane_densities[ibin, ir, ...]
                 H = gas_height
                 if self.use_settling:
                     H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
                 gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
-                output_ndarray[i_bin, ..., ir] = gaussian * hpp_dens.reshape(*hyperplane_shape)
+                output_ndarray[ibin, ..., ir] = gaussian * hpp_dens.reshape(*hyperplane_shape)
 
         return output_ndarray
 
