@@ -45,4 +45,4 @@ class Test_IO:
         """Check that AMRVAC config file can be correctly assessed with a
         relative "origin" argument"""
         log.setLevel(10)
-        Interface(config_file=test_dir/"sample/vac2fost_conf_nonaxisym.nml")
+        Interface(test_dir/"sample/vac2fost_conf_nonaxisym.nml")
