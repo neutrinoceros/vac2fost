@@ -71,7 +71,7 @@ class AbstractInterface(ABC):
     vac2fost.main()"""
 
     def __init__(self,
-                 config_file: Path,
+                 conf_file: Path,
                  nums: int = None, # or any int-returning iterable
                  output_dir: Path = Path.cwd(),
                  dust_bin_mode: str = None,
@@ -81,29 +81,21 @@ class AbstractInterface(ABC):
                  axisymmetry=False):
 
         # input checking
-        if not isinstance(config_file, (str, Path)):
-            raise TypeError(config_file)
+        if not isinstance(conf_file, (str, Path)):
+            raise TypeError(conf_file)
         if not isinstance(output_dir, (str, Path)):
             raise TypeError(output_dir)
         if axisymmetry and read_gas_velocity:
             raise NotImplementedError
 
-        # attribute storage
-        self._base_args = {
-            'config_file': Path(config_file),
-            'output_dir': Path(output_dir),
-            'nums': nums,
-            'dust_bin_mode': dust_bin_mode,
-            'read_gas_density': read_gas_density,
-            'read_gas_velocity': read_gas_velocity
-        }
-
+        self.conf_file = Path(conf_file)
+        self._output_dir = output_dir
         self.read_gas_velocity = read_gas_velocity
         self.use_settling = settling
         self.use_axisymmetry = axisymmetry
 
         # parse configuration file
-        self.conf = f90nml.read(config_file)
+        self.conf = f90nml.read(conf_file)
         if self.use_axisymmetry and self.conf['mcfost_output'].get("n_az", 2) > 1:
             log.warning("specified 'n_az'>1 but axisymmetry flag present, overriding n_az=1")
             self.conf["mcfost_output"].update({"n_az": 1})
@@ -126,7 +118,7 @@ class AbstractInterface(ABC):
         if not hydro_data_dir.is_absolute():
             options = self.conf['amrvac_input']
             p1 = Path.cwd()
-            p2 = (Path(config_file).parent/hydro_data_dir).resolve()
+            p2 = (Path(conf_file).parent/hydro_data_dir).resolve()
 
             if isinstance(options['config'], (list, tuple)):
                 fi = options['config'][0]
@@ -157,6 +149,16 @@ class AbstractInterface(ABC):
         self._rz_slice = None
 
         self._set_dbm(dust_bin_mode)
+        self._read_gas_density = False
+        if read_gas_density and self._bin_gas:
+            log.warning("specified read_gas_density but redundant"
+                        f"with '{self._dust_binning_mode}' dbm, ignored")
+        else:
+            # Clarification: if no gas density is passed, mcfost assumes
+            # that gas is traced by smallest grains. As "gas-only" and
+            # "mixed" modes make the same assumption, they would produce
+            # identical result without explicitly passing the gas density.
+            self._read_gas_density = read_gas_density
 
         if not self.io.OUT.directory.exists():
             os.makedirs(self.io.OUT.directory)
@@ -267,7 +269,7 @@ class AbstractInterface(ABC):
             )
 
         header = {'read_n_a': 0} # automatic normalization of size-bins from mcfost param file.
-        if self.read_gas_density:
+        if self._read_gas_density:
             #devnote: add try statement here ?
             header.update(dict(gas_to_dust=self.amrvac_conf["usr_dust_list"]["gas2dust_ratio"]))
             suppl_hdus.append(fits.ImageHDU(gas_field))
@@ -298,26 +300,6 @@ class AbstractInterface(ABC):
         self.iter_count += 1
 
     # abusive properties ...
-    @property
-    def read_gas_density(self) -> bool:
-        """Named after mcfost's option. Gas density is passed to mcfost only
-        if required by user AND non-redundant.
-
-        Clarification: if no gas density is passed, mcfost assumes
-        that gas is traced by smallest grains. As "gas-only" and
-        "mixed" modes make the same assumption, they would produce
-        identical result without explicitly passing the gas density.
-        """
-        if not self._base_args["read_gas_density"]:
-            rgd = False
-        elif self._bin_gas:
-            log.warning("specified read_gas_density but redundant"
-                        f"with '{self._dust_binning_mode}' dbm, ignored")
-            rgd = False
-        else:
-            rgd = True
-        return rgd
-
     @property
     def grain_micron_sizes(self) -> np.ndarray:
         """Read grain sizes (assumed in [cm]), from AMRVAC parameters and
@@ -548,7 +530,7 @@ class VtuFileInterface(AbstractInterface):
 
         trad_keys = {"nr": "n_rad", "nphi": "n_az", "nz": "nz"}
         _output = DataInfo(
-            directory=Path(self._base_args["output_dir"]),
+            directory=Path(self._output_dir),
             filename=_input.filestem+".fits",
             gridshape=GridShape(**{k1: self.conf["mcfost_output"][k2]
                                    for k1, k2 in trad_keys.items()})

@@ -52,7 +52,7 @@ def gen_mcfost_grid(output_dir):
     if output_dir.exists():
         rmtree(output_dir)
     log.setLevel(10)
-    myitf = Interface(config_file=testdir / "sample/vac2fost_conf.nml",
+    myitf = Interface(testdir / "sample/vac2fost_conf.nml",
                       output_dir=output_dir)
     return myitf.output_grid
 
