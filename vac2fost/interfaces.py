@@ -11,6 +11,7 @@ DatFileInterface is the future of this package (wip)
 # stdlib
 import os
 from pathlib import Path
+from abc import ABC, abstractmethod
 
 # non standard externals
 import numpy as np
@@ -65,7 +66,7 @@ def read_amrvac_parfiles(parfiles: list, location: str = "") -> f90nml.Namelist:
 
 
 
-class AbstractInterface:
+class AbstractInterface(ABC):
     """A data transforming class. Holds most functionalities useful to
     vac2fost.main()"""
 
@@ -73,7 +74,7 @@ class AbstractInterface:
                  config_file: Path,
                  nums: int = None, # or any int-returning iterable
                  output_dir: Path = Path.cwd(),
-                 dust_bin_mode: str = "auto",
+                 dust_bin_mode: str = None,
                  read_gas_density=False,
                  read_gas_velocity=False,
                  settling=False,
@@ -97,20 +98,19 @@ class AbstractInterface:
             'read_gas_velocity': read_gas_velocity
         }
 
-        self._dim = 2  # no support for 3D input yet
         self.read_gas_velocity = read_gas_velocity
         self.use_settling = settling
         self.use_axisymmetry = axisymmetry
 
         # parse configuration file
-        self.config = f90nml.read(config_file)
-        if self.use_axisymmetry and self.config['mcfost_output'].get("n_az", 2) > 1:
+        self.conf = f90nml.read(config_file)
+        if self.use_axisymmetry and self.conf['mcfost_output'].get("n_az", 2) > 1:
             log.warning("specified 'n_az'>1 but axisymmetry flag present, overriding n_az=1")
-            self.config["mcfost_output"].update({"n_az": 1})
+            self.conf["mcfost_output"].update({"n_az": 1})
 
         # init iteration counter
         if nums is None:
-            nums = self.config["amrvac_input"]["nums"]
+            nums = self.conf["amrvac_input"]["nums"]
         if isinstance(nums, int):
             nums = [nums]  # make it iterable
         nums = list(set(nums))  # filter out duplicates and sort them
@@ -122,9 +122,9 @@ class AbstractInterface:
         self.iter_max = len(nums)
         self.current_num = next(self._iter_nums)
 
-        hydro_data_dir = shell_path(self.config["amrvac_input"]["hydro_data_dir"])
+        hydro_data_dir = shell_path(self.conf["amrvac_input"]["hydro_data_dir"])
         if not hydro_data_dir.is_absolute():
-            options = self.config['amrvac_input']
+            options = self.conf['amrvac_input']
             p1 = Path.cwd()
             p2 = (Path(config_file).parent/hydro_data_dir).resolve()
 
@@ -143,251 +143,99 @@ class AbstractInterface:
                 raise FileNotFoundError(hydro_data_dir/options['config'][0])
 
             p = (p1, p2)[found.index(True)]
-            self.config['amrvac_input'].update({'hydro_data_dir': p.resolve()})
-        self.sim_conf = read_amrvac_parfiles(
-            parfiles=self.config['amrvac_input']['config'],
-            location=self.config['amrvac_input']['hydro_data_dir']
+            self.conf['amrvac_input'].update({'hydro_data_dir': p.resolve()})
+        self.amrvac_conf = read_amrvac_parfiles(
+            parfiles=self.conf['amrvac_input']['config'],
+            location=self.conf['amrvac_input']['hydro_data_dir']
         )
 
         self._µsizes = None
         self._input_data = None
-        self._output_grid = None
+        self.output_grid = None
         self._new_2D_arrays = None
         self._new_3D_arrays = None
         self._rz_slice = None
-        self._dust_binning_mode = None
 
-        self._set_dust_binning_mode(dust_bin_mode, warning=False)
-        if dust_bin_mode == "auto":
-            self._autoset_dbm()
-            assert self.dust_binning_mode != "auto"
+        self._set_dbm(dust_bin_mode)
 
         if not self.io.OUT.directory.exists():
             os.makedirs(self.io.OUT.directory)
             log.warning(f"dir {self.io.OUT.directory} was created")
 
-        if not self.config.get("units"):
+        if not self.conf.get("units"):
             log.warning(f"&units parameter list not found. Assuming {DEFAULT_UNITS}")
-            self.config["units"] = f90nml.Namelist(DEFAULT_UNITS)
+            self.conf["units"] = f90nml.Namelist(DEFAULT_UNITS)
         else:
             for k, v in DEFAULT_UNITS.items():
-                if not self.config["units"].get(k):
+                if not self.conf["units"].get(k):
                     log.warning(f"&units:{k} parameter not found. Assuming default {v}")
-                    self.config["units"][k] = v
+                    self.conf["units"][k] = v
 
-    def advance_iteration(self) -> None:
-        """Reset output attributes and step to next output number."""
-        self._output_grid = None
-        self._new_2D_arrays = None
-        self._new_3D_arrays = None
-        self._rz_slice = None
-        self.current_num = next(self._iter_nums)
-        self.iter_count += 1
+    # abstract bits
+    @abstractmethod
+    def load_input_data(self) -> None:
+        """Set self._input_data"""
 
     @property
-    def read_gas_density(self) -> bool:
-        """Named after mcfost's option. Gas density is passed to mcfost only
-        if required by user AND non-redundant.
-
-        Clarification: if no gas density is passed, mcfost assumes
-        that gas is traced by smallest grains. As "gas-only" and
-        "mixed" modes make the same assumption, they would produce
-        identical result without explicitly passing the gas density.
-        """
-        if not self._base_args["read_gas_density"]:
-            rgd = False
-        elif self._bin_gas():
-            log.warning(
-                f"read_gas_density asked but redundant in '{self.dust_binning_mode}' mode, ignored")
-            rgd = False
-        else:
-            rgd = True
-        return rgd
-
-
-    # dust binning mode API
-    # ================================================================
-    @property
-    def dust_binning_mode(self):
-        """Define binning strategy
-        - (gas-only)  : use only gas as a proxy for dust
-        - (dust-only) : use only dust information
-        - (mixed)     : use both, assuming gas traces the smallest grains
-        """
-        return self._dust_binning_mode
-
-    def _autoset_dbm(self) -> None:
-        """From dust_binning_mode=="auto" mode, select the correct one"""
-        try:
-            smallest_gs_µm = 1e4* min(np.array(self.sim_conf['usr_dust_list']['grain_size_cm']))
-        except KeyError:
-            self._set_dust_binning_mode("gas-only", reason="could not find grain sizes")
-        else:
-            if smallest_gs_µm > MINGRAINSIZE_µ:
-                self._set_dust_binning_mode(
-                    "mixed", reason=f"smallest size found > {MINGRAINSIZE_µ}µm"
-                )
-
-    def _set_dust_binning_mode(self, new_dbm: str, reason: str = None, warning=True):
-        """Set value and add a warning."""
-        if new_dbm not in {"dust-only", "gas-only", "mixed", "auto"}:
-            raise KeyError(f'Unknown dust binning mode "{new_dbm}"')
-
-        if warning:
-            w = ["dust-binning mode was switched"]
-            old = self._dust_binning_mode # python 3.8 : walrus operator here
-            if old is not None:
-                w.append(f'''from "{old}"''')
-            w.append(f'''to "{new_dbm}"''')
-            if reason is not None:
-                w.append(f"\t({reason})")
-            log.warning(" ".join(w))
-        self._dust_binning_mode = new_dbm
-
-    def _bin_dust(self) -> bool:
-        """Should dust fluids be passed to mcfost ?"""
-        return self.dust_binning_mode in {"dust-only", "mixed"}
-
-    def _bin_gas(self) -> bool:
-        """Should gas be passed to mcfost ?"""
-        return self.dust_binning_mode in {'gas-only', 'mixed'}
-
-    @property
-    def grain_micron_sizes(self) -> np.ndarray:
-        """Read grain sizes (assumed in [cm]), from AMRVAC parameters and
-        convert to microns."""
-        assert self.dust_binning_mode != "auto"
-        if self._µsizes is None:
-            µm_sizes = np.empty(0)
-            if self._bin_dust():
-                µm_sizes = 1e4 * np.array(
-                    self.sim_conf["usr_dust_list"]["grain_size_cm"])
-                assert min(µm_sizes) > 0.1 #in case this triggers, review this code
-            # always associate a grain size to the gas bin
-            µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
-            self._µsizes = µm_sizes
-        return self._µsizes
-
-    @property
-    def mcfost_conf_file(self) -> Path:
-        """Locate output configuration file for mcfost"""
-        return self.io.OUT.directory / "mcfost_conf.para"
-
-    @property
-    def input_data(self):
-        '''Load input simulation data'''
-        if self._input_data is None:
-            self.load_input_data() # this method is abstract here
-        return self._input_data
-
-    @property
-    def output_grid(self) -> dict:
-        '''Store info on 3D output grid specifications
-        as vectors "v", and (r-phi)grids "g"'''
-        if self._output_grid is None:
-            if not self.mcfost_conf_file.is_file():
-                self.write_mcfost_conf_file()
-            target_grid = get_mcfost_grid(self)
-            self._output_grid = {
-                'array': target_grid,
-                # (nr, nphi) 2D grids
-                'rg': target_grid[0, :, 0, :],
-                # (nr, nz) 2D grid (z points do not depend on phi)
-                'zg': target_grid[1, 0, :, :],
-                # vectors (1D arrays)
-                'rv': target_grid[0, 0, 0, :],
-            }
-            if target_grid.shape[0] > 2: # usually the case unless 2D axisym grid !
-                self._output_grid.update({'phig': target_grid[2, :, 0, :],
-                                          'phiv': target_grid[2, :, 0, 0]})
-        return self._output_grid
-
-    @property
+    @abstractmethod
     def g2d_ratio(self):
-        """Gas to dust ratio"""
-        res = 0.01
-        try:
-            res = self.sim_conf["usr_dust_list"]["gas2dust_ratio"]
-        except KeyError:
-            log.warning(f"could not find &usr_dust_list:gas2dust_ratio, assume {res}")
-        return res
+        """Parse the gas to dust ratio."""
+        # todo: make this part of load_input_data()
 
-    def estimate_dust_mass(self) -> float:
-        """Estimate the total dust mass in the grid, in solar masses"""
-        # devnote : this assumes a linearly spaced grid
-        dphi = 2*np.pi / self.io.IN.gridshape.nphi
-        rvect = self.input_data.get_ticks(0)
-        dr = rvect[1] - rvect[0]
-        cell_surfaces = dphi/2 * ((rvect + dr/2)**2 - (rvect - dr/2)**2)
-
-        if self.dust_binning_mode == "gas-only":
-            keys = ["rho"]
-        else:
-            keys = [k for k, _ in self.input_data if "rhod" in k]
-        mass = 0.0
-        for key in keys:
-            mass += np.sum([cell_surfaces * self.input_data[key][:, i]
-                            for i in range(self.io.IN.gridshape.nphi)])
-        if self.dust_binning_mode == "gas-only":
-            mass /= self.g2d_ratio
-        mass *= self.config["units"]["mass2solar"]
-        return mass
-
-    def _translate_amrvac_config(self) -> dict:
-        parameters = {}
-
-        # Zone
-        mesh = self.sim_conf['meshlist']
-        conv2au = self.config["units"]["distance2au"]
-        parameters.update({
-            'rin': mesh['xprobmin1']*conv2au,
-            'rout': mesh['xprobmax1']*conv2au,
-            'maps_size': 2*mesh['xprobmax1']*conv2au,
-        })
-
-        if self._bin_dust(): #devnote : using a private method outside of class...
-            parameters.update({
-                "gas_to_dust_ratio": self.g2d_ratio,
-                "dust_mass": self.estimate_dust_mass()
-            })
-            # Grains
-            sizes_µm = self.grain_micron_sizes
-            parameters.update({
-                # min/max grain sizes in microns
-                'sp_min': min(1e-1, min(sizes_µm)),
-                'sp_max': max(1e3, max(sizes_µm)),
-            })
-        #Star
-        try:
-            parameters.update({"star_mass": self.sim_conf["disk_list"]["central_mass"]})
-        except KeyError:
-            log.warning("&disk_list not found. Assuming default values")
-        return parameters
-
-    def write_mcfost_conf_file(self) -> None:
-        """Create a complete mcfost conf file using
-        - amrvac initial configuration : self._translate_amrvac_config()
-        - user specifications : self.config['mcfost_output']
-        - defaults (defined in mcfost_utils.py)
+    @property
+    @abstractmethod
+    def density_keys(self) -> list:
+        """Get the ordered list of density keys (gas, ds1, ds2, ds3...)
+        where 'ds' reads 'dust species'
         """
-        mcfost_parameters = {}
-        mcfost_parameters.update(self._translate_amrvac_config())
-        unknown_args = self._scan_for_unknown_arguments() # python 3.8: walrus operator here
-        if unknown_args:
-            raise KeyError(f'Unrecognized MCFOST argument(s): {unknown_args}')
-        mcfost_parameters.update(self.config['mcfost_output'])
+        # todo: make this part of load_input_data()
 
-        write_mcfost_conf(output_file=self.mcfost_conf_file,
-                          custom_parameters=mcfost_parameters)
-        log.info(f"successfully wrot {self.mcfost_conf_file}")
+    @property
+    @abstractmethod
+    def io(self) -> IOinfo:
+        pass
 
-    def _scan_for_unknown_arguments(self) -> list:
-        """Get unrecognized arguments found in mcfost_output"""
-        unknowns = []
-        for arg in self.config["mcfost_output"].keys():
-            if not arg.lower() in KNOWN_MCFOST_ARGS:
-                unknowns.append(arg)
-        return unknowns
+
+    # public facing methods
+    def preroll_mcfost(self) -> None:
+        mcfost_conf_file = self.io.OUT.directory / "mcfost_conf.para"
+
+        if not mcfost_conf_file.is_file():
+            # Create a complete mcfost conf file using (by decreasing priority)
+            # - amrvac initial configuration : self._translate_amrvac_config()
+            # - user specifications : self.conf['mcfost_output']
+            # - defaults (defined in mcfost_utils.py)
+            mcfost_parameters = {}
+            mcfost_parameters.update(self._translate_amrvac_config())
+
+            #Get unrecognized arguments found in mcfost_output
+            unknown_args = []
+            for arg in self.conf["mcfost_output"].keys():
+                if not arg.lower() in KNOWN_MCFOST_ARGS:
+                    unknown_args.append(arg)
+            if unknown_args:
+                raise ValueError(f'Unrecognized MCFOST argument(s): {unknown_args}')
+
+            mcfost_parameters.update(self.conf['mcfost_output'])
+            write_mcfost_conf(output_file=mcfost_conf_file,
+                              custom_parameters=mcfost_parameters)
+            log.info(f"successfully wrote {mcfost_conf_file}")
+
+        target_grid = get_mcfost_grid(self, mcfost_conf_file,
+                                      output_dir=self.io.OUT.directory,
+                                      require_run=(self.iter_count == 0))
+        self.output_grid = {
+            "array": target_grid,
+            # (nr, nphi) 2D grids
+            "rg": target_grid[0, :, 0, :],
+            # (nr, nz) 2D grid (z points do not depend on phi)
+            "zg": target_grid[1, 0, :, :],
+            # vectors (1D arrays)
+            "rv": target_grid[0, 0, 0, :],
+        }
+        if target_grid.shape[0] > 2: # usually the case unless 2D axisym grid !
+            self.output_grid.update({'phig': target_grid[2, :, 0, :],
+                                     'phiv': target_grid[2, :, 0, 0]})
 
     def write_output(self) -> None:
         """Write a .fits file suited for MCFOST input."""
@@ -395,7 +243,7 @@ class AbstractInterface:
             "gas-only": np.zeros(1, dtype="int64"),
             "dust-only": 1 + self.grain_micron_sizes[1:].argsort(),
             "mixed": self.grain_micron_sizes.argsort()
-        }[self.dust_binning_mode]
+        }[self._dust_binning_mode]
 
         if self.use_axisymmetry:
             gas_field = self._rz_slice[0]
@@ -405,7 +253,7 @@ class AbstractInterface:
             dust_fields = self.new_3D_arrays[dust_bin_selector]
 
         suppl_hdus = []
-        assert (len(dust_bin_selector) > 1) == (self._bin_dust())
+        assert (len(dust_bin_selector) > 1) == (self._bin_dust)
         if len(dust_bin_selector) > 1:
             # mcfost requires an HDU with grain sizes only if more than one population is present
             suppl_hdus.append(
@@ -415,7 +263,7 @@ class AbstractInterface:
         header = {'read_n_a': 0} # automatic normalization of size-bins from mcfost param file.
         if self.read_gas_density:
             #devnote: add try statement here ?
-            header.update(dict(gas_to_dust=self.sim_conf["usr_dust_list"]["gas2dust_ratio"]))
+            header.update(dict(gas_to_dust=self.amrvac_conf["usr_dust_list"]["gas2dust_ratio"]))
             suppl_hdus.append(fits.ImageHDU(gas_field))
             header.update(dict(read_gas_density=1))
 
@@ -435,22 +283,154 @@ class AbstractInterface:
             hdul.writeto(fo)
         log.info(f"successfully wrote {self.io.OUT.filepath}")
 
+    def advance_iteration(self) -> None:
+        """Reset output attributes and step to next output number."""
+        self._new_2D_arrays = None
+        self._new_3D_arrays = None
+        self._rz_slice = None
+        self.current_num = next(self._iter_nums)
+        self.iter_count += 1
+
+    # abusive properties ...
+    @property
+    def read_gas_density(self) -> bool:
+        """Named after mcfost's option. Gas density is passed to mcfost only
+        if required by user AND non-redundant.
+
+        Clarification: if no gas density is passed, mcfost assumes
+        that gas is traced by smallest grains. As "gas-only" and
+        "mixed" modes make the same assumption, they would produce
+        identical result without explicitly passing the gas density.
+        """
+        if not self._base_args["read_gas_density"]:
+            rgd = False
+        elif self._bin_gas:
+            log.warning("specified read_gas_density but redundant"
+                        f"with '{self._dust_binning_mode}' dbm, ignored")
+            rgd = False
+        else:
+            rgd = True
+        return rgd
+
+    @property
+    def grain_micron_sizes(self) -> np.ndarray:
+        """Read grain sizes (assumed in [cm]), from AMRVAC parameters and
+        convert to microns."""
+        if self._µsizes is None:
+            µm_sizes = np.empty(0)
+            if self._bin_dust:
+                µm_sizes = 1e4 * np.array(
+                    self.amrvac_conf["usr_dust_list"]["grain_size_cm"])
+                assert min(µm_sizes) > 0.1 #in case this triggers, review this code
+            # always associate a grain size to the gas bin
+            µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
+            self._µsizes = µm_sizes
+        return self._µsizes
+
+    @property
+    def aspect_ratio(self):
+        """Dimensionless gas scale height implied by mcfost parameters"""
+        mcfl = self.conf["mcfost_output"]
+        return mcfl["scale_height"] / mcfl["reference_radius"]
 
     @property
     def input_grid(self) -> dict:
         """Store physical coordinates (vectors) about the input grid specifications."""
         ig = {
-            "rv": self.input_data.get_ticks("r") * self.config["units"]["distance2au"],
-            "phiv": self.input_data.get_ticks("phi")
+            "rv": self._input_data.get_ticks("r") * self.conf["units"]["distance2au"],
+            "phiv": self._input_data.get_ticks("phi")
         }
         return ig
+
+    # private methods
+    def _set_dbm(self, dbm=None) -> None:
+        """Define binning strategy
+        - (gas-only)  : use only gas as a proxy for dust
+        - (dust-only) : use only dust information
+        - (mixed)     : use both, assuming gas traces the smallest grains
+        """
+        if dbm in ("dust-only", "gas-only", "mixed"):
+            self._dust_binning_mode = dbm
+        elif isinstance(dbm, str):
+            raise ValueError(f"Unrecognized dbm value {dbm}")
+        else: # automatic setting
+            try: # todo: make this try block more robust
+                smallest_gs_µm = 1e4* min(np.array(self.amrvac_conf['usr_dust_list']['grain_size_cm']))
+            except KeyError:
+                self._dust_binning_mode = "gas-only"
+                reason = "could not find grain sizes"
+            else:
+                if smallest_gs_µm > MINGRAINSIZE_µ:
+                    self._dust_binning_mode = "mixed"
+                    reason = f"smallest size found > {MINGRAINSIZE_µ}µm"
+            log.warning(f"switched to '{self._dust_binning_mode}' dbm ({reason})")
+
+        # should dust fluids be passed to mcfost ?
+        self._bin_dust = self._dust_binning_mode in {"dust-only", "mixed"}
+
+        # should gas be passed to mcfost ?
+        self._bin_gas = self._dust_binning_mode in {'gas-only', 'mixed'}
+
+    def _estimate_dust_mass(self) -> float:
+        """Estimate the total dust mass in the grid, in solar masses"""
+        # devnote : this assumes a linearly spaced grid
+        dphi = 2*np.pi / self.io.IN.gridshape.nphi
+        rvect = self._input_data.get_ticks("r")
+        dr = rvect[1] - rvect[0]
+        cell_surfaces = dphi/2 * ((rvect + dr/2)**2 - (rvect - dr/2)**2)
+
+        if self._dust_binning_mode == "gas-only":
+            keys = ["rho"]
+        else:
+            keys = [k for k, _ in self._input_data if "rhod" in k]
+        mass = 0.0
+        for key in keys:
+            mass += np.sum([cell_surfaces * self._input_data[key][:, i]
+                            for i in range(self.io.IN.gridshape.nphi)])
+        if self._dust_binning_mode == "gas-only":
+            mass /= self.g2d_ratio
+        mass *= self.conf["units"]["mass2solar"]
+        return mass
+
+    def _translate_amrvac_config(self) -> dict:
+        parameters = {}
+
+        # Zone
+        mesh = self.amrvac_conf['meshlist']
+        conv2au = self.conf["units"]["distance2au"]
+        parameters.update({
+            'rin': mesh['xprobmin1']*conv2au,
+            'rout': mesh['xprobmax1']*conv2au,
+            'maps_size': 2*mesh['xprobmax1']*conv2au,
+        })
+
+        if self._bin_dust:
+            parameters.update({
+                "gas_to_dust_ratio": self.g2d_ratio,
+                "dust_mass": self._estimate_dust_mass()
+            })
+            # Grains
+            sizes_µm = self.grain_micron_sizes
+            parameters.update({
+                # min/max grain sizes in microns
+                'sp_min': min(1e-1, min(sizes_µm)),
+                'sp_max': max(1e3, max(sizes_µm)),
+            })
+        #Star
+        try:
+            parameters.update({"star_mass": self.amrvac_conf["disk_list"]["central_mass"]})
+        except KeyError:
+            log.warning("&disk_list not found. Assuming default values")
+        return parameters
+
+
 
     def _interpolate2D(self, datakey: str) -> np.ndarray:
         """Transform a polar field from MPI-AMRVAC coords to mcfost coords"""
         interpolator = interp2d(
             self.input_grid["phiv"],
             self.input_grid["rv"],
-            self.input_data[datakey],
+            self._input_data[datakey],
             kind="cubic",
             copy=False # test
         )
@@ -459,16 +439,13 @@ class AbstractInterface:
     def _interpolate1D(self, datakey: str) -> np.ndarray:
         interpolator = interp1d(
             self.input_grid["rv"],
-            self.input_data[datakey][:, 0], # radial profile
+            self._input_data[datakey][:, 0], # radial profile
             kind="cubic",
             copy=False,
             fill_value="extrapolate"
         )
         return interpolator(self.output_grid["rv"])
 
-    @property
-    def density_keys(self) -> list:
-        return sorted(filter(lambda k: "rho" in k, self.input_data.fields.keys()))
 
     def gen_rz_slice(self) -> None:
         radial_profiles = np.array([self._interpolate1D(datakey=k) for k in self.density_keys])
@@ -488,19 +465,11 @@ class AbstractInterface:
                 gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
                 self._rz_slice[i_bin, :, ir] = gaussian * rprofile[ir]
 
-
-
     def gen_2D_arrays(self) -> None:
         """Interpolate input data density fields from input coords to output coords"""
         self._new_2D_arrays = np.array([self._interpolate2D(datakey=k) for k in self.density_keys])
         assert self._new_2D_arrays[0].shape == (self.io.OUT.gridshape.nr,
                                                 self.io.OUT.gridshape.nphi)
-
-    @property
-    def aspect_ratio(self):
-        """Dimensionless gas scale height implied by mcfost parameters"""
-        mcfl = self.config["mcfost_output"]
-        return mcfl["scale_height"] / mcfl["reference_radius"]
 
     def gen_3D_arrays(self) -> None:
         """Interpolate input data onto full 3D output grid"""
@@ -556,7 +525,7 @@ class AbstractInterface:
             np.testing.assert_array_equal(v.shape, (oshape.nr, oshape.nz, oshape.nphi))
 
         # unit conversion
-        conv = self.config["units"]
+        conv = self.conf["units"]
         dimvel = conv["distance2au"]*units.au / (conv["time2yr"]*units.yr)
         vel2kms = dimvel.to(units.m / units.s).value
         velarr = np.stack([vx, vy, vz], axis=3) * vel2kms
@@ -568,15 +537,15 @@ class VtuFileInterface(AbstractInterface):
     @property
     def io(self) -> IOinfo:
         """Give up-to-date information on data location and naming (.i: input, .o: output)"""
-        vtufile_name = "".join([self.sim_conf["filelist"]["base_filename"],
+        vtufile_name = "".join([self.amrvac_conf["filelist"]["base_filename"],
                                 str(self.current_num).zfill(4),
                                 ".vtu"])
 
         geomdefs = {"nr": 1, "nphi": 2}
         _input = DataInfo(
-            directory=shell_path(self.config["amrvac_input"]["hydro_data_dir"]).resolve(),
+            directory=shell_path(self.conf["amrvac_input"]["hydro_data_dir"]).resolve(),
             filename=vtufile_name,
-            gridshape=GridShape(**{k: self.sim_conf["meshlist"][f"domain_nx{n}"]
+            gridshape=GridShape(**{k: self.amrvac_conf["meshlist"][f"domain_nx{n}"]
                                    for k, n in geomdefs.items()})
         )
 
@@ -584,12 +553,12 @@ class VtuFileInterface(AbstractInterface):
         _output = DataInfo(
             directory=Path(self._base_args["output_dir"]),
             filename=_input.filestem+".fits",
-            gridshape=GridShape(**{k1: self.config["mcfost_output"][k2]
+            gridshape=GridShape(**{k1: self.conf["mcfost_output"][k2]
                                    for k1, k2 in trad_keys.items()})
         )
         return IOinfo(IN=_input, OUT=_output)
 
-    def load_input_data(self, n: int = None) -> None:
+    def load_input_data(self) -> None:
         """Use vtkvacreader.VacDataSorter to load AMRVAC data"""
         self._input_data = VacDataSorter(
             file_name=str(self.io.IN.filepath),
@@ -597,13 +566,23 @@ class VtuFileInterface(AbstractInterface):
         )
         log.info(f"successfully loaded {self.io.IN.filepath}")
 
+    @property
+    def density_keys(self) -> list:
+        return sorted(filter(lambda k: "rho" in k, self._input_data.fields.keys()))
+
+    @property
+    def g2d_ratio(self):
+        """Gas to dust ratio"""
+        return self.amrvac_conf["usr_dust_list"].get("gas2dust_ratio", 100.)
+
+
 class DatFileInterface(AbstractInterface):
     @property
     def io(self) -> IOinfo:
         """Give up-to-date information on data location and naming (.i: input, .o: output)"""
         pass
 
-    def load_input_data(self, n: int = None) -> None:
+    def load_input_data(self) -> None:
         """wip"""
         import yt
         from yt import mylog as ytlogger

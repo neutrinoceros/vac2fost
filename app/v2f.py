@@ -94,8 +94,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "-dbm", "--dustbinmode", dest="dbm", type=str,
         required=False,
-        default="auto",
-        help="prefered bin selection mode [dust-only, gas-only, mixed, auto]"
+        default=None,
+        help="prefered bin selection mode [dust-only, gas-only, mixed]"
     )
     parser.add_argument(
         "--read_gas_density",

@@ -37,6 +37,7 @@ class TestRegressionMain:
     subrefdir = REFOUT_DIR / "default"
     v2flogger.setLevel(10) # debug
     itf = instanciate_interface(conffile="vac2fost_conf.nml", read_gas_velocity=True)
+    itf.preroll_mcfost()
     itf.tag = itf._base_args['config_file'].stem
 
     def test_mcfost_conf(self):
@@ -65,8 +66,8 @@ class TestRegressionMain:
         #regold(itf, reffile, morekeys=["new_3D_gas_velocity"])
 
         out_ref = pickle.load(open(reffile, mode="rb"))
-        assert itf.dust_binning_mode == out_ref['dust_binning_mode']
-        assert itf.sim_conf == out_ref['sim_conf']
+        assert itf._dust_binning_mode == out_ref['dust_binning_mode']
+        assert itf.amrvac_conf == out_ref['sim_conf'] # variable name changed since last regold
         np.testing.assert_array_equal(itf.input_grid['rv'], out_ref['input_grid']['rv'])
         np.testing.assert_array_equal(itf.input_grid['phiv'], out_ref['input_grid']['phiv'])
         np.testing.assert_array_equal(itf.output_grid['rv'], out_ref['output_grid']['rv'])
@@ -93,6 +94,7 @@ class TestRegressionMain:
 class TestRegressionMutliNums:
     subrefdir = REFOUT_DIR / "multinums"
     itf = instanciate_interface(conffile="vac2fost_conf_quick.nml", nums=[0, 1, 2])
+    itf.preroll_mcfost()
     itf.tag = itf._base_args['config_file'].stem + "multinums"
 
     def test_multinums_output(self):
@@ -108,6 +110,7 @@ class TestRegressionMutliNums:
 class TestRegressionNonAxisym:
     subrefdir = REFOUT_DIR / "nonaxisym"
     itf = instanciate_interface(conffile="vac2fost_conf_nonaxisym.nml")
+    itf.preroll_mcfost()
     itf.tag = itf._base_args['config_file'].stem
 
     def test_out(self):
@@ -118,8 +121,8 @@ class TestRegressionNonAxisym:
         #regold(itf, reffile, morekeys=["new_3D_gas_velocity"])
 
         out_ref = pickle.load(open(reffile, mode="rb"))
-        assert itf.dust_binning_mode == out_ref['dust_binning_mode']
-        assert itf.sim_conf == out_ref['sim_conf']
+        assert itf._dust_binning_mode == out_ref['dust_binning_mode']
+        assert itf.amrvac_conf == out_ref['sim_conf'] # variable name changed since last regold
         np.testing.assert_array_equal(itf.input_grid['rv'], out_ref['input_grid']['rv'])
         np.testing.assert_array_equal(itf.input_grid['phiv'], out_ref['input_grid']['phiv'])
         np.testing.assert_array_equal(itf.output_grid['rv'], out_ref['output_grid']['rv'])
@@ -146,6 +149,7 @@ class TestRegressionNonAxisym:
 class TestRegressionAutoGasOnly:
     subrefdir = REFOUT_DIR / "autogasonly"
     itf = instanciate_interface(conffile="autogasonly/rwi.nml")
+    itf.preroll_mcfost()
     itf.tag = itf._base_args['config_file'].stem
 
     def test_mcfost_conf(self):
@@ -165,8 +169,8 @@ class TestRegressionAutoGasOnly:
         #regold(itf, reffile)
 
         out_ref = pickle.load(open(reffile, mode="rb"))
-        assert itf.dust_binning_mode == out_ref["dust_binning_mode"]
-        assert itf.sim_conf == out_ref["sim_conf"]
+        assert itf._dust_binning_mode == out_ref["dust_binning_mode"]
+        assert itf.amrvac_conf == out_ref["sim_conf"] # variable name changed since last regold
         np.testing.assert_array_equal(itf.input_grid["rv"], out_ref["input_grid"]["rv"])
         np.testing.assert_array_equal(itf.input_grid["phiv"], out_ref["input_grid"]["phiv"])
         np.testing.assert_array_equal(itf.output_grid["rv"], out_ref["output_grid"]["rv"])

@@ -32,7 +32,7 @@ def main(config_file: Path, loglevel: int = 30, input_data_format="vtu", **itf_k
             if itf.iter_count == itf.iter_max:
                 break
             continue
-        itf.write_mcfost_conf_file()
+        itf.preroll_mcfost()
 
         if itf_kwargs.get("axisymmetry", False):
             itf.gen_rz_slice()
