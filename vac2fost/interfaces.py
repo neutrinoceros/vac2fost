@@ -186,11 +186,10 @@ class AbstractInterface(ABC):
         mcfost_conf_file = self.io.OUT.directory / "mcfost_conf.para"
 
         if not mcfost_conf_file.is_file():
-            """Create a complete mcfost conf file using
-            - amrvac initial configuration : self._translate_amrvac_config()
-            - user specifications : self.config['mcfost_output']
-            - defaults (defined in mcfost_utils.py)
-            """
+            # Create a complete mcfost conf file using (by decreasing priority):
+            # - amrvac initial configuration : self._translate_amrvac_config()
+            # - user specifications : self.config['mcfost_output']
+            # - defaults (defined in mcfost_utils.py)
             mcfost_parameters = {}
             mcfost_parameters.update(self._translate_amrvac_config())
 
@@ -204,24 +203,24 @@ class AbstractInterface(ABC):
 
             mcfost_parameters.update(self.config['mcfost_output'])
             write_mcfost_conf(output_file=mcfost_conf_file,
-                             custom_parameters=mcfost_parameters)
+                              custom_parameters=mcfost_parameters)
             log.info(f"successfully wrote {mcfost_conf_file}")
 
         target_grid = get_mcfost_grid(self, mcfost_conf_file,
-                                    output_dir=self.io.OUT.directory,
-                                    require_run=(self.iter_count==0))
+                                      output_dir=self.io.OUT.directory,
+                                      require_run=(self.iter_count == 0))
         self.output_grid = {
-                'array': target_grid,
-                # (nr, nphi) 2D grids
-                'rg': target_grid[0, :, 0, :],
-                # (nr, nz) 2D grid (z points do not depend on phi)
-                'zg': target_grid[1, 0, :, :],
-                # vectors (1D arrays)
-                'rv': target_grid[0, 0, 0, :],
+            "array": target_grid,
+            # (nr, nphi) 2D grids
+            "rg": target_grid[0, :, 0, :],
+            # (nr, nz) 2D grid (z points do not depend on phi)
+            "zg": target_grid[1, 0, :, :],
+            # vectors (1D arrays)
+            "rv": target_grid[0, 0, 0, :],
         }
         if target_grid.shape[0] > 2: # usually the case unless 2D axisym grid !
             self.output_grid.update({'phig': target_grid[2, :, 0, :],
-                                    'phiv': target_grid[2, :, 0, 0]})
+                                     'phiv': target_grid[2, :, 0, 0]})
 
     def write_output(self) -> None:
         """Write a .fits file suited for MCFOST input."""
@@ -291,8 +290,8 @@ class AbstractInterface(ABC):
         if not self._base_args["read_gas_density"]:
             rgd = False
         elif self._bin_gas:
-            log.warning(
-                f"read_gas_density asked but redundant in '{self._dust_binning_mode}' mode, ignored")
+            log.warning("specified read_gas_density but redundant"
+                        f"with '{self._dust_binning_mode}' dbm, ignored")
             rgd = False
         else:
             rgd = True
@@ -361,10 +360,9 @@ class AbstractInterface(ABC):
             self._dust_binning_mode = dbm
         elif isinstance(dbm, str):
             raise ValueError(f"Unrecognized dbm value {dbm}")
-        else:
-            # automatic setting
-            try:
-                smallest_gs_µm = 1e4* min(np.array(self.sim_conf['usr_dust_list']['grain_size_cm'])) # todo: make this more robust
+        else: # automatic setting
+            try: # todo: make this try block more robust
+                smallest_gs_µm = 1e4* min(np.array(self.sim_conf['usr_dust_list']['grain_size_cm']))
             except KeyError:
                 self._dust_binning_mode = "gas-only"
                 reason = "could not find grain sizes"
