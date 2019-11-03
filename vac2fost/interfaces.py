@@ -195,6 +195,10 @@ class AbstractInterface(ABC):
     def io(self) -> IOinfo:
         pass
 
+    @property
+    @abstractmethod
+    def input_grid(self) -> dict:
+        """Store physical coordinates (vectors) about the input grid specifications."""
 
     # public facing methods
     def preroll_mcfost(self) -> None:
@@ -334,15 +338,6 @@ class AbstractInterface(ABC):
         """Dimensionless gas scale height implied by mcfost parameters"""
         mcfl = self.conf["mcfost_output"]
         return mcfl["scale_height"] / mcfl["reference_radius"]
-
-    @property
-    def input_grid(self) -> dict:
-        """Store physical coordinates (vectors) about the input grid specifications."""
-        ig = {
-            "ticks_r": self._input_data.get_ticks("r") * self.conf["units"]["distance2au"],
-            "ticks_phi": self._input_data.get_ticks("phi")
-        }
-        return ig
 
     # private methods
     def _set_dbm(self, dbm=None) -> None:
@@ -567,6 +562,12 @@ class VtuFileInterface(AbstractInterface):
             shape=(self.io.IN.gridshape.nr, self.io.IN.gridshape.nphi)
         )
         log.info(f"successfully loaded {self.io.IN.filepath}")
+
+    @property
+    def input_grid(self) -> dict:
+        ig = {"ticks_r": self._input_data.get_ticks("r") * self.conf["units"]["distance2au"],
+              "ticks_phi": self._input_data.get_ticks("phi")}
+        return ig
 
     @property
     def density_keys(self) -> list:
