@@ -407,7 +407,7 @@ class AbstractInterface(ABC):
 
         if self.use_axisymmetry:
             zvect_shape = (nz,)
-            hyperplane_shape = (None,) # do not reshape
+            hyperplane_shape = (None,) # net effect: no reshaping
             r_profile_densities[:] = np.array([self._interpolate1D(datakey=k) for k in self.density_keys])
 
             # those are references, not copies
@@ -430,10 +430,7 @@ class AbstractInterface(ABC):
                 z_vect = self.output_grid["phi-slice_z"][nz:, ir].reshape(*zvect_shape)
             gas_height = r * self.aspect_ratio
             for i_bin, grain_µsize in enumerate(self.grain_micron_sizes):
-                if self.use_axisymmetry: #tmp
-                    hpp_dens = hyperplane_densities[i_bin, ir]
-                else:
-                    hpp_dens = hyperplane_densities[i_bin, ir, :]
+                hpp_dens = hyperplane_densities[i_bin, ir, ...]
                 H = gas_height
                 if self.use_settling:
                     H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
