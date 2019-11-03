@@ -403,6 +403,18 @@ class AbstractInterface(ABC):
         return parameters
 
 
+    # output generation
+    def _get_output_ndarray() -> np.ndarray:
+        #notes:
+        nbins = len(self.density_keys)
+        oshape = self.io.OUT.gridshape
+        nr, nphi, nz = oshape.nr, oshape.nphi, oshape.nz
+        self._rz_slice = np.zeros((nbins, nz, nr))
+        self._new_2D_arrays = np.zeros((nbins, nr, nphi)) # this is never output !
+        self._new_3D_arrays = np.zeros((nbins, nphi, nz, nr))
+        pass
+
+
 
     def _interpolate2D(self, datakey: str) -> np.ndarray:
         """Transform a polar field from MPI-AMRVAC coords to mcfost coords"""
@@ -446,9 +458,12 @@ class AbstractInterface(ABC):
 
     def gen_2D_arrays(self) -> None:
         """Interpolate input data density fields from input coords to output coords"""
+        nbins = len(self.density_keys)
+        oshape = self.io.OUT.gridshape
+        nr, nphi = oshape.nr, oshape.nphi
+
         self._new_2D_arrays = np.array([self._interpolate2D(datakey=k) for k in self.density_keys])
-        assert self._new_2D_arrays[0].shape == (self.io.OUT.gridshape.nr,
-                                                self.io.OUT.gridshape.nphi)
+        assert(self._new_2D_arrays.shape == (nbins, nr, nphi))
 
     def gen_3D_arrays(self) -> None:
         """Interpolate input data onto full 3D output grid"""
