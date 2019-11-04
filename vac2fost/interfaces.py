@@ -250,7 +250,7 @@ class AbstractInterface(ABC):
             "mixed": self.grain_micron_sizes.argsort()
         }[self._dust_binning_mode]
 
-        output_ndarray = self._get_output_ndarray()
+        output_ndarray = self.get_output_ndarray()
         gas_field = output_ndarray[0]
         dust_fields = output_ndarray[dust_bin_selector]
 
@@ -395,7 +395,7 @@ class AbstractInterface(ABC):
 
 
     # output generation
-    def _get_output_ndarray(self) -> np.ndarray:
+    def get_output_ndarray(self) -> np.ndarray:
         nbins = len(self.density_keys)
         oshape = self.io.OUT.gridshape
         nr, nphi, nz = oshape.nr, oshape.nphi, oshape.nz

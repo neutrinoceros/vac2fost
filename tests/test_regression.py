@@ -24,16 +24,15 @@ def regold(itf, reffile, morekeys:list = None):
     save_keys = [
         "amrvac_conf",
         "input_grid", "output_grid",
-        "new_2D_arrays", "new_3D_arrays",
         "_dust_binning_mode"
     ]
     if morekeys is not None:
         save_keys += morekeys
     with open(reffile, mode="wb") as file:
         out = {k: itf.__getattribute__(k) for k in save_keys}
+        out.update({"output_ndarray": itf.get_output_ndarray()})
         pickle.dump(out, file)
 
-@pytest.mark.skip(resaon="wip")
 class TestRegressionMain:
     subrefdir = REFOUT_DIR / "default"
     v2flogger.setLevel(10) # debug
@@ -76,8 +75,7 @@ class TestRegressionMain:
         np.testing.assert_array_equal(itf.output_grid["z-slice_r"], out_ref["output_grid"]["z-slice_r"])
         np.testing.assert_array_equal(itf.output_grid["z-slice_phi"], out_ref["output_grid"]["z-slice_phi"])
         np.testing.assert_allclose(itf.output_grid["phi-slice_z"], out_ref["output_grid"]["phi-slice_z"], rtol=1e-15)
-        np.testing.assert_allclose(itf._new_2D_arrays, out_ref["new_2D_arrays"], rtol=1e-25)
-        np.testing.assert_allclose(itf._new_3D_arrays, out_ref["new_3D_arrays"], rtol=5e-14)
+        np.testing.assert_allclose(itf.get_output_ndarray(), out_ref["new_3D_arrays"], rtol=5e-14)
         np.testing.assert_allclose(itf.new_3D_gas_velocity, out_ref["new_3D_gas_velocity"], rtol=5e-14)
 
     def test_image(self):
@@ -93,7 +91,6 @@ class TestRegressionMain:
         np.testing.assert_allclose(new, ref, rtol=5e-14)
 
 
-@pytest.mark.skip(resaon="wip")
 class TestRegressionMutliNums:
     subrefdir = REFOUT_DIR / "multinums"
     itf = instanciate_interface(conffile="vac2fost_conf_quick.nml", nums=[0, 1, 2])
@@ -110,7 +107,6 @@ class TestRegressionMutliNums:
             np.testing.assert_allclose(fits.open(new_file)[0].data, fits.open(ref_file)[0].data, rtol=5e-14)
 
 
-@pytest.mark.skip(resaon="wip")
 class TestRegressionNonAxisym:
     subrefdir = REFOUT_DIR / "nonaxisym"
     itf = instanciate_interface(conffile="vac2fost_conf_nonaxisym.nml")
@@ -134,8 +130,7 @@ class TestRegressionNonAxisym:
         np.testing.assert_array_equal(itf.output_grid["z-slice_r"], out_ref["output_grid"]["z-slice_r"])
         np.testing.assert_array_equal(itf.output_grid["z-slice_phi"], out_ref["output_grid"]["z-slice_phi"])
         np.testing.assert_allclose(itf.output_grid["phi-slice_z"], out_ref["output_grid"]["phi-slice_z"], rtol=1e-15)
-        np.testing.assert_allclose(itf._new_2D_arrays, out_ref["new_2D_arrays"], rtol=1e-25)
-        np.testing.assert_allclose(itf._new_3D_arrays, out_ref["new_3D_arrays"], rtol=5e-14)
+        np.testing.assert_allclose(itf.get_output_ndarray(), out_ref["new_3D_arrays"], rtol=5e-14)
         np.testing.assert_allclose(itf.new_3D_gas_velocity, out_ref["new_3D_gas_velocity"], rtol=5e-14)
 
     def test_image(self):
@@ -151,7 +146,6 @@ class TestRegressionNonAxisym:
         np.testing.assert_allclose(new, ref, rtol=5e-14)
 
 
-@pytest.mark.skip(resaon="wip")
 class TestRegressionAutoGasOnly:
     subrefdir = REFOUT_DIR / "autogasonly"
     itf = instanciate_interface(conffile="autogasonly/rwi.nml")
@@ -184,5 +178,4 @@ class TestRegressionAutoGasOnly:
         np.testing.assert_array_equal(itf.output_grid["z-slice_r"], out_ref["output_grid"]["z-slice_r"])
         np.testing.assert_array_equal(itf.output_grid["z-slice_phi"], out_ref["output_grid"]["z-slice_phi"])
         np.testing.assert_array_equal(itf.output_grid["phi-slice_z"], out_ref["output_grid"]["phi-slice_z"])
-        np.testing.assert_allclose(itf._new_2D_arrays, out_ref["new_2D_arrays"], rtol=1e-25)
-        np.testing.assert_allclose(itf._new_3D_arrays, out_ref["new_3D_arrays"], rtol=1e-15)
+        np.testing.assert_allclose(itf.get_output_ndarray(), out_ref["new_3D_arrays"], rtol=1e-15)
