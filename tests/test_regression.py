@@ -25,7 +25,7 @@ def regold(itf, reffile, morekeys:list = None):
     save_keys = [
         "amrvac_conf",
         "input_grid", "output_grid",
-        "_dust_binning_mode"
+        "_dust_bin_mode"
     ]
     if morekeys is not None:
         save_keys += morekeys
@@ -67,7 +67,7 @@ class TestRegressionMain:
         #regold(itf, reffile, morekeys=["new_3D_gas_velocity"])
 
         out_ref = pickle.load(open(reffile, mode="rb"))
-        assert itf._dust_binning_mode == out_ref["_dust_binning_mode"]
+        assert itf._dust_bin_mode == out_ref["_dust_binning_mode"]
         assert itf.amrvac_conf == out_ref["amrvac_conf"]
         np.testing.assert_array_equal(itf.input_grid["ticks_r"], out_ref["input_grid"]["ticks_r"])
         np.testing.assert_array_equal(itf.input_grid["ticks_phi"], out_ref["input_grid"]["ticks_phi"])
@@ -127,7 +127,7 @@ class TestRegressionNonAxisym:
         #regold(itf, reffile, morekeys=["new_3D_gas_velocity"])
 
         out_ref = pickle.load(open(reffile, mode="rb"))
-        assert itf._dust_binning_mode == out_ref["_dust_binning_mode"]
+        assert itf._dust_bin_mode == out_ref["_dust_binning_mode"]
         assert itf.amrvac_conf == out_ref["amrvac_conf"]
         np.testing.assert_array_equal(itf.input_grid["ticks_r"], out_ref["input_grid"]["ticks_r"])
         np.testing.assert_array_equal(itf.input_grid["ticks_phi"], out_ref["input_grid"]["ticks_phi"])
@@ -175,7 +175,7 @@ class TestRegressionAutoGasOnly:
         #regold(itf, reffile)
 
         out_ref = pickle.load(open(reffile, mode="rb"))
-        assert itf._dust_binning_mode == out_ref["_dust_binning_mode"]
+        assert itf._dust_bin_mode == out_ref["_dust_binning_mode"]
         assert itf.amrvac_conf == out_ref["amrvac_conf"]
         np.testing.assert_array_equal(itf.input_grid["ticks_r"], out_ref["input_grid"]["ticks_r"])
         np.testing.assert_array_equal(itf.input_grid["ticks_phi"], out_ref["input_grid"]["ticks_phi"])

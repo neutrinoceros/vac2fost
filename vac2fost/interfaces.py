@@ -147,7 +147,7 @@ class AbstractInterface(ABC):
 
         read_gas_density = flags.get("read_gas_density", False)
         if read_gas_density and self._bin_gas:
-            log.warning(f"Found redundancy: with dust_binning_mode='{self._dust_binning_mode}'"
+            log.warning(f"Found redundancy: with dust_bin_mode='{self._dust_bin_mode}'"
                         "flag read_gas_density will be ignored.")
             self._read_gas_density = False
         else:
@@ -248,7 +248,7 @@ class AbstractInterface(ABC):
             "gas-only": np.zeros(1, dtype="int64"),
             "dust-only": 1 + self.grain_micron_sizes[1:].argsort(),
             "mixed": self.grain_micron_sizes.argsort()
-        }[self._dust_binning_mode]
+        }[self._dust_bin_mode]
 
         output_ndarray = self.get_output_ndarray()
         gas_field = output_ndarray[0]
@@ -320,26 +320,26 @@ class AbstractInterface(ABC):
         - (mixed)     : use both, assuming gas traces the smallest grains
         """
         if dbm in ("dust-only", "gas-only", "mixed"):
-            self._dust_binning_mode = dbm
+            self._dust_bin_mode = dbm
         elif isinstance(dbm, str):
             raise ValueError(f"Unrecognized dbm value {dbm}")
         else: # automatic setting
             try: # todo: make this try block more robust
                 smallest_gs_µm = 1e4* min(np.array(self.amrvac_conf['usr_dust_list']['grain_size_cm']))
             except KeyError:
-                self._dust_binning_mode = "gas-only"
+                self._dust_bin_mode = "gas-only"
                 reason = "could not find grain sizes"
             else:
                 if smallest_gs_µm > MINGRAINSIZE_µ:
-                    self._dust_binning_mode = "mixed"
+                    self._dust_bin_mode = "mixed"
                     reason = f"smallest size found > {MINGRAINSIZE_µ}µm"
-            log.warning(f"switched to '{self._dust_binning_mode}' dbm ({reason})")
+            log.warning(f"switched to '{self._dust_bin_mode}' dbm ({reason})")
 
         # should dust fluids be passed to mcfost ?
-        self._bin_dust = self._dust_binning_mode in {"dust-only", "mixed"}
+        self._bin_dust = self._dust_bin_mode in {"dust-only", "mixed"}
 
         # should gas be passed to mcfost ?
-        self._bin_gas = self._dust_binning_mode in {'gas-only', 'mixed'}
+        self._bin_gas = self._dust_bin_mode in {'gas-only', 'mixed'}
 
     def _estimate_dust_mass(self) -> float:
         """Estimate the total dust mass in the grid, in solar masses"""
@@ -349,7 +349,7 @@ class AbstractInterface(ABC):
         dr = rvect[1] - rvect[0]
         cell_surfaces = dphi/2 * ((rvect + dr/2)**2 - (rvect - dr/2)**2)
 
-        if self._dust_binning_mode == "gas-only":
+        if self._dust_bin_mode == "gas-only":
             keys = ["rho"]
         else:
             keys = [k for k, _ in self._input_data if "rhod" in k]
@@ -357,7 +357,7 @@ class AbstractInterface(ABC):
         for key in keys:
             mass += np.sum([cell_surfaces * self._input_data[key][:, i]
                             for i in range(self.io.IN.gridshape.nphi)])
-        if self._dust_binning_mode == "gas-only":
+        if self._dust_bin_mode == "gas-only":
             mass /= self.g2d_ratio
         mass *= self.conf["units"]["mass2solar"]
         return mass
