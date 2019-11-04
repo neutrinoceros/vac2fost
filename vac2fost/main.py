@@ -6,10 +6,13 @@ from .interfaces import AbstractInterface, DatFileInterface, VtuFileInterface
 from .logger import v2flogger as log
 
 
-def main(config_file: Path, loglevel: int = 30, input_data_format="vtu", **itf_kwargs) -> AbstractInterface:
+def main(conf_file: Path, # python 3.8: positional only
+         override: dict = None,
+         loglevel: int = 30,
+         input_data_format: str = "vtu") -> AbstractInterface:
     """Transform a .vtu datfile into a .fits
 
-    config_file and itf_kwargs are passed down to Interface.__init__()
+    conf_file and overrides are passed down to Interface.__init__()
     loglevel values: 10 debug
                      20 info
                      30 warning
@@ -21,7 +24,7 @@ def main(config_file: Path, loglevel: int = 30, input_data_format="vtu", **itf_k
     if input_data_format != "vtu":
         raise NotImplementedError
     Interface = {"dat": DatFileInterface, "vtu": VtuFileInterface}[input_data_format] # wip
-    itf = Interface(config_file, **itf_kwargs)
+    itf = Interface(conf_file, override)
     while 1:
         log.info(f"current input number: {itf.current_num}\t({itf.iter_count}/{itf.iter_max})")
         try:
