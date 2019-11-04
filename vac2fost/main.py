@@ -8,6 +8,7 @@ from .logger import v2flogger as log
 
 def main(conf_file: Path, # python 3.8: positional only
          override: dict = None,
+         output_dir: Path = None,
          loglevel: int = 30,
          input_data_format: str = "vtu") -> AbstractInterface:
     """Transform a .vtu datfile into a .fits
@@ -24,7 +25,7 @@ def main(conf_file: Path, # python 3.8: positional only
     if input_data_format != "vtu":
         raise NotImplementedError
     Interface = {"dat": DatFileInterface, "vtu": VtuFileInterface}[input_data_format] # wip
-    itf = Interface(conf_file, override)
+    itf = Interface(conf_file, override=override, output_dir=output_dir)
     while 1:
         log.info(f"current input number: {itf.current_num}\t({itf.iter_count}/{itf.iter_max})")
         try:

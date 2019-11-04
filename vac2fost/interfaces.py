@@ -69,12 +69,14 @@ class AbstractInterface(ABC):
     """A data transforming class. Holds most functionalities useful to
     vac2fost.main()"""
 
-    def __init__(self, conf_file: Path, override: dict = None):
+    def __init__(self, conf_file: Path, override: dict = None, output_dir: Path = None):
         # python 3.8: make conf_file positional only
 
         # input checking
         if not isinstance(conf_file, (str, Path)):
             raise TypeError(conf_file)
+        if output_dir is not None and not isinstance(output_dir, (str, Path)):
+            raise TypeError(output_dir)
         if override is None:
             override = {}
 
@@ -83,9 +85,9 @@ class AbstractInterface(ABC):
         self._override = override
         self.conf = f90nml.read(conf_file)
         self.conf.patch(override)
+        self._output_dir = output_dir or Path.cwd()
 
         flags = self.conf.get("flags", {})
-        self._output_dir = flags.get("output_dir", Path.cwd())
         self._use_settling = flags.get("settling", False)
         self._use_axisymmetry = flags.get("axisymmetry", False)
         self._read_gas_velocity = flags.get("read_gas_velocity", False)
