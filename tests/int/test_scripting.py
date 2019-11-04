@@ -25,13 +25,12 @@ class TestPyScripting():
         opt = f90nml.read(testdir / 'sample/vac2fost_conf.nml')['mcfost_output']
         assert f.data.shape[1:] == (opt['n_az'], opt['nz'], opt['n_rad'])
 
-    @pytest.mark.skip(reason="wip")
     def test_python_call_multiple(self):
         log.setLevel(10)
         app(
             str(testdir / "sample/vac2fost_conf.nml"),
             output_dir=__class__.output_dir,
-            nums=[0, 1, 2]
+            override={"amrvac_input": {"nums": [0, 1, 2]}}
         )
         for n in (0, 1, 2):
             assert (__class__.output_dir / f"hd142527_dusty{str(n).zfill(4)}.fits").exists()

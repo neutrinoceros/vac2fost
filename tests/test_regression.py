@@ -92,10 +92,14 @@ class TestRegressionMain:
         np.testing.assert_allclose(new, ref, rtol=5e-14)
 
 
-@pytest.mark.skip(reason="wip")
+
 class TestRegressionMutliNums:
     subrefdir = REFOUT_DIR / "multinums"
-    itf = instanciate_interface(conffile="vac2fost_conf_quick.nml", nums=[0, 1, 2])
+    conffile = test_dir/"sample/vac2fost_conf_quick.nml"
+    outdir = OUT / f"test_reg_{Path(conffile).stem}"
+    if outdir.is_dir():
+        shutil.rmtree(outdir)
+    itf = app(conffile, output_dir=outdir, override={"amrvac_input": {"nums": [0, 1, 2]}})
     itf.preroll_mcfost()
     itf.tag = itf.conf_file.stem + "multinums"
 
