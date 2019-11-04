@@ -75,7 +75,7 @@ class TestRegressionMain:
         np.testing.assert_array_equal(itf.output_grid["z-slice_r"], out_ref["output_grid"]["z-slice_r"])
         np.testing.assert_array_equal(itf.output_grid["z-slice_phi"], out_ref["output_grid"]["z-slice_phi"])
         np.testing.assert_allclose(itf.output_grid["phi-slice_z"], out_ref["output_grid"]["phi-slice_z"], rtol=1e-15)
-        np.testing.assert_allclose(itf.get_output_ndarray(), out_ref["new_3D_arrays"], rtol=5e-14)
+        np.testing.assert_allclose(itf.get_output_ndarray(), out_ref["output_ndarray"], rtol=5e-14)
         np.testing.assert_allclose(itf.new_3D_gas_velocity, out_ref["new_3D_gas_velocity"], rtol=5e-14)
 
     def test_image(self):
@@ -130,7 +130,7 @@ class TestRegressionNonAxisym:
         np.testing.assert_array_equal(itf.output_grid["z-slice_r"], out_ref["output_grid"]["z-slice_r"])
         np.testing.assert_array_equal(itf.output_grid["z-slice_phi"], out_ref["output_grid"]["z-slice_phi"])
         np.testing.assert_allclose(itf.output_grid["phi-slice_z"], out_ref["output_grid"]["phi-slice_z"], rtol=1e-15)
-        np.testing.assert_allclose(itf.get_output_ndarray(), out_ref["new_3D_arrays"], rtol=5e-14)
+        np.testing.assert_allclose(itf.get_output_ndarray(), out_ref["output_ndarray"], rtol=5e-14)
         np.testing.assert_allclose(itf.new_3D_gas_velocity, out_ref["new_3D_gas_velocity"], rtol=5e-14)
 
     def test_image(self):
@@ -178,4 +178,4 @@ class TestRegressionAutoGasOnly:
         np.testing.assert_array_equal(itf.output_grid["z-slice_r"], out_ref["output_grid"]["z-slice_r"])
         np.testing.assert_array_equal(itf.output_grid["z-slice_phi"], out_ref["output_grid"]["z-slice_phi"])
         np.testing.assert_array_equal(itf.output_grid["phi-slice_z"], out_ref["output_grid"]["phi-slice_z"])
-        np.testing.assert_allclose(itf.get_output_ndarray(), out_ref["new_3D_arrays"], rtol=1e-15)
+        np.testing.assert_allclose(itf.get_output_ndarray(), out_ref["output_ndarray"], rtol=1e-15)
