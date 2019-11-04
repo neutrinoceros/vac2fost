@@ -432,6 +432,7 @@ class AbstractInterface(ABC):
                 output_ndarray[ibin, ..., ir] = np.outer(hpd, gaussian)
         return output_ndarray
 
+    # todo: rename to clearer names
     def _interpolate2D(self, datakey: str) -> np.ndarray:
         """Transform a polar field from MPI-AMRVAC coords to mcfost coords"""
         interpolator = interp2d(
@@ -453,7 +454,7 @@ class AbstractInterface(ABC):
         )
         return interpolator(self.output_grid["ticks_r"])
 
-    @property
+    @property # todo: rewrite this without the "property"
     def new_3D_gas_velocity(self) -> np.ndarray:
         """Derive the 3D velocity field for gas velocity, in km/s"""
         rho, mr, mphi = map(self._interpolate2D, ["rho", "m1", "m2"])
