@@ -19,15 +19,15 @@ class TestSettling:
     def test_default_settling(self):
         log.setLevel(10)
         itf = app(__class__.conf_file, output_dir=__class__.outdir)
-        assert not itf.use_settling
+        assert not itf._use_settling
 
     def test_activate_settling(self):
         log.setLevel(10)
-        itf = app(__class__.conf_file, output_dir=__class__.outdir, settling=True)
-        assert itf.use_settling
+        itf = app(__class__.conf_file, output_dir=__class__.outdir, override={"flags": dict(settling=True)})
+        assert itf._use_settling
 
     def test_run_settling(self):
         log.setLevel(10)
-        itf = app(__class__.conf_file, output_dir=__class__.outdir, settling=True)
+        itf = app(__class__.conf_file, output_dir=__class__.outdir, override={"flags": dict(settling=True)})
         itf.preroll_mcfost()
         itf.get_output_ndarray()
