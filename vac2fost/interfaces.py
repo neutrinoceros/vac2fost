@@ -144,9 +144,6 @@ class AbstractInterface(ABC):
         self._µsizes = None
         self._input_data = None
         self.output_grid = None
-        self._new_2D_arrays = None
-        self._new_3D_arrays = None
-        self._rz_slice = None
 
         self._set_dbm(dust_bin_mode)
         self._read_gas_density = False
@@ -253,12 +250,9 @@ class AbstractInterface(ABC):
             "mixed": self.grain_micron_sizes.argsort()
         }[self._dust_binning_mode]
 
-        if self.use_axisymmetry:
-            gas_field = self._rz_slice[0]
-            dust_fields = self._rz_slice[dust_bin_selector]
-        else:
-            gas_field = self.new_3D_arrays[0]
-            dust_fields = self.new_3D_arrays[dust_bin_selector]
+        output_ndarray = self.get_output_ndarray()
+        gas_field = output_ndarray[0]
+        dust_fields = output_ndarray[dust_bin_selector]
 
         suppl_hdus = []
         assert (len(dust_bin_selector) > 1) == (self._bin_dust)
@@ -292,10 +286,7 @@ class AbstractInterface(ABC):
         log.info(f"successfully wrote {self.io.OUT.filepath}")
 
     def advance_iteration(self) -> None:
-        """Reset output attributes and step to next output number."""
-        self._new_2D_arrays = None
-        self._new_3D_arrays = None
-        self._rz_slice = None
+        """Step to next output number."""
         self.current_num = next(self._iter_nums)
         self.iter_count += 1
 
@@ -403,7 +394,45 @@ class AbstractInterface(ABC):
         return parameters
 
 
+    # output generation
+    def get_output_ndarray(self) -> np.ndarray:
+        nbins = len(self.density_keys)
+        oshape = self.io.OUT.gridshape
+        nr, nphi, nz = oshape.nr, oshape.nphi, oshape.nz
 
+        r_profile_densities = np.zeros((nbins, nr))
+        phi_slice_densities = np.zeros((nbins, nz, nr))
+        new_plane_densities = np.zeros((nbins, nr, nphi))
+        full3D_densities = np.zeros((nbins, nphi, nz, nr))
+
+        if self.use_axisymmetry:
+            r_profile_densities[:] = np.array([self._interpolate1D(datakey=k) for k in self.density_keys])
+            # those are references, not copies
+            hyperplane_densities = r_profile_densities
+            output_ndarray = phi_slice_densities
+
+        else:
+            new_plane_densities[:] = np.array([self._interpolate2D(datakey=k) for k in self.density_keys])
+            # those are references, not copies
+            hyperplane_densities = new_plane_densities
+            output_ndarray = full3D_densities
+
+        for ir, r in enumerate(self.output_grid["ticks_r"]):
+            if self.use_axisymmetry: # todo: unify these two lines ?
+                z_vect = self.output_grid["phi-slice_z"][:, ir]
+            else:
+                z_vect = self.output_grid["phi-slice_z"][nz:, ir]
+            gas_height = r * self.aspect_ratio
+            for ibin, grain_µsize in enumerate(self.grain_micron_sizes):
+                hpd = hyperplane_densities[ibin, ir, ...]
+                H = gas_height
+                if self.use_settling:
+                    H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
+                gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
+                output_ndarray[ibin, ..., ir] = np.outer(hpd, gaussian)
+        return output_ndarray
+
+    # todo: rename to clearer names
     def _interpolate2D(self, datakey: str) -> np.ndarray:
         """Transform a polar field from MPI-AMRVAC coords to mcfost coords"""
         interpolator = interp2d(
@@ -411,7 +440,7 @@ class AbstractInterface(ABC):
             self.input_grid["ticks_r"],
             self._input_data[datakey],
             kind="cubic",
-            copy=False # test
+            copy=False
         )
         return interpolator(self.output_grid["ticks_phi"], self.output_grid["ticks_r"])
 
@@ -425,68 +454,7 @@ class AbstractInterface(ABC):
         )
         return interpolator(self.output_grid["ticks_r"])
 
-
-    def gen_rz_slice(self) -> None:
-        radial_profiles = np.array([self._interpolate1D(datakey=k) for k in self.density_keys])
-        oshape = self.io.OUT.gridshape
-        nr, nz = oshape.nr, oshape.nz
-
-        nbins = len(radial_profiles)
-        self._rz_slice = np.zeros((nbins, nz, nr))
-        for ir, r in enumerate(self.output_grid["ticks_r"]):
-            z_vect = self.output_grid["phi-slice_z"][:, ir]
-            gas_height = r * self.aspect_ratio
-            for i_bin, (grain_µsize, rprofile) in enumerate(zip(self.grain_micron_sizes,
-                                                                radial_profiles)):
-                H = gas_height
-                if self.use_settling:
-                    H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
-                gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
-                self._rz_slice[i_bin, :, ir] = gaussian * rprofile[ir]
-
-    def gen_2D_arrays(self) -> None:
-        """Interpolate input data density fields from input coords to output coords"""
-        self._new_2D_arrays = np.array([self._interpolate2D(datakey=k) for k in self.density_keys])
-        assert self._new_2D_arrays[0].shape == (self.io.OUT.gridshape.nr,
-                                                self.io.OUT.gridshape.nphi)
-
-    def gen_3D_arrays(self) -> None:
-        """Interpolate input data onto full 3D output grid"""
-        oshape = self.io.OUT.gridshape
-        nr, nphi, nz = oshape.nr, oshape.nphi, oshape.nz
-
-        nbins = len(self.new_2D_arrays)
-        self._new_3D_arrays = np.zeros((nbins, nphi, nz, nr))
-        for ir, r in enumerate(self.output_grid["ticks_r"]):
-            z_vect = self.output_grid["phi-slice_z"][nz:, ir].reshape(1, nz)
-            gas_height = r * self.aspect_ratio
-            for i_bin, grain_µsize in enumerate(self.grain_micron_sizes):
-                surface_density = self.new_2D_arrays[i_bin, ir, :]
-                H = gas_height
-                if self.use_settling:
-                    H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
-                gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
-                #todo: numpy ellipsis ? "..."
-                self._new_3D_arrays[i_bin, :, :, ir] = \
-                    gaussian * surface_density.reshape(nphi, 1)
-
-    @property
-    def new_2D_arrays(self) -> list:
-        #todo: rename me
-        '''Last minute generation is used if required'''
-        if self._new_2D_arrays is None:
-            self.gen_2D_arrays()
-        return self._new_2D_arrays
-
-    @property
-    def new_3D_arrays(self) -> list:
-        '''Last minute generation is used if required'''
-        #todo: rename me
-        if self._new_3D_arrays is None:
-            self.gen_3D_arrays()
-        return self._new_3D_arrays
-
-    @property
+    @property # todo: rewrite this without the "property"
     def new_3D_gas_velocity(self) -> np.ndarray:
         """Derive the 3D velocity field for gas velocity, in km/s"""
         rho, mr, mphi = map(self._interpolate2D, ["rho", "m1", "m2"])

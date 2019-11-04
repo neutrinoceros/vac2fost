@@ -30,4 +30,4 @@ class TestSettling:
         log.setLevel(10)
         itf = app(__class__.conf_file, output_dir=__class__.outdir, settling=True)
         itf.preroll_mcfost()
-        itf.new_3D_arrays
+        itf.get_output_ndarray()
