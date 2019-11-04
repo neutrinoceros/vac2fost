@@ -16,7 +16,8 @@ def instanciate_interface(conffile, **kwargs):
     outdir = OUT / f"test_reg_{Path(conffile).stem}"
     if outdir.is_dir():
         shutil.rmtree(outdir)
-    itf = app(test_dir/"sample"/conffile, output_dir=outdir, **kwargs)
+    override = {"flags": {k: v for k,v in kwargs.items()}}
+    itf = app(test_dir/"sample"/conffile, override, output_dir=outdir)
     return itf
 
 # to regold tests

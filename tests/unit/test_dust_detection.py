@@ -15,45 +15,43 @@ class TestDBM:
         with pytest.raises(ValueError):
             Interface(test_dir/'sample/vac2fost_conf_quick_no_dust.nml',
                       output_dir=output_dir,
-                      dust_bin_mode="not-a-real-dbm-option")
+                      override={"flags": dict(dust_bin_mode="not-a-real-dbm-option")})
 
     def test_gas_only(self):
         itf = Interface(test_dir/'sample/vac2fost_conf_quick.nml',
                         output_dir=output_dir,
-                        dust_bin_mode="gas-only")
+                        override={"flags": dict(dust_bin_mode="gas-only")})
         assert itf._dust_binning_mode == "gas-only"
         assert itf.grain_micron_sizes == [MINGRAINSIZE_µ]
 
     def test_dust_only(self):
         itf = Interface(test_dir/'sample/vac2fost_conf_quick.nml',
                         output_dir=output_dir,
-                        dust_bin_mode="dust-only")
+                        override={"flags": dict(dust_bin_mode="dust-only")})
         assert itf._dust_binning_mode == "dust-only"
         np.testing.assert_array_equal(itf.grain_micron_sizes, [MINGRAINSIZE_µ, 1e4, 1e3])
 
     def test_mixed(self):
         itf = Interface(test_dir/'sample/vac2fost_conf_quick.nml',
                         output_dir=output_dir,
-                        dust_bin_mode="mixed")
+                        override={"flags": dict(dust_bin_mode="mixed")})
         assert itf._dust_binning_mode == "mixed"
         np.testing.assert_array_equal(itf.grain_micron_sizes, [MINGRAINSIZE_µ, 1e4, 1e3])
 
     def test_auto_into_mixed(self):
         itf = Interface(test_dir/'sample/vac2fost_conf_quick.nml',
-                        output_dir=output_dir,
-                        dust_bin_mode=None)
+                        output_dir=output_dir)
         assert itf._dust_binning_mode == "mixed"
 
     def test_auto_into_gas_only(self):
         itf = Interface(test_dir/'sample/vac2fost_conf_quick_no_dust.nml',
-                        output_dir=output_dir,
-                        dust_bin_mode=None)
+                        output_dir=output_dir)
         assert itf._dust_binning_mode == "gas-only"
 
     def test_mixed_into_KeyError(self):
         itf = Interface(test_dir/'sample/vac2fost_conf_quick_no_dust.nml',
                         output_dir=output_dir,
-                        dust_bin_mode="mixed")
+                        override={"flags": dict(dust_bin_mode="mixed")})
         with pytest.raises(KeyError):
             # impossible setups should raise KeyError
             gms = itf.grain_micron_sizes
@@ -61,7 +59,7 @@ class TestDBM:
     def test_dust_only_into_KeyError(self):
         itf = Interface(test_dir/'sample/vac2fost_conf_quick_no_dust.nml',
                         output_dir=output_dir,
-                        dust_bin_mode="dust-only")
+                        override={"flags": dict(dust_bin_mode="dust-only")})
         with pytest.raises(KeyError):
             gms = itf.grain_micron_sizes
 
@@ -71,7 +69,7 @@ class TestMassEstimate:
     def test_dust_mass_estimations_consistency(self):
         itfs = [Interface(test_dir/'sample/vac2fost_conf_quick.nml',
                           output_dir=output_dir,
-                          dust_bin_mode=dbm)
+                        override={"flags": dict(dust_bin_mode=dbm)})
                 for dbm in ("mixed", "gas-only", "dust-only")]
         for itf in itfs:
             itf.load_input_data()
@@ -89,6 +87,7 @@ class TestMassEstimate:
         g2d = conf["usr_dust_list"]["gas2dust_ratio"]
         ref = np.pi * sig0 * (rmax**2 - rmin**2) / g2d
         for dbm in ("mixed", "gas-only", "dust-only"):
-            itf = Interface(test_dir/"sample/vac2fost_conf_flatdisk.nml", dust_bin_mode=dbm)
+            itf = Interface(test_dir/"sample/vac2fost_conf_flatdisk.nml",
+                            override={"flags": dict(dust_bin_mode=dbm)})
             itf.load_input_data()
             assert abs(itf._estimate_dust_mass() - ref) / ref < 1e-7

@@ -81,8 +81,7 @@ class AbstractInterface(ABC):
             override = {}
 
         # parse configuration
-        self._conf_file = Path(conf_file)
-        self._override = override
+        self.conf_file = Path(conf_file)
         self.conf = f90nml.read(conf_file)
         self.conf.patch(override)
         self._output_dir = output_dir or Path.cwd()
