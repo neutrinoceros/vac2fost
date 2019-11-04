@@ -92,6 +92,7 @@ class TestRegressionMain:
         np.testing.assert_allclose(new, ref, rtol=5e-14)
 
 
+@pytest.mark.skip(reason="wip")
 class TestRegressionMutliNums:
     subrefdir = REFOUT_DIR / "multinums"
     itf = instanciate_interface(conffile="vac2fost_conf_quick.nml", nums=[0, 1, 2])
