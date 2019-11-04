@@ -143,7 +143,7 @@ class AbstractInterface(ABC):
         self._input_data = None
         self.output_grid = None
 
-        self._set_dbm(flags.get("dust_binning_mode", None))
+        self._set_dbm(flags.get("dust_bin_mode", None))
 
         read_gas_density = flags.get("read_gas_density", False)
         if read_gas_density and self._bin_gas:
