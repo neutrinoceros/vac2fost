@@ -401,7 +401,8 @@ class AbstractInterface(ABC):
         nr, nphi, nz = oshape.nr, oshape.nphi, oshape.nz
 
         r_profile_densities = np.zeros((nbins, nr))
-        phi_slice_densities = np.zeros((nbins, nz, nr))
+        phi_slice_densities = np.zeros((nbins, 1, nz, nr))
+
         new_plane_densities = np.zeros((nbins, nr, nphi))
         full3D_densities = np.zeros((nbins, nphi, nz, nr))
 
