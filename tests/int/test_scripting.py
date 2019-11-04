@@ -25,6 +25,7 @@ class TestPyScripting():
         opt = f90nml.read(testdir / 'sample/vac2fost_conf.nml')['mcfost_output']
         assert f.data.shape[1:] == (opt['n_az'], opt['nz'], opt['n_rad'])
 
+    @pytest.marker.skip(reason="wip")
     def test_python_call_multiple(self):
         log.setLevel(10)
         app(
