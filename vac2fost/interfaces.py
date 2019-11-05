@@ -110,8 +110,8 @@ class AbstractInterface(ABC):
             for n in nums:
                 yield n
         self._iter_nums = _iter_nums()
-        self.iter_count = 0
-        self.iter_max = len(nums)
+        self._iter_count = 0
+        self._iter_max = len(nums)
         self.current_num = next(self._iter_nums)
 
         hydro_data_dir = shell_path(self.conf["amrvac_input"]["hydro_data_dir"])
@@ -226,7 +226,7 @@ class AbstractInterface(ABC):
 
         grid = get_mcfost_grid(self, mcfost_conf_file,
                                       output_dir=self.io.OUT.directory,
-                                      require_run=(self.iter_count == 0))
+                                      require_run=(self._iter_count == 0))
 
         self.output_grid = {
             "array": grid,
@@ -288,7 +288,12 @@ class AbstractInterface(ABC):
     def advance_iteration(self) -> None:
         """Step to next output number."""
         self.current_num = next(self._iter_nums)
-        self.iter_count += 1
+        self._iter_count += 1
+
+    @property
+    def iter_frac(self):
+        return f"{self._iter_count+1}/{self._iter_max}"
+
 
     # abusive properties ...
     @property

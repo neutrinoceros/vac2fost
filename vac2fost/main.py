@@ -23,7 +23,7 @@ def main(config_file: Path, loglevel: int = 30, input_data_format="vtu", **itf_k
     Interface = {"dat": DatFileInterface, "vtu": VtuFileInterface}[input_data_format] # wip
     itf = Interface(config_file, **itf_kwargs)
     while 1:
-        log.info(f"current input number: {itf.current_num}\t({itf.iter_count}/{itf.iter_max})")
+        log.info(f"current input number: {itf.current_num}\t({itf.iter_frac})")
         try:
             itf.load_input_data()
         except FileNotFoundError as err:
