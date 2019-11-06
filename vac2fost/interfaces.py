@@ -75,16 +75,27 @@ class AbstractInterface(ABC):
         # input checking
         if not isinstance(conf_file, (str, Path)):
             raise TypeError(conf_file)
-        if output_dir is not None and not isinstance(output_dir, (str, Path)):
+        if output_dir is None:
+            output_dir = Path.cwd()
+            log.warning("no output_dir provided, outputs will be written to current work directory")
+        elif not isinstance(output_dir, (str, Path)):
             raise TypeError(output_dir)
         if override is None:
             override = {}
+        elif not isinstance(override, dict):
+            raise TypeError(override)
 
         # parse configuration
+        self._output_dir = Path(output_dir)
+        self._output_conf_file = self._output_dir / "vac2fost_conf.nml"
+        if (self._output_conf_file).is_file() and override:
+            err = f"{self._output_conf_file} is a reserved file name for vac2fost to output. "
+            err += "It can not be used as input with an override."
+            raise RuntimeError(err)
+
         self.conf_file = Path(conf_file)
         self.conf = f90nml.read(conf_file)
         self.conf.patch(override)
-        self._output_dir = output_dir or Path.cwd()
 
         flags = self.conf.get("flags", {})
         self._use_settling = flags.get("settling", False)
