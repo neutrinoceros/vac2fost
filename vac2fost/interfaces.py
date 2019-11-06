@@ -75,16 +75,27 @@ class AbstractInterface(ABC):
         # input checking
         if not isinstance(conf_file, (str, Path)):
             raise TypeError(conf_file)
-        if output_dir is not None and not isinstance(output_dir, (str, Path)):
+        if output_dir is None:
+            output_dir = Path.cwd()
+            log.warning("no output_dir provided, outputs will be written to current work directory")
+        elif not isinstance(output_dir, (str, Path)):
             raise TypeError(output_dir)
         if override is None:
             override = {}
+        elif not isinstance(override, dict):
+            raise TypeError(override)
 
         # parse configuration
+        self._output_dir = Path(output_dir)
+        self._output_conf_file = self._output_dir / "vac2fost.nml.backup"
+        if self._output_conf_file == Path(conf_file):
+            err = f"{self._output_conf_file} is a reserved file name for vac2fost to output. "
+            err += "It can not be used as input."
+            raise RuntimeError(err)
+
         self.conf_file = Path(conf_file)
         self.conf = f90nml.read(conf_file)
         self.conf.patch(override)
-        self._output_dir = output_dir or Path.cwd()
 
         flags = self.conf.get("flags", {})
         self._use_settling = flags.get("settling", False)
@@ -133,7 +144,7 @@ class AbstractInterface(ABC):
 
             p = (p1, p2)[found.index(True)]
             log.warning("Relative path found for hydro_data_dir, overriding to absolute path.")
-            self.conf['amrvac_input'].update({'hydro_data_dir': p.resolve()})
+            self.conf['amrvac_input'].update({'hydro_data_dir': str(p.resolve())})
         self.amrvac_conf = read_amrvac_parfiles(
             parfiles=self.conf['amrvac_input']['config'],
             location=self.conf['amrvac_input']['hydro_data_dir']
@@ -157,7 +168,7 @@ class AbstractInterface(ABC):
             # identical result without explicitly passing the gas density.
             self._read_gas_density = read_gas_density
 
-        if not self.io.OUT.directory.exists():
+        if not self.io.OUT.directory.exists(): # todo : don't use io here # python 3.8: :=
             os.makedirs(self.io.OUT.directory)
             log.warning(f"dir {self.io.OUT.directory} was created")
 
@@ -280,10 +291,18 @@ class AbstractInterface(ABC):
                 k = f"HIERARCH {k}"
             dust_densities_HDU.header.append((k, v))
 
+        if self._iter_count == 0:
+            self.conf.write(self._output_conf_file, force=True)
+            with open(self._output_conf_file, mode="at") as stream:
+                stream.write(f"! automatically generated with vac2fost {__version__}\n")
+                stream.write("! this file is self-contained and can be used for reproduction\n")
+                stream.write("! WARNING: rename this file before running vac2fost with it")
+            log.info(f"wrote {self._output_conf_file.resolve()}")
+
         with open(self.io.OUT.filepath, mode="wb") as fo:
             hdul = fits.HDUList(hdus=[dust_densities_HDU] + suppl_hdus)
             hdul.writeto(fo)
-        log.info(f"successfully wrote {self.io.OUT.filepath}")
+        log.info(f"wrote {self.io.OUT.filepath}")
 
     def advance_iteration(self) -> None:
         """Step to next output number."""
