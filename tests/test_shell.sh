@@ -16,7 +16,6 @@ TESTDIR=$VAC2FOST_INSTALL_DIR/tests
 OUT=$TESTDIR/output
 EXE=$VAC2FOST_INSTALL_DIR/app/v2f.py
 
-
 expect_success () {
     if [[ $? != 0 ]] ; then
 	echo FAIL
@@ -40,23 +39,12 @@ echo "Test 1: normal call"
 $EXE $TESTDIR/sample/vac2fost_conf_quick.nml --output $OUT/shell_1
 expect_success
 
+# <- this one is SUPPOSED to fail because the mandatory "nums" argument is not provided
 echo
-echo "Test 2: nums arg"
-$EXE $TESTDIR/sample/vac2fost_conf_quick.nml --output $OUT/shell_2 --nums 2
-expect_success
-
-echo
-echo "Test 3: nums = 0"
-$EXE $TESTDIR/sample/vac2fost_conf_quick_no_number.nml --output $OUT/shell_3 --nums 0
-expect_success
-
-echo
-echo "Test 4: multinums call"
-$EXE $TESTDIR/sample/vac2fost_conf_quick_no_number.nml --output $OUT/shell_4 --nums 0 1 2
-expect_success
-
-# <- this one is SUPPOSED to fail
-echo
-echo "Test 5: Broken call"
-$EXE $TESTDIR/sample/vac2fost_conf_quick_no_number.nml --output $OUT/shell_5
+echo "Test 2: Broken call"
+$EXE $TESTDIR/sample/vac2fost_conf_quick_no_number.nml --output $OUT/shell_2
 expect_failure
+
+echo "Test 3: display version"
+$EXE --version
+expect_success

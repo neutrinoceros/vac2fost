@@ -74,7 +74,7 @@ integration:
     - source activate $PYENV
     - $SLURM_CMD pytest tests/int
 
-.shell:
+shell:
   stage: integration_tests
   script:
     - source activate $PYENV
