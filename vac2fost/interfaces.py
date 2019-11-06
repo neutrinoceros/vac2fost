@@ -87,7 +87,7 @@ class AbstractInterface(ABC):
 
         # parse configuration
         self._output_dir = Path(output_dir)
-        self._output_conf_file = self._output_dir / "v2f_conf.nml"
+        self._output_conf_file = self._output_dir / "vac2fost.nml.backup"
         if self._output_conf_file == Path(conf_file):
             err = f"{self._output_conf_file} is a reserved file name for vac2fost to output. "
             err += "It can not be used as input."
@@ -293,6 +293,10 @@ class AbstractInterface(ABC):
 
         if self._iter_count == 0:
             self.conf.write(self._output_conf_file, force=True)
+            with open(self._output_conf_file, mode="at") as stream:
+                stream.write(f"! automatically generated with vac2fost {__version__}\n")
+                stream.write("! this file is self-contained and can be used for reproduction\n")
+                stream.write("! WARNING: rename this file before running vac2fost with it")
             log.info(f"wrote {self._output_conf_file.resolve()}")
 
         with open(self.io.OUT.filepath, mode="wb") as fo:
