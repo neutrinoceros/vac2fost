@@ -87,10 +87,10 @@ class AbstractInterface(ABC):
 
         # parse configuration
         self._output_dir = Path(output_dir)
-        self._output_conf_file = self._output_dir / "vac2fost_conf.nml"
-        if (self._output_conf_file).is_file() and override:
+        self._output_conf_file = self._output_dir / "v2f_conf.nml"
+        if self._output_conf_file == Path(conf_file):
             err = f"{self._output_conf_file} is a reserved file name for vac2fost to output. "
-            err += "It can not be used as input with an override."
+            err += "It can not be used as input."
             raise RuntimeError(err)
 
         self.conf_file = Path(conf_file)
@@ -144,7 +144,7 @@ class AbstractInterface(ABC):
 
             p = (p1, p2)[found.index(True)]
             log.warning("Relative path found for hydro_data_dir, overriding to absolute path.")
-            self.conf['amrvac_input'].update({'hydro_data_dir': p.resolve()})
+            self.conf['amrvac_input'].update({'hydro_data_dir': str(p.resolve())})
         self.amrvac_conf = read_amrvac_parfiles(
             parfiles=self.conf['amrvac_input']['config'],
             location=self.conf['amrvac_input']['hydro_data_dir']
@@ -168,7 +168,7 @@ class AbstractInterface(ABC):
             # identical result without explicitly passing the gas density.
             self._read_gas_density = read_gas_density
 
-        if not self.io.OUT.directory.exists():
+        if not self.io.OUT.directory.exists(): # todo : don't use io here # python 3.8: :=
             os.makedirs(self.io.OUT.directory)
             log.warning(f"dir {self.io.OUT.directory} was created")
 
@@ -291,10 +291,14 @@ class AbstractInterface(ABC):
                 k = f"HIERARCH {k}"
             dust_densities_HDU.header.append((k, v))
 
+        if self._iter_count == 0:
+            self.conf.write(self._output_conf_file, force=True)
+            log.info(f"wrote {self._output_conf_file.resolve()}")
+
         with open(self.io.OUT.filepath, mode="wb") as fo:
             hdul = fits.HDUList(hdus=[dust_densities_HDU] + suppl_hdus)
             hdul.writeto(fo)
-        log.info(f"successfully wrote {self.io.OUT.filepath}")
+        log.info(f"wrote {self.io.OUT.filepath}")
 
     def advance_iteration(self) -> None:
         """Step to next output number."""
