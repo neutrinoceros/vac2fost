@@ -16,7 +16,8 @@ def instanciate_interface(conffile, **kwargs):
     outdir = OUT / f"test_reg_{Path(conffile).stem}"
     if outdir.is_dir():
         shutil.rmtree(outdir)
-    itf = app(test_dir/"sample"/conffile, output_dir=outdir, **kwargs)
+    override = {"flags": {k: v for k,v in kwargs.items()}}
+    itf = app(test_dir/"sample"/conffile, override, output_dir=outdir)
     return itf
 
 # to regold tests
@@ -24,7 +25,7 @@ def regold(itf, reffile, morekeys:list = None):
     save_keys = [
         "amrvac_conf",
         "input_grid", "output_grid",
-        "_dust_binning_mode"
+        "_dust_bin_mode"
     ]
     if morekeys is not None:
         save_keys += morekeys
@@ -66,7 +67,7 @@ class TestRegressionMain:
         #regold(itf, reffile, morekeys=["new_3D_gas_velocity"])
 
         out_ref = pickle.load(open(reffile, mode="rb"))
-        assert itf._dust_binning_mode == out_ref["_dust_binning_mode"]
+        assert itf._dust_bin_mode == out_ref["_dust_binning_mode"]
         assert itf.amrvac_conf == out_ref["amrvac_conf"]
         np.testing.assert_array_equal(itf.input_grid["ticks_r"], out_ref["input_grid"]["ticks_r"])
         np.testing.assert_array_equal(itf.input_grid["ticks_phi"], out_ref["input_grid"]["ticks_phi"])
@@ -91,9 +92,14 @@ class TestRegressionMain:
         np.testing.assert_allclose(new, ref, rtol=5e-14)
 
 
+
 class TestRegressionMutliNums:
     subrefdir = REFOUT_DIR / "multinums"
-    itf = instanciate_interface(conffile="vac2fost_conf_quick.nml", nums=[0, 1, 2])
+    conffile = test_dir/"sample/vac2fost_conf_quick.nml"
+    outdir = OUT / f"test_reg_{Path(conffile).stem}"
+    if outdir.is_dir():
+        shutil.rmtree(outdir)
+    itf = app(conffile, output_dir=outdir, override={"amrvac_input": {"nums": [0, 1, 2]}})
     itf.preroll_mcfost()
     itf.tag = itf.conf_file.stem + "multinums"
 
@@ -121,7 +127,7 @@ class TestRegressionNonAxisym:
         #regold(itf, reffile, morekeys=["new_3D_gas_velocity"])
 
         out_ref = pickle.load(open(reffile, mode="rb"))
-        assert itf._dust_binning_mode == out_ref["_dust_binning_mode"]
+        assert itf._dust_bin_mode == out_ref["_dust_binning_mode"]
         assert itf.amrvac_conf == out_ref["amrvac_conf"]
         np.testing.assert_array_equal(itf.input_grid["ticks_r"], out_ref["input_grid"]["ticks_r"])
         np.testing.assert_array_equal(itf.input_grid["ticks_phi"], out_ref["input_grid"]["ticks_phi"])
@@ -169,7 +175,7 @@ class TestRegressionAutoGasOnly:
         #regold(itf, reffile)
 
         out_ref = pickle.load(open(reffile, mode="rb"))
-        assert itf._dust_binning_mode == out_ref["_dust_binning_mode"]
+        assert itf._dust_bin_mode == out_ref["_dust_binning_mode"]
         assert itf.amrvac_conf == out_ref["amrvac_conf"]
         np.testing.assert_array_equal(itf.input_grid["ticks_r"], out_ref["input_grid"]["ticks_r"])
         np.testing.assert_array_equal(itf.input_grid["ticks_phi"], out_ref["input_grid"]["ticks_phi"])

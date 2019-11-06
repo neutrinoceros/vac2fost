@@ -35,8 +35,7 @@ from .logger import v2flogger as log
 DEFAULT_UNITS = dict(distance2au=1.0, time2yr=1.0, mass2solar=1.0)
 
 def read_amrvac_parfiles(parfiles: list, location: str = "") -> f90nml.Namelist:
-    """Parse one, or a list of MPI-AMRVAC parfiles into a consistent
-    configuration.
+    """Parse one, or a list of MPI-AMRVAC parfiles into a consistent configuration.
 
     <location> : pathlike of the directory where parfiles are found.
     Can be either a PathLike object or a str. The later can include
@@ -70,39 +69,37 @@ class AbstractInterface(ABC):
     """A data transforming class. Holds most functionalities useful to
     vac2fost.main()"""
 
-    def __init__(self,
-                 conf_file: Path,
-                 nums: int = None, # or any int-returning iterable
-                 output_dir: Path = Path.cwd(),
-                 dust_bin_mode: str = None,
-                 read_gas_density=False,
-                 read_gas_velocity=False,
-                 settling=False,
-                 axisymmetry=False):
+    def __init__(self, conf_file: Path, override: dict = None, output_dir: Path = None):
+        # python 3.8: make conf_file positional only
 
         # input checking
         if not isinstance(conf_file, (str, Path)):
             raise TypeError(conf_file)
-        if not isinstance(output_dir, (str, Path)):
+        if output_dir is not None and not isinstance(output_dir, (str, Path)):
             raise TypeError(output_dir)
-        if axisymmetry and read_gas_velocity:
-            raise NotImplementedError
+        if override is None:
+            override = {}
 
+        # parse configuration
         self.conf_file = Path(conf_file)
-        self._output_dir = output_dir
-        self.read_gas_velocity = read_gas_velocity
-        self.use_settling = settling
-        self.use_axisymmetry = axisymmetry
-
-        # parse configuration file
         self.conf = f90nml.read(conf_file)
-        if self.use_axisymmetry and self.conf['mcfost_output'].get("n_az", 2) > 1:
-            log.warning("specified 'n_az'>1 but axisymmetry flag present, overriding n_az=1")
+        self.conf.patch(override)
+        self._output_dir = output_dir or Path.cwd()
+
+        flags = self.conf.get("flags", {})
+        self._use_settling = flags.get("settling", False)
+        self._use_axisymmetry = flags.get("axisymmetry", False)
+        self._read_gas_velocity = flags.get("read_gas_velocity", False)
+
+        # handle special cases
+        if self._use_axisymmetry and self._read_gas_velocity:
+            raise NotImplementedError
+        if self._use_axisymmetry and self.conf["mcfost_output"].get("n_az", 2) > 1:
+            log.warning("specified n_az > 1 but axisymmetry flag present, overriding n_az = 1")
             self.conf["mcfost_output"].update({"n_az": 1})
 
         # init iteration counter
-        if nums is None:
-            nums = self.conf["amrvac_input"]["nums"]
+        nums = self.conf["amrvac_input"]["nums"] # mandatory argument
         if isinstance(nums, int):
             nums = [nums]  # make it iterable
         nums = list(set(nums))  # filter out duplicates and sort them
@@ -135,6 +132,7 @@ class AbstractInterface(ABC):
                 raise FileNotFoundError(hydro_data_dir/options['config'][0])
 
             p = (p1, p2)[found.index(True)]
+            log.warning("Relative path found for hydro_data_dir, overriding to absolute path.")
             self.conf['amrvac_input'].update({'hydro_data_dir': p.resolve()})
         self.amrvac_conf = read_amrvac_parfiles(
             parfiles=self.conf['amrvac_input']['config'],
@@ -145,11 +143,13 @@ class AbstractInterface(ABC):
         self._input_data = None
         self.output_grid = None
 
-        self._set_dbm(dust_bin_mode)
-        self._read_gas_density = False
+        self._set_dbm(flags.get("dust_bin_mode", None))
+
+        read_gas_density = flags.get("read_gas_density", False)
         if read_gas_density and self._bin_gas:
-            log.warning("specified read_gas_density but redundant"
-                        f"with '{self._dust_binning_mode}' dbm, ignored")
+            log.warning(f"Found redundancy: with dust_bin_mode='{self._dust_bin_mode}'"
+                        "flag read_gas_density will be ignored.")
+            self._read_gas_density = False
         else:
             # Clarification: if no gas density is passed, mcfost assumes
             # that gas is traced by smallest grains. As "gas-only" and
@@ -248,7 +248,7 @@ class AbstractInterface(ABC):
             "gas-only": np.zeros(1, dtype="int64"),
             "dust-only": 1 + self.grain_micron_sizes[1:].argsort(),
             "mixed": self.grain_micron_sizes.argsort()
-        }[self._dust_binning_mode]
+        }[self._dust_bin_mode]
 
         output_ndarray = self.get_output_ndarray()
         gas_field = output_ndarray[0]
@@ -269,7 +269,7 @@ class AbstractInterface(ABC):
             suppl_hdus.append(fits.ImageHDU(gas_field))
             header.update(dict(read_gas_density=1))
 
-        if self.read_gas_velocity:
+        if self._read_gas_velocity:
             header.update(dict(read_gas_velocity=1))
             suppl_hdus.append(fits.ImageHDU(self.new_3D_gas_velocity))
 
@@ -325,26 +325,26 @@ class AbstractInterface(ABC):
         - (mixed)     : use both, assuming gas traces the smallest grains
         """
         if dbm in ("dust-only", "gas-only", "mixed"):
-            self._dust_binning_mode = dbm
+            self._dust_bin_mode = dbm
         elif isinstance(dbm, str):
             raise ValueError(f"Unrecognized dbm value {dbm}")
         else: # automatic setting
             try: # todo: make this try block more robust
                 smallest_gs_µm = 1e4* min(np.array(self.amrvac_conf['usr_dust_list']['grain_size_cm']))
             except KeyError:
-                self._dust_binning_mode = "gas-only"
+                self._dust_bin_mode = "gas-only"
                 reason = "could not find grain sizes"
             else:
                 if smallest_gs_µm > MINGRAINSIZE_µ:
-                    self._dust_binning_mode = "mixed"
+                    self._dust_bin_mode = "mixed"
                     reason = f"smallest size found > {MINGRAINSIZE_µ}µm"
-            log.warning(f"switched to '{self._dust_binning_mode}' dbm ({reason})")
+            log.warning(f"switched to '{self._dust_bin_mode}' dbm ({reason})")
 
         # should dust fluids be passed to mcfost ?
-        self._bin_dust = self._dust_binning_mode in {"dust-only", "mixed"}
+        self._bin_dust = self._dust_bin_mode in {"dust-only", "mixed"}
 
         # should gas be passed to mcfost ?
-        self._bin_gas = self._dust_binning_mode in {'gas-only', 'mixed'}
+        self._bin_gas = self._dust_bin_mode in {'gas-only', 'mixed'}
 
     def _estimate_dust_mass(self) -> float:
         """Estimate the total dust mass in the grid, in solar masses"""
@@ -354,7 +354,7 @@ class AbstractInterface(ABC):
         dr = rvect[1] - rvect[0]
         cell_surfaces = dphi/2 * ((rvect + dr/2)**2 - (rvect - dr/2)**2)
 
-        if self._dust_binning_mode == "gas-only":
+        if self._dust_bin_mode == "gas-only":
             keys = ["rho"]
         else:
             keys = [k for k, _ in self._input_data if "rhod" in k]
@@ -362,7 +362,7 @@ class AbstractInterface(ABC):
         for key in keys:
             mass += np.sum([cell_surfaces * self._input_data[key][:, i]
                             for i in range(self.io.IN.gridshape.nphi)])
-        if self._dust_binning_mode == "gas-only":
+        if self._dust_bin_mode == "gas-only":
             mass /= self.g2d_ratio
         mass *= self.conf["units"]["mass2solar"]
         return mass
@@ -411,7 +411,7 @@ class AbstractInterface(ABC):
         new_plane_densities = np.zeros((nbins, nr, nphi))
         full3D_densities = np.zeros((nbins, nphi, nz, nr))
 
-        if self.use_axisymmetry:
+        if self._use_axisymmetry:
             r_profile_densities[:] = np.array([self._interpolate1D(datakey=k) for k in self.density_keys])
             # those are references, not copies
             hyperplane_densities = r_profile_densities
@@ -424,7 +424,7 @@ class AbstractInterface(ABC):
             output_ndarray = full3D_densities
 
         for ir, r in enumerate(self.output_grid["ticks_r"]):
-            if self.use_axisymmetry: # todo: unify these two lines ?
+            if self._use_axisymmetry: # todo: unify these two lines ?
                 z_vect = self.output_grid["phi-slice_z"][:, ir]
             else:
                 z_vect = self.output_grid["phi-slice_z"][nz:, ir]
@@ -432,7 +432,7 @@ class AbstractInterface(ABC):
             for ibin, grain_µsize in enumerate(self.grain_micron_sizes):
                 hpd = hyperplane_densities[ibin, ir, ...]
                 H = gas_height
-                if self.use_settling:
+                if self._use_settling:
                     H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
                 gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
                 output_ndarray[ibin, ..., ir] = np.outer(hpd, gaussian)

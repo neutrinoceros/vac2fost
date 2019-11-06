@@ -30,7 +30,7 @@ class TestPyScripting():
         app(
             str(testdir / "sample/vac2fost_conf.nml"),
             output_dir=__class__.output_dir,
-            nums=[0, 1, 2]
+            override={"amrvac_input": {"nums": [0, 1, 2]}}
         )
         for n in (0, 1, 2):
             assert (__class__.output_dir / f"hd142527_dusty{str(n).zfill(4)}.fits").exists()
