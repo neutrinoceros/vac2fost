@@ -150,6 +150,19 @@ class AbstractInterface(ABC):
             location=self.conf['amrvac_input']['hydro_data_dir']
         )
 
+        # parse gas to dust mass ratio
+        dustlist = self.conf["dust"]
+        if "gas_to_dust_ratio" and "dust_to_gas_ratio" in dustlist:
+            g2d =  RuntimeError("Can not set both 'gas_to_dust_ratio' and 'dust_to_gas_ratio'")
+        elif "gas_to_dust_ratio" in dustlist:
+            g2d = dustlist["gas_to_dust_ratio"]
+        elif "dust_to_gas_ratio" in dustlist:
+            g2d = 1/dustlist["dust_to_gas_ratio"]
+        else:
+            g2d = 100.
+            log.warning("Could not find 'gas_to_dust_ratio', defaulting to 100")
+        self._gas_to_dust_ratio = g2d
+
         self._µsizes = None
         self._input_data = None
         self.output_grid = None
@@ -185,12 +198,6 @@ class AbstractInterface(ABC):
     @abstractmethod
     def load_input_data(self) -> None:
         """Set self._input_data"""
-
-    @property
-    @abstractmethod
-    def g2d_ratio(self):
-        """Parse the gas to dust ratio."""
-        # todo: make this part of load_input_data()
 
     @property
     @abstractmethod
@@ -275,8 +282,7 @@ class AbstractInterface(ABC):
 
         header = {'read_n_a': 0} # automatic normalization of size-bins from mcfost param file.
         if self._read_gas_density:
-            #devnote: add try statement here ?
-            header.update(dict(gas_to_dust=self.amrvac_conf["usr_dust_list"]["gas2dust_ratio"])) # WIP
+            header.update(dict(gas_to_dust=self._gas_to_dust_ratio))
             suppl_hdus.append(fits.ImageHDU(gas_field))
             header.update(dict(read_gas_density=1))
 
@@ -388,7 +394,7 @@ class AbstractInterface(ABC):
             mass += np.sum([cell_surfaces * self._input_data[key][:, i]
                             for i in range(self.io.IN.gridshape.nphi)])
         if self._dust_bin_mode == "gas-only":
-            mass /= self.g2d_ratio
+            mass /= self._gas_to_dust_ratio
         mass *= self.conf["units"]["mass2solar"]
         return mass
 
@@ -406,7 +412,7 @@ class AbstractInterface(ABC):
 
         if self._bin_dust:
             parameters.update({
-                "gas_to_dust_ratio": self.g2d_ratio,
+                "gas_to_dust_ratio": self._gas_to_dust_ratio,
                 "dust_mass": self._estimate_dust_mass()
             })
             # Grains
@@ -553,11 +559,6 @@ class VtuFileInterface(AbstractInterface):
     @property
     def density_keys(self) -> list:
         return sorted(filter(lambda k: "rho" in k, self._input_data.fields.keys()))
-
-    @property
-    def g2d_ratio(self):
-        """Gas to dust ratio"""
-        return self.amrvac_conf["usr_dust_list"].get("gas2dust_ratio", 100.) # WIP
 
 
 class DatFileInterface(AbstractInterface):
