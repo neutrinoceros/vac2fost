@@ -276,7 +276,7 @@ class AbstractInterface(ABC):
         header = {'read_n_a': 0} # automatic normalization of size-bins from mcfost param file.
         if self._read_gas_density:
             #devnote: add try statement here ?
-            header.update(dict(gas_to_dust=self.amrvac_conf["usr_dust_list"]["gas2dust_ratio"]))
+            header.update(dict(gas_to_dust=self.amrvac_conf["usr_dust_list"]["gas2dust_ratio"])) # WIP
             suppl_hdus.append(fits.ImageHDU(gas_field))
             header.update(dict(read_gas_density=1))
 
@@ -319,12 +319,18 @@ class AbstractInterface(ABC):
     def grain_micron_sizes(self) -> np.ndarray:
         """Read grain sizes (assumed in [cm]), from AMRVAC parameters and
         convert to microns."""
+        grain_size2micron = self.conf["dust"].get("grain_size2micron", 1.0)
+        grain_sizes = self.conf["dust"]["grain_sizes"]
+        if isinstance(grain_sizes, str):
+            namelist, item = grain_sizes.split(".")
+            grain_sizes = self.amrvac_conf[namelist][item]
+        grain_sizes = np.array(grain_sizes)
+
         if self._µsizes is None:
             µm_sizes = np.empty(0)
             if self._bin_dust:
-                µm_sizes = 1e4 * np.array(
-                    self.amrvac_conf["usr_dust_list"]["grain_size_cm"])
-                assert min(µm_sizes) > 0.1 #in case this triggers, review this code
+                µm_sizes = grain_size2micron * grain_sizes
+                assert min(µm_sizes) > MINGRAINSIZE_µ, "in case this triggers, review this code"
             # always associate a grain size to the gas bin
             µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
             self._µsizes = µm_sizes
@@ -348,8 +354,8 @@ class AbstractInterface(ABC):
         elif isinstance(dbm, str):
             raise ValueError(f"Unrecognized dbm value {dbm}")
         else: # automatic setting
-            try: # todo: make this try block more robust
-                smallest_gs_µm = 1e4* min(np.array(self.amrvac_conf['usr_dust_list']['grain_size_cm']))
+            try:
+                smallest_gs_µm = min(self.grain_micron_sizes[1:])
             except KeyError:
                 self._dust_bin_mode = "gas-only"
                 reason = "could not find grain sizes"
@@ -551,7 +557,7 @@ class VtuFileInterface(AbstractInterface):
     @property
     def g2d_ratio(self):
         """Gas to dust ratio"""
-        return self.amrvac_conf["usr_dust_list"].get("gas2dust_ratio", 100.)
+        return self.amrvac_conf["usr_dust_list"].get("gas2dust_ratio", 100.) # WIP
 
 
 class DatFileInterface(AbstractInterface):
