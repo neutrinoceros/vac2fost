@@ -21,7 +21,7 @@ def main(conf_file: Path, # python 3.8: positional only
                      50 critical
     """
     log.setLevel(loglevel)
-    log.info(f"start vac2fost {__version__} main loop")
+    log.debug(f"start vac2fost {__version__} main loop")
     if input_data_format != "vtu":
         raise NotImplementedError
     Interface = {"dat": DatFileInterface, "vtu": VtuFileInterface}[input_data_format] # wip
@@ -48,5 +48,5 @@ def main(conf_file: Path, # python 3.8: positional only
         except StopIteration:
             break
 
-    log.info("end vac2fost")
+    log.debug("end vac2fost")
     return itf  # return the interface object for inspection (tests)
