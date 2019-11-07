@@ -150,19 +150,6 @@ class AbstractInterface(ABC):
             location=self.conf['amrvac_input']['hydro_data_dir']
         )
 
-        # parse gas to dust mass ratio
-        dustlist = self.conf["dust"]
-        if "gas_to_dust_ratio" and "dust_to_gas_ratio" in dustlist:
-            g2d =  RuntimeError("Can not set both 'gas_to_dust_ratio' and 'dust_to_gas_ratio'")
-        elif "gas_to_dust_ratio" in dustlist:
-            g2d = dustlist["gas_to_dust_ratio"]
-        elif "dust_to_gas_ratio" in dustlist:
-            g2d = 1/dustlist["dust_to_gas_ratio"]
-        else:
-            g2d = 100.
-            log.warning("Could not find 'gas_to_dust_ratio', defaulting to 100")
-        self._gas_to_dust_ratio = g2d
-
         self._µsizes = None
         self._input_data = None
         self.output_grid = None
@@ -264,8 +251,8 @@ class AbstractInterface(ABC):
         """Write a .fits file suited for MCFOST input."""
         dust_bin_selector = {
             "gas-only": np.zeros(1, dtype="int64"),
-            "dust-only": 1 + self.grain_micron_sizes[1:].argsort(),
-            "mixed": self.grain_micron_sizes.argsort()
+            "dust-only": 1 + self._grain_micron_sizes[1:].argsort(),
+            "mixed": self._grain_micron_sizes.argsort()
         }[self._dust_bin_mode]
 
         output_ndarray = self.get_output_ndarray()
@@ -277,7 +264,7 @@ class AbstractInterface(ABC):
         if len(dust_bin_selector) > 1:
             # mcfost requires an HDU with grain sizes only if more than one population is present
             suppl_hdus.append(
-                fits.ImageHDU(self.grain_micron_sizes[dust_bin_selector])
+                fits.ImageHDU(self._grain_micron_sizes[dust_bin_selector])
             )
 
         header = {'read_n_a': 0} # automatic normalization of size-bins from mcfost param file.
@@ -321,26 +308,6 @@ class AbstractInterface(ABC):
 
 
     # abusive properties ...
-    @property
-    def grain_micron_sizes(self) -> np.ndarray:
-        """Read grain sizes (assumed in [cm]), from AMRVAC parameters and
-        convert to microns."""
-        grain_size2micron = self.conf["dust"].get("grain_size2micron", 1.0)
-        grain_sizes = self.conf["dust"]["grain_sizes"]
-        if isinstance(grain_sizes, str):
-            namelist, item = grain_sizes.split(".")
-            grain_sizes = self.amrvac_conf[namelist][item]
-        grain_sizes = np.array(grain_sizes)
-
-        if self._µsizes is None:
-            µm_sizes = np.empty(0)
-            if self._bin_dust:
-                µm_sizes = grain_size2micron * grain_sizes
-                assert min(µm_sizes) > MINGRAINSIZE_µ, "in case this triggers, review this code"
-            # always associate a grain size to the gas bin
-            µm_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
-            self._µsizes = µm_sizes
-        return self._µsizes
 
     @property
     def aspect_ratio(self):
@@ -350,32 +317,70 @@ class AbstractInterface(ABC):
 
     # private methods
     def _set_dbm(self, dbm=None) -> None:
+        # todo : rename (does more that dbm now) to parse_dust_properties ?
         """Define binning strategy
         - (gas-only)  : use only gas as a proxy for dust
         - (dust-only) : use only dust information
         - (mixed)     : use both, assuming gas traces the smallest grains
         """
-        if dbm in ("dust-only", "gas-only", "mixed"):
-            self._dust_bin_mode = dbm
-        elif isinstance(dbm, str):
+        if dbm is not None and dbm not in ("dust-only", "mixed", "gas-only"):
             raise ValueError(f"Unrecognized dbm value {dbm}")
-        else: # automatic setting
-            try:
-                smallest_gs_µm = min(self.grain_micron_sizes[1:])
-            except KeyError:
-                self._dust_bin_mode = "gas-only"
-                reason = "could not find grain sizes"
+
+        µm_sizes = np.empty(0)
+        auto_dbm = None
+
+        # automatic setup
+        if "dust" in self.conf:
+            grain_size2micron = self.conf["dust"].get("grain_size2micron", 1.0)
+            grain_sizes = self.conf["dust"]["grain_sizes"]
+            if isinstance(grain_sizes, str):
+                namelist, item = grain_sizes.split(".")
+                grain_sizes = self.amrvac_conf[namelist][item]
+            grain_sizes = np.array(grain_sizes)
+            µm_sizes = grain_size2micron * grain_sizes
+
+        if dbm is not None:
+            self._dust_bin_mode = dbm
+        else:
+            if len(µm_sizes) < 1:
+                auto_dbm = "gas-only"
+                reason = "dust parameters not found"
+            elif min(µm_sizes) > MINGRAINSIZE_µ:
+                auto_dbm = "mixed"
+                reason = f"smallest grain size > threshold ({MINGRAINSIZE_µ} µm)"
             else:
-                if smallest_gs_µm > MINGRAINSIZE_µ:
-                    self._dust_bin_mode = "mixed"
-                    reason = f"smallest size found > {MINGRAINSIZE_µ}µm"
+                auto_dbm = "dust-only"
+                reason = f"smallest grain size < threshold ({MINGRAINSIZE_µ} µm)"
+            self._dust_bin_mode = auto_dbm
             log.warning(f"switched to '{self._dust_bin_mode}' dbm ({reason})")
+
+        if self._dust_bin_mode == "gas-only":
+            µm_sizes = np.empty(0)
+
+        # always associate a grain size to the gas bin
+        self._grain_micron_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
 
         # should dust fluids be passed to mcfost ?
         self._bin_dust = self._dust_bin_mode in {"dust-only", "mixed"}
 
         # should gas be passed to mcfost ?
         self._bin_gas = self._dust_bin_mode in {'gas-only', 'mixed'}
+
+        if self._bin_dust:
+            # parse gas to dust mass ratio
+            dustlist = self.conf["dust"]
+            if "gas_to_dust_ratio" and "dust_to_gas_ratio" in dustlist:
+                g2d =  RuntimeError("Can not set both 'gas_to_dust_ratio' and 'dust_to_gas_ratio'")
+            elif "gas_to_dust_ratio" in dustlist:
+                g2d = dustlist["gas_to_dust_ratio"]
+            elif "dust_to_gas_ratio" in dustlist:
+                g2d = 1/dustlist["dust_to_gas_ratio"]
+            else:
+                g2d = 100.
+                log.warning("Could not find 'gas_to_dust_ratio', defaulting to 100")
+            self._gas_to_dust_ratio = g2d
+        else:
+            self._gas_to_dust_ratio = None
 
     def _estimate_dust_mass(self) -> float:
         """Estimate the total dust mass in the grid, in solar masses"""
@@ -394,7 +399,7 @@ class AbstractInterface(ABC):
             mass += np.sum([cell_surfaces * self._input_data[key][:, i]
                             for i in range(self.io.IN.gridshape.nphi)])
         if self._dust_bin_mode == "gas-only":
-            mass /= self._gas_to_dust_ratio
+            mass /= 100
         mass *= self.conf["units"]["mass2solar"]
         return mass
 
@@ -416,11 +421,10 @@ class AbstractInterface(ABC):
                 "dust_mass": self._estimate_dust_mass()
             })
             # Grains
-            sizes_µm = self.grain_micron_sizes
             parameters.update({
                 # min/max grain sizes in microns
-                'sp_min': min(1e-1, min(sizes_µm)),
-                'sp_max': max(1e3, max(sizes_µm)),
+                'sp_min': min(1e-1, min(self._grain_micron_sizes)),
+                'sp_max': max(1e3, max(self._grain_micron_sizes)),
             })
         #Star
         try:
@@ -460,7 +464,7 @@ class AbstractInterface(ABC):
             else:
                 z_vect = self.output_grid["phi-slice_z"][nz:, ir]
             gas_height = r * self.aspect_ratio
-            for ibin, grain_µsize in enumerate(self.grain_micron_sizes):
+            for ibin, grain_µsize in enumerate(self._grain_micron_sizes): # will break in gas-only mode
                 hpd = hyperplane_densities[ibin, ir, ...]
                 H = gas_height
                 if self._use_settling:
