@@ -154,7 +154,7 @@ class AbstractInterface(ABC):
         self._input_data = None
         self.output_grid = None
 
-        self._set_dbm(flags.get("dust_bin_mode", None))
+        self._parse_dust_properties()
 
         read_gas_density = flags.get("read_gas_density", False)
         if read_gas_density and self._bin_gas:
@@ -316,13 +316,17 @@ class AbstractInterface(ABC):
         return mcfl["scale_height"] / mcfl["reference_radius"]
 
     # private methods
-    def _set_dbm(self, dbm=None) -> None:
-        # todo : rename (does more that dbm now) to parse_dust_properties ?
-        """Define binning strategy
+    def _parse_dust_properties(self) -> None:
+        """
+        Parse grain sizes and define binning strategy
         - (gas-only)  : use only gas as a proxy for dust
         - (dust-only) : use only dust information
         - (mixed)     : use both, assuming gas traces the smallest grains
         """
+        try:
+            dbm = self.conf["flags"]["dust_bin_mode"]
+        except KeyError:
+            dbm = None
         if dbm is not None and dbm not in ("dust-only", "mixed", "gas-only"):
             raise ValueError(f"Unrecognized dbm value {dbm}")
 
@@ -376,7 +380,7 @@ class AbstractInterface(ABC):
             elif "dust_to_gas_ratio" in dustlist:
                 g2d = 1/dustlist["dust_to_gas_ratio"]
             else:
-                g2d = 100.
+                g2d = 100
                 log.warning("Could not find 'gas_to_dust_ratio', defaulting to 100")
             self._gas_to_dust_ratio = g2d
         else:
