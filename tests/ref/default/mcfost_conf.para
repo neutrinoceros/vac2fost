@@ -43,7 +43,7 @@
 
 # Density structure
   1                                     zone_type
-  1e-3  100.0                           disk_dust_mass, gas_to_dust_ratio
+  1e-3  100                             disk_dust_mass, gas_to_dust_ratio
   10.0  100.0  2                        scale_height, reference_radius, vertical_profile_exponent
   70.0  0  450.0  100                   rin, edge, rout, Rc
   1.125                                 flaring_exp
@@ -74,6 +74,6 @@
 
 
 
-%% automatically generated with vac2fost 2.5.1
+%% automatically generated with vac2fost 3.0-dev
 %% via mcfost 3.0.35
-%% run by clm on dhcp7-33.oca.eu
+%% run by clm on beelzebot.home
