@@ -21,3 +21,9 @@
 &units
     distance2au = 100
 /
+
+&dust
+    gas_to_dust_ratio = 100
+    grain_size2micron = 1e4
+    grain_sizes = "usr_dust_list.grain_size_cm"
+/

@@ -22,21 +22,21 @@ class TestDBM:
                         output_dir=output_dir,
                         override={"flags": dict(dust_bin_mode="gas-only")})
         assert itf._dust_bin_mode == "gas-only"
-        assert itf.grain_micron_sizes == [MINGRAINSIZE_µ]
+        assert itf._grain_micron_sizes == [MINGRAINSIZE_µ]
 
     def test_dust_only(self):
         itf = Interface(test_dir/'sample/vac2fost_conf_quick.nml',
                         output_dir=output_dir,
                         override={"flags": dict(dust_bin_mode="dust-only")})
         assert itf._dust_bin_mode == "dust-only"
-        np.testing.assert_array_equal(itf.grain_micron_sizes, [MINGRAINSIZE_µ, 1e4, 1e3])
+        np.testing.assert_array_equal(itf._grain_micron_sizes, [MINGRAINSIZE_µ, 1e4, 1e3])
 
     def test_mixed(self):
         itf = Interface(test_dir/'sample/vac2fost_conf_quick.nml',
                         output_dir=output_dir,
                         override={"flags": dict(dust_bin_mode="mixed")})
         assert itf._dust_bin_mode == "mixed"
-        np.testing.assert_array_equal(itf.grain_micron_sizes, [MINGRAINSIZE_µ, 1e4, 1e3])
+        np.testing.assert_array_equal(itf._grain_micron_sizes, [MINGRAINSIZE_µ, 1e4, 1e3])
 
     def test_auto_into_mixed(self):
         itf = Interface(test_dir/'sample/vac2fost_conf_quick.nml',
@@ -49,19 +49,16 @@ class TestDBM:
         assert itf._dust_bin_mode == "gas-only"
 
     def test_mixed_into_KeyError(self):
-        itf = Interface(test_dir/'sample/vac2fost_conf_quick_no_dust.nml',
-                        output_dir=output_dir,
-                        override={"flags": dict(dust_bin_mode="mixed")})
         with pytest.raises(KeyError):
-            # impossible setups should raise KeyError
-            gms = itf.grain_micron_sizes
+            itf = Interface(test_dir/'sample/vac2fost_conf_quick_no_dust.nml',
+                            output_dir=output_dir,
+                            override={"flags": dict(dust_bin_mode="mixed")})
 
     def test_dust_only_into_KeyError(self):
-        itf = Interface(test_dir/'sample/vac2fost_conf_quick_no_dust.nml',
-                        output_dir=output_dir,
-                        override={"flags": dict(dust_bin_mode="dust-only")})
         with pytest.raises(KeyError):
-            gms = itf.grain_micron_sizes
+            itf = Interface(test_dir/'sample/vac2fost_conf_quick_no_dust.nml',
+                            output_dir=output_dir,
+                            override={"flags": dict(dust_bin_mode="dust-only")})
 
 
 
