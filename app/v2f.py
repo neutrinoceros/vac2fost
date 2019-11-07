@@ -41,10 +41,15 @@ mcfost_list = dict(
     reference_radius=100.0,
     scale_height=1.0,  # [a.u.], at defined at reference_radius
 )
-
+dust_list = dict(
+    grain_size2micron = 1e4,
+    grain_sizes = [1, 10, 100], # using original unit
+    dust_to_gas_ratio = 0.01
+)
 sublists = {
     "amrvac_input": amrvac_list,
     "mcfost_output": mcfost_list,
+    "dust": dust_list,
     "units": DEFAULT_UNITS,
     "flags": {}
 }
