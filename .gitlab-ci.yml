@@ -1,6 +1,6 @@
 variables:
   PYENV: "vac2fost-test-env"
-  SLURM_CMD: "srun --exclusive=user -p gitlab --cpus-per-task 1"
+  SLURM_CMD: "srun --exclusive=user -p gitlab --cpus-per-task 1 --ntasks 1"
 cache:
   paths:
     - deps/
@@ -35,7 +35,7 @@ install or update pyenv:
 download private dependencies:
   stage: build
   script:
-    - $SLURM_CMD bash dl_deps.sh
+    - $SLURM_CMD dl_deps.sh
 
 install mcfost:
   stage: build
