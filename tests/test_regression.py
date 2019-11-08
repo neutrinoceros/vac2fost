@@ -29,10 +29,13 @@ def regold(itf, reffile, morekeys:list = None):
     ]
     if morekeys is not None:
         save_keys += morekeys
+    out = {k: itf.__getattribute__(k) for k in save_keys}
+    out.update({"output_ndarray": itf.get_output_ndarray()})
+    if "read_gas_velocity" in itf.conf["flags"]:
+        out.update({"output_gas_velocity": itf.get_gas_velocity_ndarray()})
     with open(reffile, mode="wb") as file:
-        out = {k: itf.__getattribute__(k) for k in save_keys}
-        out.update({"output_ndarray": itf.get_output_ndarray()})
         pickle.dump(out, file)
+
 
 class TestRegressionMain:
     subrefdir = REFOUT_DIR / "default"
@@ -64,10 +67,10 @@ class TestRegressionMain:
     def test_out(self):
         itf = __class__.itf
         reffile = __class__.subrefdir / f"{itf.tag}.p"
-        #regold(itf, reffile, morekeys=["new_3D_gas_velocity"])
+        #regold(itf, reffile)
 
         out_ref = pickle.load(open(reffile, mode="rb"))
-        assert itf._dust_bin_mode == out_ref["_dust_binning_mode"]
+        assert itf._dust_bin_mode == out_ref["_dust_bin_mode"]
         assert itf.amrvac_conf == out_ref["amrvac_conf"]
         np.testing.assert_array_equal(itf.input_grid["ticks_r"], out_ref["input_grid"]["ticks_r"])
         np.testing.assert_array_equal(itf.input_grid["ticks_phi"], out_ref["input_grid"]["ticks_phi"])
@@ -77,7 +80,7 @@ class TestRegressionMain:
         np.testing.assert_array_equal(itf.output_grid["z-slice_phi"], out_ref["output_grid"]["z-slice_phi"])
         np.testing.assert_allclose(itf.output_grid["phi-slice_z"], out_ref["output_grid"]["phi-slice_z"], rtol=1e-15)
         np.testing.assert_allclose(itf.get_output_ndarray(), out_ref["output_ndarray"], rtol=5e-14)
-        np.testing.assert_allclose(itf.new_3D_gas_velocity, out_ref["new_3D_gas_velocity"], rtol=5e-14)
+        np.testing.assert_allclose(itf.get_gas_velocity_ndarray(), out_ref["output_gas_velocity"], rtol=5e-14)
 
     def test_image(self):
         itf = __class__.itf
@@ -115,19 +118,17 @@ class TestRegressionMutliNums:
 
 class TestRegressionNonAxisym:
     subrefdir = REFOUT_DIR / "nonaxisym"
-    itf = instanciate_interface(conffile="vac2fost_conf_nonaxisym.nml")
+    itf = instanciate_interface(conffile="vac2fost_conf_nonaxisym.nml", read_gas_velocity=True)
     itf.preroll_mcfost()
     itf.tag = itf.conf_file.stem
 
     def test_out(self):
         itf = __class__.itf
         reffile = __class__.subrefdir / f"{itf.tag}.p"
-        # nb: the present test forces the computatio of the 3D gas velocity field
-        # BY testing or regolding it, despite the fact it's not asked at instanciation
-        #regold(itf, reffile, morekeys=["new_3D_gas_velocity"])
+        #regold(itf, reffile)
 
         out_ref = pickle.load(open(reffile, mode="rb"))
-        assert itf._dust_bin_mode == out_ref["_dust_binning_mode"]
+        assert itf._dust_bin_mode == out_ref["_dust_bin_mode"]
         assert itf.amrvac_conf == out_ref["amrvac_conf"]
         np.testing.assert_array_equal(itf.input_grid["ticks_r"], out_ref["input_grid"]["ticks_r"])
         np.testing.assert_array_equal(itf.input_grid["ticks_phi"], out_ref["input_grid"]["ticks_phi"])
@@ -137,7 +138,7 @@ class TestRegressionNonAxisym:
         np.testing.assert_array_equal(itf.output_grid["z-slice_phi"], out_ref["output_grid"]["z-slice_phi"])
         np.testing.assert_allclose(itf.output_grid["phi-slice_z"], out_ref["output_grid"]["phi-slice_z"], rtol=1e-15)
         np.testing.assert_allclose(itf.get_output_ndarray(), out_ref["output_ndarray"], rtol=5e-14)
-        np.testing.assert_allclose(itf.new_3D_gas_velocity, out_ref["new_3D_gas_velocity"], rtol=5e-14)
+        np.testing.assert_allclose(itf.get_gas_velocity_ndarray(), out_ref["output_gas_velocity"], rtol=5e-14)
 
     def test_image(self):
         itf = __class__.itf
@@ -175,7 +176,7 @@ class TestRegressionAutoGasOnly:
         #regold(itf, reffile)
 
         out_ref = pickle.load(open(reffile, mode="rb"))
-        assert itf._dust_bin_mode == out_ref["_dust_binning_mode"]
+        assert itf._dust_bin_mode == out_ref["_dust_bin_mode"]
         assert itf.amrvac_conf == out_ref["amrvac_conf"]
         np.testing.assert_array_equal(itf.input_grid["ticks_r"], out_ref["input_grid"]["ticks_r"])
         np.testing.assert_array_equal(itf.input_grid["ticks_phi"], out_ref["input_grid"]["ticks_phi"])

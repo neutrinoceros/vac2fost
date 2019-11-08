@@ -283,8 +283,9 @@ class AbstractInterface(ABC):
             header.update(dict(read_gas_density=1))
 
         if self._read_gas_velocity:
+            vel_array = self.get_gas_velocity_ndarray()
             header.update(dict(read_gas_velocity=1))
-            suppl_hdus.append(fits.ImageHDU(self.new_3D_gas_velocity))
+            suppl_hdus.append(fits.ImageHDU(vel_array))
 
         dust_densities_HDU = fits.PrimaryHDU(dust_fields)
         for k, v in header.items():
@@ -466,7 +467,7 @@ class AbstractInterface(ABC):
                        / self.conf["mcfost_output"]["reference_radius"]
 
         for ir, r in enumerate(self.output_grid["ticks_r"]):
-            if self._use_axisymmetry: # todo: unify these two lines ?
+            if self._use_axisymmetry: # devnote: unify these two lines ?
                 z_vect = self.output_grid["phi-slice_z"][:, ir]
             else:
                 z_vect = self.output_grid["phi-slice_z"][nz:, ir]
@@ -479,6 +480,29 @@ class AbstractInterface(ABC):
                 gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
                 output_ndarray[ibin, ..., ir] = np.outer(hpd, gaussian)
         return output_ndarray
+
+    def get_gas_velocity_ndarray(self) -> np.ndarray:
+        """Derive the 3D velocity field for gas velocity, in km/s"""
+        rho, mr, mphi = map(self._interpolate2D, ["rho", "m1", "m2"])
+        vr, vphi = map(lambda x: x/rho, [mr, mphi])
+        phig = self.output_grid["z-slice_phi"].transpose()
+        vx = vr * np.cos(phig) - vphi * np.sin(phig)
+        vy = vr * np.sin(phig) + vphi * np.cos(phig)
+
+        # transform to 3D
+        nz = self.io.OUT.gridshape.nz
+        vx, vy = map(lambda a: np.stack([a]*nz, axis=1), [vx, vy])
+        vz = np.zeros(vx.shape)
+        oshape = self.io.OUT.gridshape
+        for v in (vx, vy, vz):
+            np.testing.assert_array_equal(v.shape, (oshape.nr, oshape.nz, oshape.nphi))
+
+        # unit conversion
+        conv = self.conf["units"]
+        dimvel = conv["distance2au"]*units.au / (conv["time2yr"]*units.yr)
+        vel2kms = dimvel.to(units.m / units.s).value
+        velarr = np.stack([vx, vy, vz], axis=3) * vel2kms
+        return velarr.transpose()
 
     # todo: rename to clearer names
     def _interpolate2D(self, datakey: str) -> np.ndarray:
@@ -502,29 +526,6 @@ class AbstractInterface(ABC):
         )
         return interpolator(self.output_grid["ticks_r"])
 
-    @property # todo: rewrite this without the "property"
-    def new_3D_gas_velocity(self) -> np.ndarray:
-        """Derive the 3D velocity field for gas velocity, in km/s"""
-        rho, mr, mphi = map(self._interpolate2D, ["rho", "m1", "m2"])
-        vr, vphi = map(lambda x: x/rho, [mr, mphi])
-        phig = self.output_grid["z-slice_phi"].transpose()
-        vx = vr * np.cos(phig) - vphi * np.sin(phig)
-        vy = vr * np.sin(phig) + vphi * np.cos(phig)
-
-        # transform to 3D
-        nz = self.io.OUT.gridshape.nz
-        vx, vy = map(lambda a: np.stack([a]*nz, axis=1), [vx, vy])
-        vz = np.zeros(vx.shape)
-        oshape = self.io.OUT.gridshape
-        for v in (vx, vy, vz):
-            np.testing.assert_array_equal(v.shape, (oshape.nr, oshape.nz, oshape.nphi))
-
-        # unit conversion
-        conv = self.conf["units"]
-        dimvel = conv["distance2au"]*units.au / (conv["time2yr"]*units.yr)
-        vel2kms = dimvel.to(units.m / units.s).value
-        velarr = np.stack([vx, vy, vz], axis=3) * vel2kms
-        return velarr.transpose()
 
 
 class VtuFileInterface(AbstractInterface):
