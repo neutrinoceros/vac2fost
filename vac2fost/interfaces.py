@@ -149,6 +149,7 @@ class AbstractInterface(ABC):
 
         self._mumsizes = None
         self._input_data = None
+        self._density_keys = None
         self.output_grid = None
 
         self._parse_dust_properties()
@@ -314,6 +315,11 @@ class AbstractInterface(ABC):
     def iter_frac(self):
         """Visual hint for iteration advancement."""
         return f"{self._iter_count+1}/{self._iter_max}"
+
+    @property
+    def iter_last(self):
+        """Whether or not we're at last iteration."""
+        return self._iter_count == self._iter_max
 
 
 

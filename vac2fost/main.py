@@ -29,7 +29,7 @@ def main(conf_file: Path, # python 3.8: positional only
         except FileNotFoundError as err:
             filepath = Path(str(err)).relative_to(Path.cwd())
             log.warning(f"missing file: {filepath}, attempting to pursue iteration")
-            if itf.iter_count == itf.iter_max:
+            if itf.iter_last:
                 break
             continue
         itf.preroll_mcfost()
