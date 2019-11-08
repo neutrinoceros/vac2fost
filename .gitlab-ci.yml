@@ -87,7 +87,7 @@ regression:
     - source activate $PYENV
     - $SLURM_CMD pytest tests/test_regression.py
 
-check code quality:
+.check code quality:
   stage: final
   script:
     - source activate $PYENV

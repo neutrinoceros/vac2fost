@@ -2,7 +2,7 @@
 from pathlib import Path
 
 from .info import __version__
-from .interfaces import AbstractInterface, VtuFileInterface
+from .interfaces import AbstractInterface, VtuFileInterface, DatFileInterface
 from .logger import v2flogger as log
 
 

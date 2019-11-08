@@ -580,3 +580,23 @@ class VtuFileInterface(AbstractInterface):
         ig = {"ticks_r": self._input_data.get_ticks("r") * self.conf["units"]["distance2au"],
               "ticks_phi": self._input_data.get_ticks("phi")}
         return ig
+
+
+
+class DatFileInterface(AbstractInterface):
+    @property
+    def io(self) -> IOinfo:
+        """Give up-to-date information on data location and naming (.i: input, .o: output)"""
+        pass
+
+    def load_input_data(self) -> None:
+        """wip"""
+        import yt
+        from yt import mylog as ytlogger
+        ytlogger.setLevel(50) # silence all but critical messages from yt
+        dims = self.io.IN.gridshape
+        print(dims)
+        ag = ds.arbitrary_grid(ds.domain_left_edge, ds.domain_right_edge, dims=dims)
+        d = ag["rho"].squeeze().to_ndarray()
+        # TODO: use yt to set self._input_data here
+        #log.info(f"successfully loaded {filename}")
