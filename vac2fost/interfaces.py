@@ -168,10 +168,9 @@ class AbstractInterface(ABC):
             # identical result without explicitly passing the gas density.
             self._read_gas_density = read_gas_density
 
-        assert self.io.OUT.directory == self._output_dir
-        if not self.io.OUT.directory.exists(): # todo : don't use io here # python 3.8: :=
-            os.makedirs(self.io.OUT.directory)
-            log.warning(f"dir {self.io.OUT.directory} was created")
+        if not self._output_dir.exists(): # python 3.8: :=
+            os.makedirs(self._output_dir)
+            log.warning(f"dir {self._output_dir} was created")
 
         # sanitize conf
         default_mcfost_output = {"scale_height": 0.05, "reference_radius": 1}
@@ -190,14 +189,9 @@ class AbstractInterface(ABC):
     @abstractmethod
     def load_input_data(self) -> None:
         """Set self._input_data"""
-
-    @property
-    @abstractmethod
-    def density_keys(self) -> list:
-        """Get the ordered list of density keys (gas, ds1, ds2, ds3...)
-        where 'ds' reads 'dust species'
-        """
-        # todo: make this part of load_input_data()
+        # this needs to set the following attributes
+        #self._input_data
+        #self._density_keys
 
     @property
     @abstractmethod
@@ -443,7 +437,7 @@ class AbstractInterface(ABC):
 
     # output generation
     def get_output_ndarray(self) -> np.ndarray:
-        nbins = len(self.density_keys)
+        nbins = len(self._density_keys)
         oshape = self.io.OUT.gridshape
         nr, nphi, nz = oshape.nr, oshape.nphi, oshape.nz
 
@@ -464,7 +458,7 @@ class AbstractInterface(ABC):
             # those are references, not copies
             hyperplane_densities = new_plane_densities
             output_ndarray = full3D_densities
-        hyperplane_densities[:] = np.array([interpolate(datakey=k) for k in self.density_keys])
+        hyperplane_densities[:] = np.array([interpolate(datakey=k) for k in self._density_keys])
 
 
         #dimensionless gas scale height implied by mcfost parameters
@@ -565,6 +559,9 @@ class VtuFileInterface(AbstractInterface):
             file_name=str(self.io.IN.filepath),
             shape=(self.io.IN.gridshape.nr, self.io.IN.gridshape.nphi)
         )
+        # ordered list of density keys (gas, ds1, ds2, ds3...)
+        # where 'ds' reads 'dust species'
+        self._density_keys = sorted(filter(lambda k: "rho" in k, self._input_data.fields.keys()))
         log.info(f"successfully loaded {self.io.IN.filepath}")
 
     @property
@@ -572,7 +569,3 @@ class VtuFileInterface(AbstractInterface):
         ig = {"ticks_r": self._input_data.get_ticks("r") * self.conf["units"]["distance2au"],
               "ticks_phi": self._input_data.get_ticks("phi")}
         return ig
-
-    @property
-    def density_keys(self) -> list:
-        return sorted(filter(lambda k: "rho" in k, self._input_data.fields.keys()))
