@@ -1,4 +1,4 @@
-#/usr/bin/sh
+#!/usr/bin/env bash
 
 set -eu
 if [ -d deps ] ; then
