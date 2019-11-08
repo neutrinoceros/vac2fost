@@ -2,15 +2,14 @@
 from pathlib import Path
 
 from .info import __version__
-from .interfaces import AbstractInterface, DatFileInterface, VtuFileInterface
+from .interfaces import AbstractInterface, VtuFileInterface
 from .logger import v2flogger as log
 
 
 def main(conf_file: Path, # python 3.8: positional only
          override: dict = None,
          output_dir: Path = None,
-         loglevel: int = 30,
-         input_data_format: str = "vtu") -> AbstractInterface:
+         loglevel: int = 30) -> AbstractInterface:
     """Transform a .vtu datfile into a .fits
 
     conf_file and overrides are passed down to Interface.__init__()
@@ -22,10 +21,7 @@ def main(conf_file: Path, # python 3.8: positional only
     """
     log.setLevel(loglevel)
     log.debug(f"start vac2fost {__version__} main loop")
-    if input_data_format != "vtu":
-        raise NotImplementedError
-    Interface = {"dat": DatFileInterface, "vtu": VtuFileInterface}[input_data_format] # wip
-    itf = Interface(conf_file, override=override, output_dir=output_dir)
+    itf = VtuFileInterface(conf_file, override=override, output_dir=output_dir)
     while 1:
         log.info(f"current input number: {itf.current_num}\t({itf.iter_frac})")
         try:
