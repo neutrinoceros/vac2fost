@@ -243,9 +243,9 @@ class AbstractInterface(ABC):
                               custom_parameters=mcfost_parameters)
             log.info(f"successfully wrote {mcfost_conf_file}")
 
-        grid = get_mcfost_grid(self, mcfost_conf_file,
-                                      output_dir=self.io.OUT.directory,
-                                      require_run=(self._iter_count == 0))
+        grid = get_mcfost_grid(mcfost_conf_file,
+                               output_dir=self.io.OUT.directory,
+                               require_run=(self._iter_count == 0))
 
         self.output_grid = {
             "array": grid,
@@ -381,8 +381,8 @@ class AbstractInterface(ABC):
             # parse gas to dust mass ratio
             dustlist = self.conf["dust"]
             if "gas_to_dust_ratio" and "dust_to_gas_ratio" in dustlist:
-                g2d =  RuntimeError("Can not set both 'gas_to_dust_ratio' and 'dust_to_gas_ratio'")
-            elif "gas_to_dust_ratio" in dustlist:
+                raise RuntimeError("Can not set both 'gas_to_dust_ratio' and 'dust_to_gas_ratio'")
+            if "gas_to_dust_ratio" in dustlist:
                 g2d = dustlist["gas_to_dust_ratio"]
             elif "dust_to_gas_ratio" in dustlist:
                 g2d = 1/dustlist["dust_to_gas_ratio"]

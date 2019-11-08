@@ -200,7 +200,7 @@ def write_mcfost_conf(output_file: Path, custom_parameters: dict = None):
             for line in lines:
                 parameters = []
                 for param, default in line.items():
-                    val = custom_parameters[param.lower()] if param.lower() in custom_parameters else default
+                    val = custom_parameters.get(param.lower(), default)
                     parameters.append(str(val))
                 fi.write("  " + "  ".join(parameters).ljust(36)
                          + "  " + ", ".join(line.keys()))
@@ -211,7 +211,7 @@ def write_mcfost_conf(output_file: Path, custom_parameters: dict = None):
         fi.write(f"%% via mcfost {DETECTED_MCFOST_VERSION}\n")
         fi.write(f"%% run by {os.environ['USER']} on {gethostname()}\n")
 
-def get_mcfost_grid(itf, mcfost_conf_file:str, output_dir:str, require_run:bool) -> np.ndarray:
+def get_mcfost_grid(mcfost_conf_file: str, output_dir: str, require_run: bool) -> np.ndarray:
     """Pre-run MCFOST with -disk_struct flag to get the exact grid used."""
     output_dir = Path(output_dir).resolve()
     mcfost_conf_path = Path(mcfost_conf_file)
