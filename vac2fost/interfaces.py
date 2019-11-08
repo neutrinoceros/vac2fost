@@ -504,7 +504,6 @@ class AbstractInterface(ABC):
         velarr = np.stack([vx, vy, vz], axis=3) * vel2kms
         return velarr.transpose()
 
-    # todo: rename to clearer names
     def _interpolate2D(self, datakey: str) -> np.ndarray:
         """Transform a polar field from MPI-AMRVAC coords to mcfost coords"""
         interpolator = interp2d(
