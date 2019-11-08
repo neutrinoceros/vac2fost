@@ -15,7 +15,7 @@ from .info import __version__
 from .logger import v2flogger as log
 
 MIN_MCFOST_VERSION = "3.0.35"  # minimal requirement
-MINGRAINSIZE_µ = 0.1
+MINGRAINSIZE_mum = 0.1
 
 # mcfost detection ==================================================================
 if shutil.which("mcfost") is None:
@@ -140,7 +140,7 @@ blocks_descriptors = od(
             od([("optical_indices_file", "Draine_Si_sUV.dat"),
                 ("volume_fraction", 1.0)]),
             od([("heating_method", 1)]),
-            od([("amin", MINGRAINSIZE_µ),
+            od([("amin", MINGRAINSIZE_mum),
                 ("amax", 1000),
                 ("aexp", 3.5),
                 ("n_grains", 100)])

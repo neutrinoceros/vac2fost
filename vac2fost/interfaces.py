@@ -26,7 +26,7 @@ from vtk_vacreader import VacDataSorter
 from .info import __version__
 from .utils import shell_path
 from .utils import IOinfo, DataInfo, GridShape
-from .mcfost_utils import MINGRAINSIZE_µ, KNOWN_MCFOST_ARGS
+from .mcfost_utils import MINGRAINSIZE_mum, KNOWN_MCFOST_ARGS
 from .mcfost_utils import get_mcfost_grid, write_mcfost_conf
 from .logger import v2flogger as log
 
@@ -150,7 +150,7 @@ class AbstractInterface(ABC):
             location=self.conf['amrvac_input']['hydro_data_dir']
         )
 
-        self._µsizes = None
+        self._mumsizes = None
         self._input_data = None
         self.output_grid = None
 
@@ -327,7 +327,7 @@ class AbstractInterface(ABC):
         if dbm is not None and dbm not in ("dust-only", "mixed", "gas-only"):
             raise ValueError(f"Unrecognized dbm value {dbm}")
 
-        µm_sizes = np.empty(0)
+        mum_sizes = np.empty(0)
         auto_dbm = None
 
         # automatic setup
@@ -338,28 +338,28 @@ class AbstractInterface(ABC):
                 namelist, item = grain_sizes.split(".")
                 grain_sizes = self.amrvac_conf[namelist][item]
             grain_sizes = np.array(grain_sizes)
-            µm_sizes = grain_size2micron * grain_sizes
+            mum_sizes = grain_size2micron * grain_sizes
 
         if dbm is not None:
             self._dust_bin_mode = dbm
         else:
-            if len(µm_sizes) < 1:
+            if len(mum_sizes) < 1:
                 auto_dbm = "gas-only"
                 reason = "dust parameters not found"
-            elif min(µm_sizes) > MINGRAINSIZE_µ:
+            elif min(mum_sizes) > MINGRAINSIZE_mum:
                 auto_dbm = "mixed"
-                reason = f"smallest grain size > threshold ({MINGRAINSIZE_µ} µm)"
+                reason = f"smallest grain size > threshold ({MINGRAINSIZE_mum} µm)"
             else:
                 auto_dbm = "dust-only"
-                reason = f"smallest grain size < threshold ({MINGRAINSIZE_µ} µm)"
+                reason = f"smallest grain size < threshold ({MINGRAINSIZE_mum} µm)"
             self._dust_bin_mode = auto_dbm
             log.warning(f"switched to '{self._dust_bin_mode}' dbm ({reason})")
 
         if self._dust_bin_mode == "gas-only":
-            µm_sizes = np.empty(0)
+            mum_sizes = np.empty(0)
 
         # always associate a grain size to the gas bin
-        self._grain_micron_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
+        self._grain_micron_sizes = np.insert(mum_sizes, 0, MINGRAINSIZE_mum)
 
         # should dust fluids be passed to mcfost ?
         self._bin_dust = self._dust_bin_mode in {"dust-only", "mixed"}
@@ -470,11 +470,11 @@ class AbstractInterface(ABC):
             else:
                 z_vect = self.output_grid["phi-slice_z"][nz:, ir]
             gas_height = r * aspect_ratio
-            for ibin, grain_µsize in enumerate(self._grain_micron_sizes): # will break in gas-only mode
+            for ibin, grain_mumsize in enumerate(self._grain_micron_sizes): # will break in gas-only mode
                 hpd = hyperplane_densities[ibin, ir, ...]
                 H = gas_height
                 if self._use_settling:
-                    H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
+                    H *= (grain_mumsize / MINGRAINSIZE_mum)**(-0.5)
                 gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
                 output_ndarray[ibin, ..., ir] = np.outer(hpd, gaussian)
         return output_ndarray

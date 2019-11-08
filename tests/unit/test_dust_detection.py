@@ -4,7 +4,7 @@ import pytest
 import f90nml
 from vtk_vacreader import VacDataSorter as VDS
 from vac2fost import VtuFileInterface as Interface
-from vac2fost.mcfost_utils import MINGRAINSIZE_µ
+from vac2fost.mcfost_utils import MINGRAINSIZE_mum
 
 test_dir = pathlib.Path(__file__).absolute().parent.parent
 output_dir = test_dir / "output/test_dbm"
@@ -22,21 +22,21 @@ class TestDBM:
                         output_dir=output_dir,
                         override={"flags": dict(dust_bin_mode="gas-only")})
         assert itf._dust_bin_mode == "gas-only"
-        assert itf._grain_micron_sizes == [MINGRAINSIZE_µ]
+        assert itf._grain_micron_sizes == [MINGRAINSIZE_mum]
 
     def test_dust_only(self):
         itf = Interface(test_dir/'sample/vac2fost_conf_quick.nml',
                         output_dir=output_dir,
                         override={"flags": dict(dust_bin_mode="dust-only")})
         assert itf._dust_bin_mode == "dust-only"
-        np.testing.assert_array_equal(itf._grain_micron_sizes, [MINGRAINSIZE_µ, 1e4, 1e3])
+        np.testing.assert_array_equal(itf._grain_micron_sizes, [MINGRAINSIZE_mum, 1e4, 1e3])
 
     def test_mixed(self):
         itf = Interface(test_dir/'sample/vac2fost_conf_quick.nml',
                         output_dir=output_dir,
                         override={"flags": dict(dust_bin_mode="mixed")})
         assert itf._dust_bin_mode == "mixed"
-        np.testing.assert_array_equal(itf._grain_micron_sizes, [MINGRAINSIZE_µ, 1e4, 1e3])
+        np.testing.assert_array_equal(itf._grain_micron_sizes, [MINGRAINSIZE_mum, 1e4, 1e3])
 
     def test_auto_into_mixed(self):
         itf = Interface(test_dir/'sample/vac2fost_conf_quick.nml',
