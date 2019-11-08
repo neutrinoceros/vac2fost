@@ -1,4 +1,3 @@
-
 import pickle
 from pathlib import Path
 import shutil
@@ -6,6 +5,7 @@ import numpy as np
 from astropy.io import fits
 
 from vac2fost import main as app
+from vac2fost.logger import v2flogger
 import pytest
 
 test_dir = Path(__file__).parent.resolve()
@@ -16,27 +16,33 @@ def instanciate_interface(conffile, **kwargs):
     outdir = OUT / f"test_reg_{Path(conffile).stem}"
     if outdir.is_dir():
         shutil.rmtree(outdir)
-    itf = app(test_dir/"sample"/conffile, output_dir=outdir, **kwargs)
+    override = {"flags": {k: v for k,v in kwargs.items()}}
+    itf = app(test_dir/"sample"/conffile, override, output_dir=outdir)
     return itf
 
 # to regold tests
 def regold(itf, reffile, morekeys:list = None):
     save_keys = [
-        'sim_conf',
-        'input_grid', 'output_grid',
-        'new_2D_arrays', 'new_3D_arrays',
-        'dust_binning_mode'
+        "amrvac_conf",
+        "input_grid", "output_grid",
+        "_dust_bin_mode"
     ]
     if morekeys is not None:
         save_keys += morekeys
+    out = {k: itf.__getattribute__(k) for k in save_keys}
+    out.update({"output_ndarray": itf.get_output_ndarray()})
+    if "read_gas_velocity" in itf.conf["flags"]:
+        out.update({"output_gas_velocity": itf.get_gas_velocity_ndarray()})
     with open(reffile, mode="wb") as file:
-        out = {k: itf.__getattribute__(k) for k in save_keys}
         pickle.dump(out, file)
+
 
 class TestRegressionMain:
     subrefdir = REFOUT_DIR / "default"
-    itf = instanciate_interface(conffile="vac2fost_conf.nml", read_gas_velocity=True, mcfost_verbose=True)
-    itf.tag = itf._base_args['config_file'].stem
+    v2flogger.setLevel(10) # debug
+    itf = instanciate_interface(conffile="vac2fost_conf.nml", read_gas_velocity=True)
+    itf.preroll_mcfost()
+    itf.tag = itf.conf_file.stem
 
     def test_mcfost_conf(self):
         itf = __class__.itf
@@ -52,7 +58,7 @@ class TestRegressionMain:
     def test_target_grid(self):
         itf = __class__.itf
         ref_file = __class__.subrefdir / "mcfost_grid.fits.gz"
-        new_file = itf.io.OUT.directory/'mcfost_grid.fits.gz'
+        new_file = itf.io.OUT.directory/"mcfost_grid.fits.gz"
         ref = fits.open(ref_file)[0].data
         new = fits.open(new_file)[0].data
         #shutil.copyfile(new_file, ref_file) # to regold ...
@@ -61,21 +67,20 @@ class TestRegressionMain:
     def test_out(self):
         itf = __class__.itf
         reffile = __class__.subrefdir / f"{itf.tag}.p"
-        #regold(itf, reffile, morekeys=["new_3D_gas_velocity"])
+        #regold(itf, reffile)
 
         out_ref = pickle.load(open(reffile, mode="rb"))
-        assert itf.dust_binning_mode == out_ref['dust_binning_mode']
-        assert itf.sim_conf == out_ref['sim_conf']
-        np.testing.assert_array_equal(itf.input_grid['rv'], out_ref['input_grid']['rv'])
-        np.testing.assert_array_equal(itf.input_grid['phiv'], out_ref['input_grid']['phiv'])
-        np.testing.assert_array_equal(itf.output_grid['rv'], out_ref['output_grid']['rv'])
-        np.testing.assert_array_equal(itf.output_grid['phiv'], out_ref['output_grid']['phiv'])
-        np.testing.assert_array_equal(itf.output_grid['rg'], out_ref['output_grid']['rg'])
-        np.testing.assert_array_equal(itf.output_grid['phig'], out_ref['output_grid']['phig'])
-        np.testing.assert_allclose(itf.output_grid['zg'], out_ref['output_grid']['zg'], rtol=1e-15)
-        np.testing.assert_allclose(itf.new_2D_arrays, out_ref['new_2D_arrays'], rtol=1e-25)
-        np.testing.assert_allclose(itf.new_3D_arrays, out_ref['new_3D_arrays'], rtol=5e-14)
-        np.testing.assert_allclose(itf.new_3D_gas_velocity, out_ref['new_3D_gas_velocity'], rtol=5e-14)
+        assert itf._dust_bin_mode == out_ref["_dust_bin_mode"]
+        assert itf.amrvac_conf == out_ref["amrvac_conf"]
+        np.testing.assert_array_equal(itf.input_grid["ticks_r"], out_ref["input_grid"]["ticks_r"])
+        np.testing.assert_array_equal(itf.input_grid["ticks_phi"], out_ref["input_grid"]["ticks_phi"])
+        np.testing.assert_array_equal(itf.output_grid["ticks_r"], out_ref["output_grid"]["ticks_r"])
+        np.testing.assert_array_equal(itf.output_grid["ticks_phi"], out_ref["output_grid"]["ticks_phi"])
+        np.testing.assert_array_equal(itf.output_grid["z-slice_r"], out_ref["output_grid"]["z-slice_r"])
+        np.testing.assert_array_equal(itf.output_grid["z-slice_phi"], out_ref["output_grid"]["z-slice_phi"])
+        np.testing.assert_allclose(itf.output_grid["phi-slice_z"], out_ref["output_grid"]["phi-slice_z"], rtol=1e-15)
+        np.testing.assert_allclose(itf.get_output_ndarray(), out_ref["output_ndarray"], rtol=5e-14)
+        np.testing.assert_allclose(itf.get_gas_velocity_ndarray(), out_ref["output_gas_velocity"], rtol=5e-14)
 
     def test_image(self):
         itf = __class__.itf
@@ -89,10 +94,17 @@ class TestRegressionMain:
         new = fits.open(new_file)[0].data[0]
         np.testing.assert_allclose(new, ref, rtol=5e-14)
 
+
+
 class TestRegressionMutliNums:
     subrefdir = REFOUT_DIR / "multinums"
-    itf = instanciate_interface(conffile="vac2fost_conf_quick.nml", nums=[0, 1, 2])
-    itf.tag = itf._base_args['config_file'].stem + "multinums"
+    conffile = test_dir/"sample/vac2fost_conf_quick.nml"
+    outdir = OUT / f"test_reg_{Path(conffile).stem}"
+    if outdir.is_dir():
+        shutil.rmtree(outdir)
+    itf = app(conffile, output_dir=outdir, override={"amrvac_input": {"nums": [0, 1, 2]}})
+    itf.preroll_mcfost()
+    itf.tag = itf.conf_file.stem + "multinums"
 
     def test_multinums_output(self):
         filename = __class__.itf.io.OUT.filepath.stem[:-4]
@@ -106,29 +118,27 @@ class TestRegressionMutliNums:
 
 class TestRegressionNonAxisym:
     subrefdir = REFOUT_DIR / "nonaxisym"
-    itf = instanciate_interface(conffile="vac2fost_conf_nonaxisym.nml")
-    itf.tag = itf._base_args['config_file'].stem
+    itf = instanciate_interface(conffile="vac2fost_conf_nonaxisym.nml", read_gas_velocity=True)
+    itf.preroll_mcfost()
+    itf.tag = itf.conf_file.stem
 
     def test_out(self):
         itf = __class__.itf
         reffile = __class__.subrefdir / f"{itf.tag}.p"
-        # nb: the present test forces the computatio of the 3D gas velocity field
-        # BY testing or regolding it, despite the fact it's not ask at instanciation
-        #regold(itf, reffile, morekeys=["new_3D_gas_velocity"])
+        #regold(itf, reffile)
 
         out_ref = pickle.load(open(reffile, mode="rb"))
-        assert itf.dust_binning_mode == out_ref['dust_binning_mode']
-        assert itf.sim_conf == out_ref['sim_conf']
-        np.testing.assert_array_equal(itf.input_grid['rv'], out_ref['input_grid']['rv'])
-        np.testing.assert_array_equal(itf.input_grid['phiv'], out_ref['input_grid']['phiv'])
-        np.testing.assert_array_equal(itf.output_grid['rv'], out_ref['output_grid']['rv'])
-        np.testing.assert_array_equal(itf.output_grid['phiv'], out_ref['output_grid']['phiv'])
-        np.testing.assert_array_equal(itf.output_grid['rg'], out_ref['output_grid']['rg'])
-        np.testing.assert_array_equal(itf.output_grid['phig'], out_ref['output_grid']['phig'])
-        np.testing.assert_allclose(itf.output_grid['zg'], out_ref['output_grid']['zg'], rtol=1e-15)
-        np.testing.assert_allclose(itf.new_2D_arrays, out_ref['new_2D_arrays'], rtol=1e-25)
-        np.testing.assert_allclose(itf.new_3D_arrays, out_ref['new_3D_arrays'], rtol=5e-14)
-        np.testing.assert_allclose(itf.new_3D_gas_velocity, out_ref['new_3D_gas_velocity'], rtol=5e-14)
+        assert itf._dust_bin_mode == out_ref["_dust_bin_mode"]
+        assert itf.amrvac_conf == out_ref["amrvac_conf"]
+        np.testing.assert_array_equal(itf.input_grid["ticks_r"], out_ref["input_grid"]["ticks_r"])
+        np.testing.assert_array_equal(itf.input_grid["ticks_phi"], out_ref["input_grid"]["ticks_phi"])
+        np.testing.assert_array_equal(itf.output_grid["ticks_r"], out_ref["output_grid"]["ticks_r"])
+        np.testing.assert_array_equal(itf.output_grid["ticks_phi"], out_ref["output_grid"]["ticks_phi"])
+        np.testing.assert_array_equal(itf.output_grid["z-slice_r"], out_ref["output_grid"]["z-slice_r"])
+        np.testing.assert_array_equal(itf.output_grid["z-slice_phi"], out_ref["output_grid"]["z-slice_phi"])
+        np.testing.assert_allclose(itf.output_grid["phi-slice_z"], out_ref["output_grid"]["phi-slice_z"], rtol=1e-15)
+        np.testing.assert_allclose(itf.get_output_ndarray(), out_ref["output_ndarray"], rtol=5e-14)
+        np.testing.assert_allclose(itf.get_gas_velocity_ndarray(), out_ref["output_gas_velocity"], rtol=5e-14)
 
     def test_image(self):
         itf = __class__.itf
@@ -142,10 +152,12 @@ class TestRegressionNonAxisym:
         #shutil.copyfile(new_file, ref_file) # to regold ...
         np.testing.assert_allclose(new, ref, rtol=5e-14)
 
+
 class TestRegressionAutoGasOnly:
     subrefdir = REFOUT_DIR / "autogasonly"
     itf = instanciate_interface(conffile="autogasonly/rwi.nml")
-    itf.tag = itf._base_args['config_file'].stem
+    itf.preroll_mcfost()
+    itf.tag = itf.conf_file.stem
 
     def test_mcfost_conf(self):
         itf = __class__.itf
@@ -164,14 +176,13 @@ class TestRegressionAutoGasOnly:
         #regold(itf, reffile)
 
         out_ref = pickle.load(open(reffile, mode="rb"))
-        assert itf.dust_binning_mode == out_ref["dust_binning_mode"]
-        assert itf.sim_conf == out_ref["sim_conf"]
-        np.testing.assert_array_equal(itf.input_grid["rv"], out_ref["input_grid"]["rv"])
-        np.testing.assert_array_equal(itf.input_grid["phiv"], out_ref["input_grid"]["phiv"])
-        np.testing.assert_array_equal(itf.output_grid["rv"], out_ref["output_grid"]["rv"])
-        np.testing.assert_array_equal(itf.output_grid["phiv"], out_ref["output_grid"]["phiv"])
-        np.testing.assert_array_equal(itf.output_grid["rg"], out_ref["output_grid"]["rg"])
-        np.testing.assert_array_equal(itf.output_grid["phig"], out_ref["output_grid"]["phig"])
-        np.testing.assert_array_equal(itf.output_grid["zg"], out_ref["output_grid"]["zg"])
-        np.testing.assert_allclose(itf.new_2D_arrays, out_ref["new_2D_arrays"], rtol=1e-25)
-        np.testing.assert_allclose(itf.new_3D_arrays, out_ref["new_3D_arrays"], rtol=1e-15)
+        assert itf._dust_bin_mode == out_ref["_dust_bin_mode"]
+        assert itf.amrvac_conf == out_ref["amrvac_conf"]
+        np.testing.assert_array_equal(itf.input_grid["ticks_r"], out_ref["input_grid"]["ticks_r"])
+        np.testing.assert_array_equal(itf.input_grid["ticks_phi"], out_ref["input_grid"]["ticks_phi"])
+        np.testing.assert_array_equal(itf.output_grid["ticks_r"], out_ref["output_grid"]["ticks_r"])
+        np.testing.assert_array_equal(itf.output_grid["ticks_phi"], out_ref["output_grid"]["ticks_phi"])
+        np.testing.assert_array_equal(itf.output_grid["z-slice_r"], out_ref["output_grid"]["z-slice_r"])
+        np.testing.assert_array_equal(itf.output_grid["z-slice_phi"], out_ref["output_grid"]["z-slice_phi"])
+        np.testing.assert_array_equal(itf.output_grid["phi-slice_z"], out_ref["output_grid"]["phi-slice_z"])
+        np.testing.assert_allclose(itf.get_output_ndarray(), out_ref["output_ndarray"], rtol=1e-15)

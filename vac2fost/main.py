@@ -1,51 +1,48 @@
-"""This main routine creates and uses an Interface instance."""
+"""This main routine creates and uses an interface instance."""
 from pathlib import Path
 
-from vac2fost.info import __version__
-from vac2fost.utils import CYAN, BOLD, get_prompt_size, decorated_centered_message
-from vac2fost.interfaces import Interface, VerbatimInterface
+from .info import __version__
+from .interfaces import AbstractInterface, VtuFileInterface
+from .logger import v2flogger as log
 
 
-def main(config_file: Path, verbose=False, **itf_kwargs):
+def main(conf_file: Path, # python 3.8: positional only
+         override: dict = None,
+         output_dir: Path = None,
+         loglevel: int = 30) -> AbstractInterface:
     """Transform a .vtu datfile into a .fits
 
-    config_file and itf_kwargs are passed down to Interface.__init__()
+    conf_file and overrides are passed down to Interface.__init__()
+    loglevel values: 10 debug
+                     20 info
+                     30 warning
+                     40 error
+                     50 critical
     """
-
-    print(decorated_centered_message(f"start vac2fost {__version__}"))
-
-    InterfaceType = {True: VerbatimInterface, False: Interface}[verbose]
-    itf = InterfaceType(config_file, **itf_kwargs)
-
-    for i, n in enumerate(itf.nums):
-        if verbose or i == 0:
-            print()
-        mess1 = f"current input number: {n}"
-        mess2 = f"({i+1}/{len(itf.nums)})"
-        print((BOLD+" "*(get_prompt_size()-len(mess1)-len(mess2))).join([mess1, mess2]))
-        print("-"*get_prompt_size())
+    log.setLevel(loglevel)
+    log.debug(f"start vac2fost {__version__} main loop")
+    itf = VtuFileInterface(conf_file, override=override, output_dir=output_dir)
+    while 1:
+        log.info(f"current input number: {itf.current_num}\t({itf.iter_frac})")
         try:
-            itf.load_input_data(n)
+            itf.load_input_data()
         except FileNotFoundError as err:
             filepath = Path(str(err)).relative_to(Path.cwd())
-            itf.warnings.append(f"file not found: {filepath}")
+            log.warning(f"missing file: {filepath}, attempting to pursue iteration")
+            if itf.iter_last:
+                break
             continue
-        itf.write_mcfost_conf_file()
-        itf.gen_2D_arrays()
-        itf.gen_3D_arrays()
+        itf.preroll_mcfost()
         itf.write_output()
 
         try:
             filepath = itf.io.OUT.filepath.relative_to(Path.cwd())
         except ValueError:
             filepath = itf.io.OUT.filepath
-        print(CYAN + f" >>> wrote {filepath}")
+        try:
+            itf.advance_iteration() # set itf.current_num to next value
+        except StopIteration:
+            break
 
-    if itf.warnings:
-        print()
-        itf.display_warnings()
-
-    print(decorated_centered_message("end vac2fost"))
-
-    # return the Interface object for inspection (tests)
-    return itf
+    log.debug("end vac2fost")
+    return itf  # return the interface object for inspection (tests)

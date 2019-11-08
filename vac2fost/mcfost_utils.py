@@ -6,18 +6,16 @@ from pathlib import Path
 from socket import gethostname
 from subprocess import run, CalledProcessError
 from collections import OrderedDict as od
-from uuid import uuid4 as uuid
+from tempfile import TemporaryDirectory
 
 import numpy as np
 from astropy.io import fits
 
-try:
-    from .info import __version__
-except ImportError:
-    from info import __version__
+from .info import __version__
+from .logger import v2flogger as log
 
 MIN_MCFOST_VERSION = "3.0.35"  # minimal requirement
-MINGRAINSIZE_µ = 0.1
+MINGRAINSIZE_mum = 0.1
 
 # mcfost detection ==================================================================
 if shutil.which("mcfost") is None:
@@ -142,7 +140,7 @@ blocks_descriptors = od(
             od([("optical_indices_file", "Draine_Si_sUV.dat"),
                 ("volume_fraction", 1.0)]),
             od([("heating_method", 1)]),
-            od([("amin", MINGRAINSIZE_µ),
+            od([("amin", MINGRAINSIZE_mum),
                 ("amax", 1000),
                 ("aexp", 3.5),
                 ("n_grains", 100)])
@@ -186,14 +184,14 @@ for descriptor in blocks_descriptors.items():
     for di in descriptor[1]:
         KNOWN_MCFOST_ARGS += [k.lower() for k in di.keys()]
 
-def write_mcfost_conf(output_file: Path, custom: dict = None, verbose=False):
-    """Write a configuration file for mcfost using values from <custom>,
+def write_mcfost_conf(output_file: Path, custom_parameters: dict = None):
+    """Write a configuration file for mcfost using values from <mcfost_parameters>,
     and falling back to defaults found in block_descriptor defined above
     """
-    if custom is None:
-        custom = {}
-    if output_file.exists() and verbose:
-        print(f"Warning: {output_file} already exists, and will be overwritten.")
+    if custom_parameters is None:
+        custom_parameters = {}
+    if Path(output_file).exists():
+        log.warning(f"{output_file} already exists, and will be overwritten.")
     with open(output_file, mode="wt") as fi:
         fi.write(".".join(MIN_MCFOST_VERSION.split(".")[:2]).ljust(10) +
                  "mcfost minimal version prescribed by vac2fost\n\n")
@@ -202,7 +200,7 @@ def write_mcfost_conf(output_file: Path, custom: dict = None, verbose=False):
             for line in lines:
                 parameters = []
                 for param, default in line.items():
-                    val = custom[param.lower()] if param.lower() in custom else default
+                    val = custom_parameters.get(param.lower(), default)
                     parameters.append(str(val))
                 fi.write("  " + "  ".join(parameters).ljust(36)
                          + "  " + ", ".join(line.keys()))
@@ -212,51 +210,39 @@ def write_mcfost_conf(output_file: Path, custom: dict = None, verbose=False):
         fi.write(f"%% automatically generated with vac2fost {__version__}\n")
         fi.write(f"%% via mcfost {DETECTED_MCFOST_VERSION}\n")
         fi.write(f"%% run by {os.environ['USER']} on {gethostname()}\n")
-    if verbose:
-        print(f"wrote {output_file}")
 
-def get_mcfost_grid(itf) -> np.ndarray:
+def get_mcfost_grid(mcfost_conf_file: str, output_dir: str, require_run: bool) -> np.ndarray:
     """Pre-run MCFOST with -disk_struct flag to get the exact grid used."""
-    mcfost_conf_file = itf.mcfost_conf_file
-    output_dir = itf.io.OUT.directory
-
     output_dir = Path(output_dir).resolve()
     mcfost_conf_path = Path(mcfost_conf_file)
     if not output_dir.exists():
         os.makedirs(output_dir)
 
     grid_file_name = output_dir / "mcfost_grid.fits.gz"
-
-    if itf.current_num == itf.nums[0]:
+    if require_run:
         assert mcfost_conf_path.exists()
         # generate a grid data file with mcfost itself and extract it
-        tmp_mcfost_dir = output_dir / f"TMP_VAC2FOST_MCFOST_GRID_{uuid()}"
-        os.makedirs(tmp_mcfost_dir)
-        try:
-            shutil.copyfile(mcfost_conf_path.resolve(),
-                            tmp_mcfost_dir/mcfost_conf_path.name)
-        except shutil.SameFileError:
-            pass
-
         pile = Path.cwd()
-        os.chdir(tmp_mcfost_dir)
-        try:
-            run(["mcfost", "mcfost_conf.para", "-disk_struct"], check=True,
-                capture_output=(not itf.mcfost_verbose))
+        with TemporaryDirectory() as tmp_mcfost_dir:
+            shutil.copyfile(mcfost_conf_path.resolve(),
+                            Path(tmp_mcfost_dir)/mcfost_conf_path.name)
+            os.chdir(tmp_mcfost_dir)
+            try:
+                run(["mcfost", "mcfost_conf.para", "-disk_struct"], check=True,
+                    capture_output=(log.level < 20)) # if in debug mode, output will be printed
 
-            shutil.move("data_disk/grid.fits.gz", grid_file_name)
-        except CalledProcessError as exc:
-            errtip = f"\nError in MCFOST, exited with exitcode {exc.returncode}"
-            if exc.returncode == 174:
-                errtip += (
-                    "\nThis is probably a memory issue. "
-                    "Try reducing the target resolution or,"
-                    " alternatively, give more cpu memory to this task."
-                )
-            raise RuntimeError(errtip) from exc
-        finally:
-            os.chdir(pile)
-            shutil.rmtree(tmp_mcfost_dir)
+                shutil.move("data_disk/grid.fits.gz", grid_file_name)
+            except CalledProcessError as exc:
+                errtip = f"\nError in MCFOST, exited with exitcode {exc.returncode}"
+                if exc.returncode == 174:
+                    errtip += (
+                        "\nThis is probably a memory issue. "
+                        "Try reducing the target resolution or,"
+                        " alternatively, give more cpu memory to this task."
+                    )
+                raise RuntimeError(errtip) from exc
+            finally:
+                os.chdir(pile)
     with fits.open(grid_file_name, mode="readonly") as fi:
         target_grid = fi[0].data
     return target_grid

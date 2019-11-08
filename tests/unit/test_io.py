@@ -4,7 +4,9 @@ import os
 import pytest
 from pathlib import Path
 from contextlib import contextmanager
-from vac2fost import Interface
+
+from vac2fost.logger import v2flogger as log
+from vac2fost import VtuFileInterface as Interface
 
 @contextmanager
 def secure_chdir(path):
@@ -42,5 +44,5 @@ class Test_IO:
     def test_path_reading(self):
         """Check that AMRVAC config file can be correctly assessed with a
         relative "origin" argument"""
-        Interface(config_file=test_dir/"sample/vac2fost_conf_nonaxisym.nml",
-                  mcfost_verbose=True)
+        log.setLevel(10)
+        Interface(test_dir/"sample/vac2fost_conf_nonaxisym.nml")

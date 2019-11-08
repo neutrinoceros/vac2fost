@@ -5,7 +5,9 @@ import multiprocessing as mp
 import pytest
 
 from vac2fost.mcfost_utils import blocks_descriptors, write_mcfost_conf
-from vac2fost import Interface, main as app
+from vac2fost.logger import v2flogger as log
+from vac2fost import VtuFileInterface as Interface, main as app
+
 
 testdir = Path(__file__).parent.parent
 outdir = testdir/"output"
@@ -31,12 +33,12 @@ def test_writter_null():
 def test_writter_args():
     write_mcfost_conf(
         outdir/"writter_out_2.para",
-        custom={"nphot_sed": 2}
+        custom_parameters={"nphot_sed": 2}
     )
 
 
 def test_unrecognized_mcfost_parameter():
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError):
         app(
             str(testdir / "sample/vac2fost_conf_fake_params.nml"),
             output_dir=testdir/"output/fake_params"
@@ -49,8 +51,9 @@ def gen_mcfost_grid(output_dir):
     """
     if output_dir.exists():
         rmtree(output_dir)
-    myitf = Interface(config_file=testdir / "sample/vac2fost_conf.nml",
-                      output_dir=output_dir, mcfost_verbose=True)
+    log.setLevel(10)
+    myitf = Interface(testdir / "sample/vac2fost_conf.nml",
+                      output_dir=output_dir)
     return myitf.output_grid
 
 class TestMcfostGridGen:

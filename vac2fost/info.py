@@ -1,6 +1,6 @@
 #-*-coding:utf-8-*-
 """package info"""
 
-__version__ = "2.5.1"
+__version__ = "3.0-dev"
 __author__ = "Clément Robert"
 __contact__ = "clement.robert <at> oca.eu"
