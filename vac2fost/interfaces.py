@@ -168,6 +168,7 @@ class AbstractInterface(ABC):
             # identical result without explicitly passing the gas density.
             self._read_gas_density = read_gas_density
 
+        assert self.io.OUT.directory == self._output_dir
         if not self.io.OUT.directory.exists(): # todo : don't use io here # python 3.8: :=
             os.makedirs(self.io.OUT.directory)
             log.warning(f"dir {self.io.OUT.directory} was created")
@@ -453,16 +454,17 @@ class AbstractInterface(ABC):
         full3D_densities = np.zeros((nbins, nphi, nz, nr))
 
         if self._use_axisymmetry:
-            r_profile_densities[:] = np.array([self._interpolate1D(datakey=k) for k in self.density_keys])
+            interpolate = self._interpolate1D
             # those are references, not copies
             hyperplane_densities = r_profile_densities
             output_ndarray = phi_slice_densities
 
         else:
-            new_plane_densities[:] = np.array([self._interpolate2D(datakey=k) for k in self.density_keys])
+            interpolate = self._interpolate2D
             # those are references, not copies
             hyperplane_densities = new_plane_densities
             output_ndarray = full3D_densities
+        hyperplane_densities[:] = np.array([interpolate(datakey=k) for k in self.density_keys])
 
 
         #dimensionless gas scale height implied by mcfost parameters
@@ -475,7 +477,7 @@ class AbstractInterface(ABC):
             else:
                 z_vect = self.output_grid["phi-slice_z"][nz:, ir]
             gas_height = r * aspect_ratio
-            for ibin, grain_mumsize in enumerate(self._grain_micron_sizes): # will break in gas-only mode
+            for ibin, grain_mumsize in enumerate(self._grain_micron_sizes):
                 hpd = hyperplane_densities[ibin, ir, ...]
                 H = gas_height
                 if self._use_settling:
