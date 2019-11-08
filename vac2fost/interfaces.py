@@ -307,13 +307,6 @@ class AbstractInterface(ABC):
         return f"{self._iter_count+1}/{self._iter_max}"
 
 
-    # abusive properties ...
-
-    @property
-    def aspect_ratio(self):
-        """Dimensionless gas scale height implied by mcfost parameters"""
-        mcfl = self.conf["mcfost_output"]
-        return mcfl["scale_height"] / mcfl["reference_radius"]
 
     # private methods
     def _parse_dust_properties(self) -> None:
@@ -462,12 +455,17 @@ class AbstractInterface(ABC):
             hyperplane_densities = new_plane_densities
             output_ndarray = full3D_densities
 
+
+        #dimensionless gas scale height implied by mcfost parameters
+        aspect_ratio = self.conf["mcfost_output"]["scale_height"] \
+                       / self.conf["mcfost_output"]["reference_radius"]
+
         for ir, r in enumerate(self.output_grid["ticks_r"]):
             if self._use_axisymmetry: # todo: unify these two lines ?
                 z_vect = self.output_grid["phi-slice_z"][:, ir]
             else:
                 z_vect = self.output_grid["phi-slice_z"][nz:, ir]
-            gas_height = r * self.aspect_ratio
+            gas_height = r * aspect_ratio
             for ibin, grain_µsize in enumerate(self._grain_micron_sizes): # will break in gas-only mode
                 hpd = hyperplane_densities[ibin, ir, ...]
                 H = gas_height
