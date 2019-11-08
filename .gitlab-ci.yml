@@ -35,7 +35,7 @@ install or update pyenv:
 download private dependencies:
   stage: build
   script:
-    - $SLURM_CMD bash dl_deps.sh
+    - $SLURM_CMD dl_deps.sh
 
 install mcfost:
   stage: build
