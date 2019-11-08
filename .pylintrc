@@ -128,18 +128,11 @@ disable=print-statement,
         dict-keys-not-iterating,
         dict-values-not-iterating,
         invalid-name,
-        too-many-arguments,
         too-many-instance-attributes,
         no-member,
-        no-self-argument,
         too-many-branches,
         too-many-statements,
-        no-value-for-parameter,
-        wrong-import-position,
         too-many-locals,
-        wrong-import-order,
-        too-many-lines,
-        no-name-in-module,
         logging-format-interpolation
 
 # Enable the message, report, category or checker with the given id(s). You can
