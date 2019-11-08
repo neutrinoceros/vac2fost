@@ -3,9 +3,6 @@ Where interface classes live.
 
 interfaces are the bulk of this package, and hold most capabilities,
 they are used to translate (MPI-AMRVAC) output files to .fits input suited for MCFOST.
-
-VtuFileInterface is the historic class, and will soon be deprecated
-DatFileInterface is the future of this package (wip)
 """
 
 # stdlib
@@ -196,15 +193,16 @@ class AbstractInterface(ABC):
     @property
     @abstractmethod
     def io(self) -> IOinfo:
-        pass
+        """Store input/ouput directories and grids information"""
 
     @property
     @abstractmethod
     def input_grid(self) -> dict:
         """Store physical coordinates (vectors) about the input grid specifications."""
 
-    # public facing methods
+    # public methods, for direct usage in vac2fost.main()
     def preroll_mcfost(self) -> None:
+        """Output mcfost parafile and store the grid"""
         mcfost_conf_file = self.io.OUT.directory / "mcfost_conf.para"
 
         if not mcfost_conf_file.is_file():
@@ -314,6 +312,7 @@ class AbstractInterface(ABC):
 
     @property
     def iter_frac(self):
+        """Visual hint for iteration advancement."""
         return f"{self._iter_count+1}/{self._iter_max}"
 
 
@@ -411,6 +410,7 @@ class AbstractInterface(ABC):
         return mass
 
     def _translate_amrvac_config(self) -> dict:
+        """Get some mcfost parameters directly from amrvac."""
         parameters = {}
 
         # Zone
@@ -438,6 +438,9 @@ class AbstractInterface(ABC):
 
     # output generation
     def get_output_ndarray(self) -> np.ndarray:
+        """Compute the approriate density array with shape (nbins, nphi, nz, nr),
+        to be later written as a HDUPrimary
+        """
         nbins = len(self._density_keys)
         oshape = self.io.OUT.gridshape
         nr, nphi, nz = oshape.nr, oshape.nphi, oshape.nz
@@ -505,7 +508,7 @@ class AbstractInterface(ABC):
         return velarr.transpose()
 
     def _interpolate2D(self, datakey: str) -> np.ndarray:
-        """Transform a polar field from MPI-AMRVAC coords to mcfost coords"""
+        """Transform a polar field (r-phi) from amrvac to mcfost coords."""
         interpolator = interp2d(
             self.input_grid["ticks_phi"],
             self.input_grid["ticks_r"],
@@ -516,6 +519,7 @@ class AbstractInterface(ABC):
         return interpolator(self.output_grid["ticks_phi"], self.output_grid["ticks_r"])
 
     def _interpolate1D(self, datakey: str) -> np.ndarray:
+        """Transform a polar slice (r profile) from amrvac to mcfost coords."""
         interpolator = interp1d(
             self.input_grid["ticks_r"],
             self._input_data[datakey][:, 0], # radial profile
@@ -566,6 +570,7 @@ class VtuFileInterface(AbstractInterface):
 
     @property
     def input_grid(self) -> dict:
+        """Describe the amrvac grid."""
         ig = {"ticks_r": self._input_data.get_ticks("r") * self.conf["units"]["distance2au"],
               "ticks_phi": self._input_data.get_ticks("phi")}
         return ig
