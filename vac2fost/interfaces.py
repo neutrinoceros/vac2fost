@@ -26,7 +26,7 @@ from vtk_vacreader import VacDataSorter
 from .info import __version__
 from .utils import shell_path
 from .utils import IOinfo, DataInfo, GridShape
-from .mcfost_utils import MINGRAINSIZE_µ, KNOWN_MCFOST_ARGS
+from .mcfost_utils import MINGRAINSIZE_mum, KNOWN_MCFOST_ARGS
 from .mcfost_utils import get_mcfost_grid, write_mcfost_conf
 from .logger import v2flogger as log
 
@@ -150,7 +150,7 @@ class AbstractInterface(ABC):
             location=self.conf['amrvac_input']['hydro_data_dir']
         )
 
-        self._µsizes = None
+        self._mumsizes = None
         self._input_data = None
         self.output_grid = None
 
@@ -172,14 +172,18 @@ class AbstractInterface(ABC):
             os.makedirs(self.io.OUT.directory)
             log.warning(f"dir {self.io.OUT.directory} was created")
 
-        if not self.conf.get("units"):
-            log.warning(f"&units parameter list not found. Assuming {DEFAULT_UNITS}")
-            self.conf["units"] = f90nml.Namelist(DEFAULT_UNITS)
-        else:
-            for k, v in DEFAULT_UNITS.items():
-                if not self.conf["units"].get(k):
-                    log.warning(f"&units:{k} parameter not found. Assuming default {v}")
-                    self.conf["units"][k] = v
+        # sanitize conf
+        default_mcfost_output = {"scale_height": 0.05, "reference_radius": 1}
+        for namelist, defaults in (("units", DEFAULT_UNITS),
+                                   ("mcfost_output", default_mcfost_output)):
+            if namelist not in self.conf:
+                log.warning(f"&{namelist} parameter list not found. Overriding {defaults}")
+                self.conf[namelist] = f90nml.Namelist(defaults)
+            else:
+                for k, v in defaults.items():
+                    if not self.conf[namelist].get(k):
+                        log.warning(f"&{namelist}:{k} parameter not found. Overriding default {v}")
+                        self.conf[namelist][k] = v
 
     # abstract bits
     @abstractmethod
@@ -307,13 +311,6 @@ class AbstractInterface(ABC):
         return f"{self._iter_count+1}/{self._iter_max}"
 
 
-    # abusive properties ...
-
-    @property
-    def aspect_ratio(self):
-        """Dimensionless gas scale height implied by mcfost parameters"""
-        mcfl = self.conf["mcfost_output"]
-        return mcfl["scale_height"] / mcfl["reference_radius"]
 
     # private methods
     def _parse_dust_properties(self) -> None:
@@ -330,7 +327,7 @@ class AbstractInterface(ABC):
         if dbm is not None and dbm not in ("dust-only", "mixed", "gas-only"):
             raise ValueError(f"Unrecognized dbm value {dbm}")
 
-        µm_sizes = np.empty(0)
+        mum_sizes = np.empty(0)
         auto_dbm = None
 
         # automatic setup
@@ -341,28 +338,28 @@ class AbstractInterface(ABC):
                 namelist, item = grain_sizes.split(".")
                 grain_sizes = self.amrvac_conf[namelist][item]
             grain_sizes = np.array(grain_sizes)
-            µm_sizes = grain_size2micron * grain_sizes
+            mum_sizes = grain_size2micron * grain_sizes
 
         if dbm is not None:
             self._dust_bin_mode = dbm
         else:
-            if len(µm_sizes) < 1:
+            if len(mum_sizes) < 1:
                 auto_dbm = "gas-only"
                 reason = "dust parameters not found"
-            elif min(µm_sizes) > MINGRAINSIZE_µ:
+            elif min(mum_sizes) > MINGRAINSIZE_mum:
                 auto_dbm = "mixed"
-                reason = f"smallest grain size > threshold ({MINGRAINSIZE_µ} µm)"
+                reason = f"smallest grain size > threshold ({MINGRAINSIZE_mum} µm)"
             else:
                 auto_dbm = "dust-only"
-                reason = f"smallest grain size < threshold ({MINGRAINSIZE_µ} µm)"
+                reason = f"smallest grain size < threshold ({MINGRAINSIZE_mum} µm)"
             self._dust_bin_mode = auto_dbm
             log.warning(f"switched to '{self._dust_bin_mode}' dbm ({reason})")
 
         if self._dust_bin_mode == "gas-only":
-            µm_sizes = np.empty(0)
+            mum_sizes = np.empty(0)
 
         # always associate a grain size to the gas bin
-        self._grain_micron_sizes = np.insert(µm_sizes, 0, MINGRAINSIZE_µ)
+        self._grain_micron_sizes = np.insert(mum_sizes, 0, MINGRAINSIZE_mum)
 
         # should dust fluids be passed to mcfost ?
         self._bin_dust = self._dust_bin_mode in {"dust-only", "mixed"}
@@ -462,17 +459,22 @@ class AbstractInterface(ABC):
             hyperplane_densities = new_plane_densities
             output_ndarray = full3D_densities
 
+
+        #dimensionless gas scale height implied by mcfost parameters
+        aspect_ratio = self.conf["mcfost_output"]["scale_height"] \
+                       / self.conf["mcfost_output"]["reference_radius"]
+
         for ir, r in enumerate(self.output_grid["ticks_r"]):
             if self._use_axisymmetry: # todo: unify these two lines ?
                 z_vect = self.output_grid["phi-slice_z"][:, ir]
             else:
                 z_vect = self.output_grid["phi-slice_z"][nz:, ir]
-            gas_height = r * self.aspect_ratio
-            for ibin, grain_µsize in enumerate(self._grain_micron_sizes): # will break in gas-only mode
+            gas_height = r * aspect_ratio
+            for ibin, grain_mumsize in enumerate(self._grain_micron_sizes): # will break in gas-only mode
                 hpd = hyperplane_densities[ibin, ir, ...]
                 H = gas_height
                 if self._use_settling:
-                    H *= (grain_µsize / MINGRAINSIZE_µ)**(-0.5)
+                    H *= (grain_mumsize / MINGRAINSIZE_mum)**(-0.5)
                 gaussian = np.exp(-z_vect**2/ (2*H**2)) / (np.sqrt(2*np.pi) * H)
                 output_ndarray[ibin, ..., ir] = np.outer(hpd, gaussian)
         return output_ndarray
