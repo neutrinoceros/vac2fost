@@ -172,14 +172,18 @@ class AbstractInterface(ABC):
             os.makedirs(self.io.OUT.directory)
             log.warning(f"dir {self.io.OUT.directory} was created")
 
-        if not self.conf.get("units"):
-            log.warning(f"&units parameter list not found. Assuming {DEFAULT_UNITS}")
-            self.conf["units"] = f90nml.Namelist(DEFAULT_UNITS)
-        else:
-            for k, v in DEFAULT_UNITS.items():
-                if not self.conf["units"].get(k):
-                    log.warning(f"&units:{k} parameter not found. Assuming default {v}")
-                    self.conf["units"][k] = v
+        # sanitize conf
+        default_mcfost_output = {"scale_height": 0.05, "reference_radius": 1}
+        for namelist, defaults in (("units", DEFAULT_UNITS),
+                                   ("mcfost_output", default_mcfost_output)):
+            if namelist not in self.conf:
+                log.warning(f"&{namelist} parameter list not found. Overriding {defaults}")
+                self.conf[namelist] = f90nml.Namelist(defaults)
+            else:
+                for k, v in defaults.items():
+                    if not self.conf[namelist].get(k):
+                        log.warning(f"&{namelist}:{k} parameter not found. Overriding default {v}")
+                        self.conf[namelist][k] = v
 
     # abstract bits
     @abstractmethod
