@@ -1,6 +1,6 @@
 variables:
   PYENV: "vac2fost-test-env"
-  SLURM_CMD: "srun --exclusive=user -p gitlab --cpus-per-task 1"
+  SLURM_CMD: "srun --exclusive=user -p gitlab --cpus-per-task 1 --ntasks 1"
 cache:
   paths:
     - deps/
