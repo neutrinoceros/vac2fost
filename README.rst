@@ -1,223 +1,120 @@
 .. image:: http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat
 
-warning: this work has seen very little usage outside of its author's
-laptop, any user feedback is therefor essential to making this program
-more reliable. Please do report bugs at sight, thanks.
+python macro
+============
 
-vac2fost
-========
-
-vac2fost is a Python 3.7+ module to help translate of `.vtu` formated
+``vac2fost`` is a Python 3.7 macro that converts `.vtu` formatted
 MPI-AMRVAC output files into `.fits` files compatible with mcfost 3D
 model input format.
 
-The ``main`` routine can be used for python scripting with
+Installation (via conda)
+------------------------
 
-.. code ::
+It is recommended to create a separate conda enviromnent before installing.
+See https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html
 
-    from vac2fost import main
-
-and is also accessible through the command line program ``app/v2f.py``.
-
-
-Content
--------
-
-``tests/sample/`` contains sample configuration files used by test
-scripts located in ``tests/``
-
-Any mcfost parameter can be overwritten by those found in
-``&mcfost_list``, using names defined in
-``vac2fost.py:MCFOSTUtils:block_descriptors``.
-
-
-Prerequisites
--------------
-
-As vac2fost calls mcfost itself in order to define the output grid, it
-is assumed that you have ``mcfost (>=3.0.35)`` properly install.
-
-The recommended method for installing vac2fost consists in creating a
-dedicated and _isolated_ Python environment.  `environment.yml`
-describes dependencies and the rationale for each version constraint.
-
-This file can be used out-of-the-box to create a environment in one
-line with conda
-
-    .. code-block:: bash
-    
-        conda create --name vac2fost --file environment.yml --channel conda-forge
-
-For details, see the official conda documentation for managing environments
-https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html
-
-The dependencies listed therein can otherwise be installed with pip/pipenv.
-
-
-The program also relies on a derived project, vtk_vacreader_: a small
+**prerequisite:** ``vac2fost`` currently relies on a derived project, vtk_vacreader_: a small
 module to read VTK files from MPI-AMRVAC (restricted to non-AMR files
 atm).
-
-.. _vtk_vacreader: https://gitlab.oca.eu/crobert/vtk_vacreader-project
-
 It can can be installed with the interactive script `install_deps.sh`.
 Please make sure to run it from your dedicated python environment, be
-it conda or pipenv...  This script will ask for your prefered
-installer (pip or conda ?).
-
-**warning; old versions of conda contain a bug where `conda develop` breaks
-if run in a environement with a different Python version than the base one.
-This is solved by updating conda with `conda update conda``.
-**
+it conda or pipenv... This script will ask for your prefered installer (pip or conda ?).
 
 
+The minimal working installation script is
 
-Usage/Finishing installation
-----------------------------
+.. code-block:: bash
 
-Install vac2fost Python package
+    bash install_deps.sh
+    conda install --file environment.yml --channel conda-forge
+    conda install .
 
-    .. code-block:: bash
+It is recommended to replace the last line with ``conda develop . `` in case
+you wish to actively modify the code while using it.
 
-        conda activate vac2fost
-        conda install .
-        #or
-        conda develop . # if you wish to actively modify the package as you use it
 
-**warning; equivalent methods exists within pip (i.e. ``pip install -e .``)
-but have not been tested thoroughly
-**
 
-``app/v2f.py`` is a command line program.  The recommended
-installation method is to add ``app/`` to your ``PATH`` by adding the
-following line to your ``~/.bashrc`` (or ``~/.bash_profile``...)
+Usage
+-----
 
-    .. code-block:: bash
+.. code :: python
 
-	export PATH=$PATH:~/path/to/vac2fost-project/app
+    from vac2fost import main as vac2fost
+    # minimal requirements (will output to cwd)
+    vac2fost("conf.nml")
+    
+    # specifying the output directory
+    vac2fost("conf.nml", output_dir="my/out/")
+    
+    # overriding or adding some properties to "conf.nml"
+    vac2fost("conf.nml", override={"flags": {"axisymmetry": True}})
 
-so that v2f.py can be run from anywhere on the system.
-It is also possible to alias it with a symbolic link such as:
 
-    .. code-block:: bash
-
-        ln -s ~/path/to/vac2fost-project/app/v2f.py ~/existing/member/of/PATH/vac2fost
-
-so that the scipt can be call as "vac2fost" from command line.
 
 Testing
 -------
 
-run ``pytest`` to check that the program behaves normally. Tests
-should be able to pass as long as your environment contains all of
-vac2fost's dependencies, even if you did not install the package yet.
-
-A demo of how to produce an image with vac2fost + mcfost can
-be found in ``docs/mcfost_demo.sh``.
+Run ``pytest`` from the installation directory to check that the program behaves
+normally.
 
 
-Getting started
----------------
 
-The minimal requirement is a configuration file, which 
-can be generated from command line with ``vac2fost.py --genconf > conf.nml``
 
-For instance
- .. code:: fortran
+Complementary command line tool
+===============================
 
-	   &amrvac_input
-	   config = 'relative/to/<hydro_data_dir>/path/to/amrvac/config/file1.par','and/file2.par'
-           hydro_data_dir = 'path/to/output/data/directory'
-           nums = 0
-           /
+Installation
+------------
+ **note** the command line tool relies on the package being installed
+ 
+The file is found in the ``app/`` folder.
+The recommended installation method is to alias it with a symbolic link such as:
 
-	   &units
-	   ! conversion factors between dimensionless AMRVAC outputs and physical units
-	   distance2au = 100.0
-	   time2yr     = 10.
-	   /
+    .. code-block:: bash
+        ln -s path/to/vac2fost-project/app/v2f.py /usr/bin/vac2fost
 
-	   &mcfost_output
-           ! this list describes MCFOST parameters
-           ! names should follow MCFOST's documentation
-           n_rad = 150
-	   n_rad_in = 30
-           n_az = 100
-           nz = 50
+Usage
+-----
 
-           flaring_exp = 1.125
-           reference_radius = 100.0  ! [AU]
-           scale_height = 10.0       ! [AU]
+.. code:: shell
 
-           Mstar = 1.8               ! [M_sun]
-           Teff = 6550               ! [K]
-           distance = 157            ! [pc]
-	   /
+    # echo a conf file template
+    vac2fost --template
+    
+    # display mcfost default parameters (names and values)
+    vac2fost --print_mcfost_defaults
+    
+    # show version, help
+    vac2fost --version
+    vac2fost --help
 
-How to use it
 
-* from command-line:
 
-  A typical call would look like this
-  .. code:: bash
 
-            # provided that the num parameter is included in the configuration:&amrvac_input:nums
-            ./vac2mcfost.py <configuration_file> --dbm <[dust-only, gas-only, mixed]>
-            # otherwise
-            ./vac2mcfost.py <configuration_file> --nums <input file num(s)>
 
-* as an importable python function
+How vac2fost selects density fields
+===================================
 
-  .. code:: python
-
-            from vac2fost import main as vac2fost
-
-            conf = ...  #(str or pathlib.Path)
-            out = ...   #(str or pathlib.Path)
-
-	    # minimal call
-            vac2fost(config_file=conf)
-
-	    # more sophisticated call
-            vac2fost(config_file=conf, nums=10, output_dir=out)
-  
-note that if ``nums`` are defined as a command line arguemnt **and**
-included in the configuration file, the argument prevails.  ``nums``
-can be a single integer or any integer-returning iterable.
-
-Dust binning mode
------------------
-
-va2fost can be used wether or not your hydro simulation contains dust.
+``va2fost`` can be used wether or not your hydro simulation contains dust.
 The way it works is by guessing the most appropriate thing to do,
-encoded in a parameter called `dust-binning-mode` (or "dbm" for
+encoded in a parameter called `dust-binning-mode` (or *DBM* for
 shorts):
 
-- if no dusty fluid is found, gas will be used as a proxy, and all
-  grain sizes will be assumed to follow gas distribution
-  (`dbm="gas-only")
+- if ``&dust`` namelist is ommited in the configuration file,
+  gas will be used as a proxy, and all grain sizes will be assumed to follow gas
+  distribution (DBM = "gas-only")
 - if dust is found but no one species is smaller than 0.1 micron, gas
-  is still used to trace the smallest grains (`dbm="mixed")
+  is still used to trace the smallest grains (DBM = "mixed")
 
-By default, vac2fost automatically sets the dbm, but it can be imposed
-by the user as an argument.  An additional mode is "dust-only", where
+By default, vac2fost automatically sets the dbm, but it can be overrided via
+``&flags: dust_bin_mode``. An additional mode is "dust-only", where
 gas density is being ignored. This mode is never chosen automatically
 but can prove relevant for tests.
 
 If dbm is set to "dust-only", one can also pass gas density as gas
-itself to mcfost with "read_gas_density". In other dbms, this
+itself to mcfost with "read_gas_density". Within other DBMs, this
 parameter is ignored because mcfost is already assuming that gas and
 smallest grains are perfectly coupled.
 
 
-Get help
---------
-
-vac2fost's command line help is displayed upon
-  .. code:: bash
-
-	    vac2fost.py --help
-
-	    #or even simpler
-	    vac2fost.py
-
+.. _vtk_vacreader: https://gitlab.oca.eu/crobert/vtk_vacreader-project
