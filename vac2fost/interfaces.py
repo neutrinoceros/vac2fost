@@ -219,6 +219,17 @@ class AbstractInterface(ABC):
             # - defaults (defined in mcfost_utils.py)
             mcfost_parameters = {}
             mcfost_parameters.update(self._translate_amrvac_config())
+            mcfost_parameters.update(self.conf['mcfost_output'])
+
+            #Star mass is a special case
+            mstar = self.conf["mcfost_output"].get("mstar", None)
+            if mstar is None:
+                log.warning("&mcfost_output: Mstar not found. Assuming default value.")
+                mstar = 1.0
+            elif isinstance(mstar, str):
+                namelist, param = mstar.split(".")
+                mstar = self.amrvac_conf[namelist][param] * self.conf["units"]["mass2solar"]
+            mcfost_parameters.update({"mstar": mstar})
 
             #Get unrecognized arguments found in mcfost_output
             unknown_args = []
@@ -228,7 +239,6 @@ class AbstractInterface(ABC):
             if unknown_args:
                 raise ValueError(f'Unrecognized MCFOST argument(s): {unknown_args}')
 
-            mcfost_parameters.update(self.conf['mcfost_output'])
             write_mcfost_conf(output_file=mcfost_conf_file,
                               custom_parameters=mcfost_parameters)
             log.info(f"successfully wrote {mcfost_conf_file}")
@@ -427,11 +437,6 @@ class AbstractInterface(ABC):
                 'sp_min': min(1e-1, min(self._grain_micron_sizes)),
                 'sp_max': max(1e3, max(self._grain_micron_sizes)),
             })
-        #Star
-        try:
-            parameters.update({"star_mass": self.amrvac_conf["disk_list"]["central_mass"]})
-        except KeyError:
-            log.warning("&disk_list not found. Assuming default values")
         return parameters
 
 
