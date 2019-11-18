@@ -9,6 +9,7 @@ they are used to translate (MPI-AMRVAC) output files to .fits input suited for M
 import os
 from pathlib import Path
 from abc import ABC, abstractmethod
+from copy import deepcopy
 
 # non standard externals
 import numpy as np
@@ -380,7 +381,12 @@ class AbstractInterface(ABC):
 
         if self._bin_dust:
             # parse gas to dust mass ratio
-            dustlist = self.conf["dust"]
+            dustlist_raw = self.conf["dust"]
+            dustlist = deepcopy(dustlist_raw)
+            for param, value in dustlist_raw.items():
+                if isinstance(value, str):
+                    namelist, arg = value.split(".")
+                    dustlist.update({param: self.amrvac_conf[namelist][arg]})
             if "gas_to_dust_ratio" and "dust_to_gas_ratio" in dustlist:
                 raise RuntimeError("Can not set both 'gas_to_dust_ratio' and 'dust_to_gas_ratio'")
             if "gas_to_dust_ratio" in dustlist:
