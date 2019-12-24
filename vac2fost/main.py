@@ -6,10 +6,12 @@ from .interfaces import AbstractInterface, VtuFileInterface, DatFileInterface
 from .logger import v2flogger as log
 
 
-def main(conf_file: Path, # python 3.8: positional only
-         override: dict = None,
-         output_dir: Path = None,
-         loglevel: int = 30) -> AbstractInterface:
+def main(
+    conf_file: Path,  # python 3.8: positional only
+    override: dict = None,
+    output_dir: Path = None,
+    loglevel: int = 30,
+) -> AbstractInterface:
     """Transform a .vtu datfile into a .fits
 
     conf_file and overrides are passed down to Interface.__init__()
@@ -40,7 +42,7 @@ def main(conf_file: Path, # python 3.8: positional only
         except ValueError:
             filepath = itf.io.OUT.filepath
         try:
-            itf.advance_iteration() # set itf.current_num to next value
+            itf.advance_iteration()  # set itf.current_num to next value
         except StopIteration:
             break
 

@@ -1,4 +1,4 @@
-#-*-coding:utf-8-*-
+# -*-coding:utf-8-*-
 """package info"""
 
 __version__ = "3.1-dev"
