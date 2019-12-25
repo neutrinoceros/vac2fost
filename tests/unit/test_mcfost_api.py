@@ -10,10 +10,11 @@ from vac2fost import VtuFileInterface as Interface, main as app
 
 
 testdir = Path(__file__).parent.parent
-outdir = testdir/"output"
+outdir = testdir / "output"
 
 if not outdir.is_dir():
     mkdir(outdir)
+
 
 def test_unicity():
     found = []
@@ -27,21 +28,20 @@ def test_unicity():
             print(f"non unique key detected {p}")
     assert len(set(found)) == len(found)
 
+
 def test_writter_null():
-    write_mcfost_conf(outdir/"writter_out.para")
+    write_mcfost_conf(outdir / "writter_out.para")
+
 
 def test_writter_args():
-    write_mcfost_conf(
-        outdir/"writter_out_2.para",
-        custom_parameters={"nphot_sed": 2}
-    )
+    write_mcfost_conf(outdir / "writter_out_2.para", custom_parameters={"nphot_sed": 2})
 
 
 def test_unrecognized_mcfost_parameter():
     with pytest.raises(ValueError):
         app(
             str(testdir / "sample/vac2fost_conf_fake_params.nml"),
-            output_dir=testdir/"output/fake_params"
+            output_dir=testdir / "output/fake_params",
         )
 
 
@@ -52,25 +52,25 @@ def gen_mcfost_grid(output_dir):
     if output_dir.exists():
         rmtree(output_dir)
     log.setLevel(10)
-    myitf = Interface(testdir / "sample/vac2fost_conf.nml",
-                      output_dir=output_dir)
+    myitf = Interface(testdir / "sample/vac2fost_conf.nml", output_dir=output_dir)
     return myitf.output_grid
+
 
 class TestMcfostGridGen:
     def test_dry_grid_gen(self):
         """Check that the output grid can be retrieved simply by calling it at the interface level."""
-        output_dir = testdir/"output/test_parallel_instanciation/"
+        output_dir = testdir / "output/test_parallel_instanciation/"
         if output_dir.exists():
             rmtree(output_dir)
-        gen_mcfost_grid(output_dir/"dry_grid")
+        gen_mcfost_grid(output_dir / "dry_grid")
 
     @pytest.mark.skipif(mp.cpu_count() == 1, reason="parallel computation only with Ncpus>=2")
     def test_parallel_instanciation(self):
         """Check that instanciating multiple Interface class object at same
         time and location doesn't create collisions"""
-        output_dir = testdir/"output/test_parallel_instanciation/"
+        output_dir = testdir / "output/test_parallel_instanciation/"
         if output_dir.exists():
             rmtree(output_dir)
         ncpu = min(mp.cpu_count(), 4)
         with mp.Pool(ncpu) as pool:
-            pool.map(gen_mcfost_grid, [output_dir/str(i) for i in range(ncpu)])
+            pool.map(gen_mcfost_grid, [output_dir / str(i) for i in range(ncpu)])

@@ -12,6 +12,7 @@ testdir = Path(__file__).parent.parent
 OUT = testdir / "output"
 densfile = "hd142527_dusty0000.fits"
 
+
 class TestReadGasVelocity:
     def test_read_gas_vel_gas_only(self):
         outdir = OUT / "gasvel_gasonly"
@@ -19,10 +20,8 @@ class TestReadGasVelocity:
             rmtree(outdir)
         app(
             testdir / "sample/vac2fost_conf_quick.nml",
-            override={"flags": dict(
-                read_gas_velocity=True,
-                dust_bin_mode="gas-only")},
-            output_dir=outdir
+            override={"flags": dict(read_gas_velocity=True, dust_bin_mode="gas-only")},
+            output_dir=outdir,
         )
         chdir(outdir)
         with fits.open(densfile) as dfile:
@@ -38,10 +37,8 @@ class TestReadGasVelocity:
             rmtree(outdir)
         app(
             testdir / "sample/vac2fost_conf_quick.nml",
-            override={"flags": dict(
-                read_gas_velocity=True,
-                dust_bin_mode="dust-only")},
-            output_dir=outdir
+            override={"flags": dict(read_gas_velocity=True, dust_bin_mode="dust-only")},
+            output_dir=outdir,
         )
         chdir(outdir)
         with fits.open(densfile) as dfile:
@@ -57,10 +54,8 @@ class TestReadGasVelocity:
             rmtree(outdir)
         app(
             testdir / "sample/vac2fost_conf_quick.nml",
-            override={"flags": dict(
-                read_gas_velocity=True,
-                dust_bin_mode="mixed",)},
-            output_dir=outdir
+            override={"flags": dict(read_gas_velocity=True, dust_bin_mode="mixed")},
+            output_dir=outdir,
         )
         chdir(outdir)
         with fits.open(densfile) as dfile:
@@ -71,16 +66,18 @@ class TestReadGasVelocity:
         run(["mcfost", "mcfost_conf.para", "-3D", "-density_file", densfile], check=True)
 
 
-
-#@pytest.mark.incremental #each test is run only if the previous one passed
+# @pytest.mark.incremental #each test is run only if the previous one passed
 class TestReadGasDensity:
     outdir = testdir / "output/test_read_gas_density"
     if outdir.is_dir():
         rmtree(outdir)
-    conf_file = testdir/"sample/vac2fost_conf_quick.nml"
+    conf_file = testdir / "sample/vac2fost_conf_quick.nml"
     v2flogger.setLevel(10)
-    itf = app(conf_file, output_dir=outdir,
-              override={"flags": dict(dust_bin_mode="dust-only", read_gas_density=True)})
+    itf = app(
+        conf_file,
+        output_dir=outdir,
+        override={"flags": dict(dust_bin_mode="dust-only", read_gas_density=True)},
+    )
 
     def test_read_gas_density_header(self):
         header = fits.open(__class__.itf.io.OUT.filepath)[0].header
@@ -99,5 +96,5 @@ class TestReadGasDensity:
         run(
             f"mcfost mcfost_conf.para -density_file {__class__.itf.io.OUT.filepath.name} -3D",
             shell=True,
-            check=True
+            check=True,
         )
