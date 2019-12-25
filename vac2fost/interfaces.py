@@ -157,6 +157,8 @@ class AbstractInterface(ABC):
             location=self.conf["amrvac_input"]["hydro_data_dir"],
         )
 
+        self._set_io()
+
         self._mumsizes = None
         self._input_data = None
         self._density_keys = None
@@ -209,10 +211,10 @@ class AbstractInterface(ABC):
         # self._input_data
         # self._density_keys
 
-    @property
     @abstractmethod
-    def io(self) -> IOinfo:
-        """Store input/ouput directories and grids information"""
+    def _set_io(self) -> None:
+        """Set or reset self.io according to in self.current_num
+        self.io must have two attributes named IN and OUT, of class DataInfo"""
 
     @property
     @abstractmethod
@@ -340,6 +342,7 @@ class AbstractInterface(ABC):
         """Step to next output number."""
         self.current_num = next(self._iter_nums)
         self._iter_count += 1
+        self._set_io()
 
     @property
     def iter_frac(self):
@@ -588,8 +591,7 @@ class AbstractInterface(ABC):
 class VtuFileInterface(AbstractInterface):
     """An interface dedicated to fixed-resolution vtu files (to be deprecated !)"""
 
-    @property
-    def io(self) -> IOinfo:
+    def _set_io(self) -> None:
         """Give up-to-date information on data location and naming (.i: input, .o: output)"""
         vtufile_name = "".join(
             [
@@ -619,7 +621,7 @@ class VtuFileInterface(AbstractInterface):
                 **{k1: self.conf["mcfost_output"][k2] for k1, k2 in trad_keys.items()}
             ),
         )
-        return IOinfo(IN=_input, OUT=_output)
+        self.io = IOinfo(IN=_input, OUT=_output)
 
     def load_input_data(self) -> None:
         """Use vtkvacreader.VacDataSorter to load AMRVAC data"""
