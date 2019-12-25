@@ -56,9 +56,7 @@ def read_amrvac_parfiles(parfiles: list, location: str = "") -> f90nml.Namelist:
     for c in confs:
         conf_tot.patch(c)
 
-    base_filename = "".join(
-        [c.get("filelist", {}).get("base_filename", "") for c in confs]
-    )
+    base_filename = "".join([c.get("filelist", {}).get("base_filename", "") for c in confs])
     assert base_filename != ""
     conf_tot["filelist"]["base_filename"] = base_filename
     return conf_tot
@@ -76,9 +74,7 @@ class AbstractInterface(ABC):
             raise TypeError(conf_file)
         if output_dir is None:
             output_dir = Path.cwd()
-            log.warning(
-                "no output_dir provided, outputs will be written to current work directory"
-            )
+            log.warning("no output_dir provided, outputs will be written to current work directory")
         elif not isinstance(output_dir, (str, Path)):
             raise TypeError(output_dir)
         if override is None:
@@ -107,9 +103,7 @@ class AbstractInterface(ABC):
         if self._use_axisymmetry and self._read_gas_velocity:
             raise NotImplementedError
         if self._use_axisymmetry and self.conf["mcfost_output"].get("n_az", 2) > 1:
-            log.warning(
-                "specified n_az > 1 but axisymmetry flag present, overriding n_az = 1"
-            )
+            log.warning("specified n_az > 1 but axisymmetry flag present, overriding n_az = 1")
             self.conf["mcfost_output"].update({"n_az": 1})
 
         # init iteration counter
@@ -148,9 +142,7 @@ class AbstractInterface(ABC):
                 raise FileNotFoundError(hydro_data_dir / options["config"][0])
 
             p = (p1, p2)[found.index(True)]
-            log.warning(
-                "Relative path found for hydro_data_dir, overriding to absolute path."
-            )
+            log.warning("Relative path found for hydro_data_dir, overriding to absolute path.")
             self.conf["amrvac_input"].update({"hydro_data_dir": str(p.resolve())})
         self.amrvac_conf = read_amrvac_parfiles(
             parfiles=self.conf["amrvac_input"]["config"],
@@ -191,16 +183,12 @@ class AbstractInterface(ABC):
             ("mcfost_output", default_mcfost_output),
         ):
             if namelist not in self.conf:
-                log.warning(
-                    f"&{namelist} parameter list not found. Overriding {defaults}"
-                )
+                log.warning(f"&{namelist} parameter list not found. Overriding {defaults}")
                 self.conf[namelist] = f90nml.Namelist(defaults)
             else:
                 for k, v in defaults.items():
                     if not self.conf[namelist].get(k):
-                        log.warning(
-                            f"&{namelist}:{k} parameter not found. Overriding default {v}"
-                        )
+                        log.warning(f"&{namelist}:{k} parameter not found. Overriding default {v}")
                         self.conf[namelist][k] = v
 
     # abstract bits
@@ -242,9 +230,7 @@ class AbstractInterface(ABC):
                 mstar = 1.0
             elif isinstance(mstar, str):
                 namelist, param = mstar.split(".")
-                mstar = (
-                    self.amrvac_conf[namelist][param] * self.conf["units"]["mass2solar"]
-                )
+                mstar = self.amrvac_conf[namelist][param] * self.conf["units"]["mass2solar"]
             mcfost_parameters.update({"mstar": mstar})
 
             # Get unrecognized arguments found in mcfost_output
@@ -255,15 +241,11 @@ class AbstractInterface(ABC):
             if unknown_args:
                 raise ValueError(f"Unrecognized MCFOST argument(s): {unknown_args}")
 
-            write_mcfost_conf(
-                output_file=mcfost_conf_file, custom_parameters=mcfost_parameters
-            )
+            write_mcfost_conf(output_file=mcfost_conf_file, custom_parameters=mcfost_parameters)
             log.info(f"successfully wrote {mcfost_conf_file}")
 
         grid = get_mcfost_grid(
-            mcfost_conf_file,
-            output_dir=self.io.OUT.directory,
-            require_run=(self._iter_count == 0),
+            mcfost_conf_file, output_dir=self.io.OUT.directory, require_run=(self._iter_count == 0)
         )
 
         self.output_grid = {
@@ -297,13 +279,9 @@ class AbstractInterface(ABC):
         assert (len(dust_bin_selector) > 1) == (self._bin_dust)
         if len(dust_bin_selector) > 1:
             # mcfost requires an HDU with grain sizes only if more than one population is present
-            suppl_hdus.append(
-                fits.ImageHDU(self._grain_micron_sizes[dust_bin_selector])
-            )
+            suppl_hdus.append(fits.ImageHDU(self._grain_micron_sizes[dust_bin_selector]))
 
-        header = {
-            "read_n_a": 0
-        }  # automatic normalization of size-bins from mcfost param file.
+        header = {"read_n_a": 0}  # automatic normalization of size-bins from mcfost param file.
         if self._read_gas_density:
             header.update(dict(gas_to_dust=self._gas_to_dust_ratio))
             suppl_hdus.append(fits.ImageHDU(gas_field))
@@ -325,12 +303,8 @@ class AbstractInterface(ABC):
             self.conf.write(self._output_conf_file, force=True)
             with open(self._output_conf_file, mode="at") as stream:
                 stream.write(f"! automatically generated with vac2fost {__version__}\n")
-                stream.write(
-                    "! this file is self-contained and can be used for reproduction\n"
-                )
-                stream.write(
-                    "! WARNING: rename this file before running vac2fost with it"
-                )
+                stream.write("! this file is self-contained and can be used for reproduction\n")
+                stream.write("! WARNING: rename this file before running vac2fost with it")
             log.info(f"wrote {self._output_conf_file.resolve()}")
 
         with open(self.io.OUT.filepath, mode="wb") as fo:
@@ -418,9 +392,7 @@ class AbstractInterface(ABC):
                     namelist, arg = value.split(".")
                     dustlist.update({param: self.amrvac_conf[namelist][arg]})
             if "gas_to_dust_ratio" and "dust_to_gas_ratio" in dustlist:
-                raise RuntimeError(
-                    "Can not set both 'gas_to_dust_ratio' and 'dust_to_gas_ratio'"
-                )
+                raise RuntimeError("Can not set both 'gas_to_dust_ratio' and 'dust_to_gas_ratio'")
             if "gas_to_dust_ratio" in dustlist:
                 g2d = dustlist["gas_to_dust_ratio"]
             elif "dust_to_gas_ratio" in dustlist:
@@ -515,9 +487,7 @@ class AbstractInterface(ABC):
             # those are references, not copies
             hyperplane_densities = new_plane_densities
             output_ndarray = full3D_densities
-        hyperplane_densities[:] = np.array(
-            [interpolate(datakey=k) for k in self._density_keys]
-        )
+        hyperplane_densities[:] = np.array([interpolate(datakey=k) for k in self._density_keys])
 
         # dimensionless gas scale height implied by mcfost parameters
         aspect_ratio = (
@@ -536,9 +506,7 @@ class AbstractInterface(ABC):
                 H = gas_height
                 if self._use_settling:
                     H *= (grain_mumsize / MINGRAINSIZE_mum) ** (-0.5)
-                gaussian = np.exp(-z_vect ** 2 / (2 * H ** 2)) / (
-                    np.sqrt(2 * np.pi) * H
-                )
+                gaussian = np.exp(-z_vect ** 2 / (2 * H ** 2)) / (np.sqrt(2 * np.pi) * H)
                 output_ndarray[ibin, ..., ir] = np.outer(hpd, gaussian)
         return output_ndarray
 
@@ -594,11 +562,7 @@ class VtuFileInterface(AbstractInterface):
     def _set_io(self) -> None:
         """Give up-to-date information on data location and naming (.i: input, .o: output)"""
         vtufile_name = "".join(
-            [
-                self.amrvac_conf["filelist"]["base_filename"],
-                str(self.current_num).zfill(4),
-                ".vtu",
-            ]
+            [self.amrvac_conf["filelist"]["base_filename"], str(self.current_num).zfill(4), ".vtu"]
         )
 
         geomdefs = {"nr": 1, "nphi": 2}
@@ -606,10 +570,7 @@ class VtuFileInterface(AbstractInterface):
             directory=shell_path(self.conf["amrvac_input"]["hydro_data_dir"]).resolve(),
             filename=vtufile_name,
             gridshape=GridShape(
-                **{
-                    k: self.amrvac_conf["meshlist"][f"domain_nx{n}"]
-                    for k, n in geomdefs.items()
-                }
+                **{k: self.amrvac_conf["meshlist"][f"domain_nx{n}"] for k, n in geomdefs.items()}
             ),
         )
 
@@ -631,17 +592,14 @@ class VtuFileInterface(AbstractInterface):
         )
         # ordered list of density keys (gas, ds1, ds2, ds3...)
         # where 'ds' reads 'dust species'
-        self._density_keys = sorted(
-            filter(lambda k: "rho" in k, self._input_data.fields.keys())
-        )
+        self._density_keys = sorted(filter(lambda k: "rho" in k, self._input_data.fields.keys()))
         log.info(f"successfully loaded {self.io.IN.filepath}")
 
     @property
     def input_grid(self) -> dict:
         """Describe the amrvac grid."""
         ig = {
-            "ticks_r": self._input_data.get_ticks("r")
-            * self.conf["units"]["distance2au"],
+            "ticks_r": self._input_data.get_ticks("r") * self.conf["units"]["distance2au"],
             "ticks_phi": self._input_data.get_ticks("phi"),
         }
         return ig

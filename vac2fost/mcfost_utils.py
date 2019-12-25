@@ -66,20 +66,9 @@ blocks_descriptors = od(
             "Wavelengths",
             (
                 od([("n_lambda", 50), ("lambda_min", "0.1"), ("lambda_max", "3e3")]),
-                od(
-                    [
-                        ("ltemp", True),
-                        ("lsed", True),
-                        ("use_default_wavelength_grid", True),
-                    ]
-                ),
+                od([("ltemp", True), ("lsed", True), ("use_default_wavelength_grid", True)]),
                 od([("wavelength_file", "wavelengths.dat")]),
-                od(
-                    [
-                        ("separate_contributions", False),
-                        ("output_stokes_parameters", False),
-                    ]
-                ),
+                od([("separate_contributions", False), ("output_stokes_parameters", False)]),
             ),
         ),
         (
@@ -93,23 +82,13 @@ blocks_descriptors = od(
             "Images",
             (
                 od([("grid_nx", 501), ("grid_ny", 501), ("map_size", 400)]),
-                od(
-                    [
-                        ("RT_imin", 0),
-                        ("RT_imax", 0),
-                        ("RT_n_incl", 1),
-                        ("RT_centered", False),
-                    ]
-                ),
+                od([("RT_imin", 0), ("RT_imax", 0), ("RT_n_incl", 1), ("RT_centered", False)]),
                 od([("RT_az_min", 0), ("RT_az_max", 240), ("RT_n_az", 1)]),
                 od([("distance", 140)]),
                 od([("disk_PA", 0)]),
             ),
         ),
-        (
-            "Scattering Method",
-            (od([("scattering_method", 0)]), od([("Mie_hg", 1)])),  # *
-        ),
+        ("Scattering Method", (od([("scattering_method", 0)]), od([("Mie_hg", 1)]))),  # *
         (
             "Symmetries",
             (
@@ -160,21 +139,9 @@ blocks_descriptors = od(
                         ("DHS_Vmax", 0.9),
                     ]
                 ),
-                od(
-                    [
-                        ("optical_indices_file", "Draine_Si_sUV.dat"),
-                        ("volume_fraction", 1.0),
-                    ]
-                ),
+                od([("optical_indices_file", "Draine_Si_sUV.dat"), ("volume_fraction", 1.0)]),
                 od([("heating_method", 1)]),
-                od(
-                    [
-                        ("amin", MINGRAINSIZE_mum),
-                        ("amax", 1000),
-                        ("aexp", 3.5),
-                        ("n_grains", 100),
-                    ]
-                ),
+                od([("amin", MINGRAINSIZE_mum), ("amax", 1000), ("aexp", 3.5), ("n_grains", 100)]),
             ),
         ),
         (
@@ -200,13 +167,7 @@ blocks_descriptors = od(
                     ]
                 ),  # ?
                 od([("ray_tracing", True), ("n_lines", 3)]),  # *
-                od(
-                    [
-                        ("transition_num_1", 1),
-                        ("transition_num_2", 2),
-                        ("transition_num_3", 3),
-                    ]
-                ),
+                od([("transition_num_1", 1), ("transition_num_2", 2), ("transition_num_3", 3)]),
             ),
         ),
         (
@@ -257,12 +218,7 @@ def write_mcfost_conf(output_file: Path, custom_parameters: dict = None):
                 for param, default in line.items():
                     val = custom_parameters.get(param.lower(), default)
                     parameters.append(str(val))
-                fi.write(
-                    "  "
-                    + "  ".join(parameters).ljust(36)
-                    + "  "
-                    + ", ".join(line.keys())
-                )
+                fi.write("  " + "  ".join(parameters).ljust(36) + "  " + ", ".join(line.keys()))
                 fi.write("\n")
             fi.write("\n")
         fi.write("\n\n")
@@ -271,9 +227,7 @@ def write_mcfost_conf(output_file: Path, custom_parameters: dict = None):
         fi.write(f"%% run by {os.environ['USER']} on {gethostname()}\n")
 
 
-def get_mcfost_grid(
-    mcfost_conf_file: str, output_dir: str, require_run: bool
-) -> np.ndarray:
+def get_mcfost_grid(mcfost_conf_file: str, output_dir: str, require_run: bool) -> np.ndarray:
     """Pre-run MCFOST with -disk_struct flag to get the exact grid used."""
     output_dir = Path(output_dir).resolve()
     mcfost_conf_path = Path(mcfost_conf_file)
