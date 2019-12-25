@@ -1,7 +1,6 @@
 """Test basic consistency of main() called through python."""
 import pathlib
 import shutil
-import pytest
 
 import f90nml
 import astropy.io.fits as pyfits
@@ -11,7 +10,7 @@ from vac2fost.logger import v2flogger as log
 
 testdir = pathlib.Path(__file__).absolute().parent.parent
 
-# @pytest.mark.incremental #each test is run only if the previous one passed
+
 class TestPyScripting:
     output_dir = testdir / "output/TestPyScripting"
     if output_dir.exists():

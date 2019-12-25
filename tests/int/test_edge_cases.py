@@ -6,7 +6,6 @@ from astropy.io import fits
 import f90nml
 from vac2fost import main as app
 from vac2fost.logger import v2flogger
-import pytest
 
 testdir = Path(__file__).parent.parent
 OUT = testdir / "output"

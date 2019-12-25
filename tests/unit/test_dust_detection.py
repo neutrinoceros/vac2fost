@@ -58,7 +58,7 @@ class TestDBM:
 
     def test_mixed_into_KeyError(self):
         with pytest.raises(KeyError):
-            itf = Interface(
+            Interface(
                 test_dir / "sample/vac2fost_conf_quick_no_dust.nml",
                 output_dir=output_dir,
                 override={"flags": dict(dust_bin_mode="mixed")},
@@ -66,7 +66,7 @@ class TestDBM:
 
     def test_dust_only_into_KeyError(self):
         with pytest.raises(KeyError):
-            itf = Interface(
+            Interface(
                 test_dir / "sample/vac2fost_conf_quick_no_dust.nml",
                 output_dir=output_dir,
                 override={"flags": dict(dust_bin_mode="dust-only")},
@@ -91,7 +91,7 @@ class TestMassEstimate:
             assert abs(e - ref) / ref < 1e-11
 
     def test_dust_mass_absolute_estimation(self):
-        data = VDS(str(test_dir / "sample/flat_rphi0000.vtu"), shape=(512, 128))
+        VDS(str(test_dir / "sample/flat_rphi0000.vtu"), shape=(512, 128))
         conf = f90nml.read(test_dir / "sample/flat_rphi.nml")
         rmin = conf["meshlist"]["xprobmin1"]
         rmax = conf["meshlist"]["xprobmax1"]
