@@ -57,8 +57,8 @@ install mcfost:
 install private dependencies:
   stage: install
   script:
-    - echo $PYENV # temp
     - source activate $PYENV
+    - which pip
     - $SLURM_CMD pip install `pwd`/deps/vtk_vacreader-project
     - $SLURM_CMD pip install .
 
@@ -91,6 +91,7 @@ check code quality:
   stage: final
   script:
     - source activate $PYENV
+    - flake8 vac2fost/*.py
     - pylint --rcfile .pylintrc vac2fost/*.py
 
 run demo:

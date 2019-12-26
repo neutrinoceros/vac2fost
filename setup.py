@@ -1,6 +1,5 @@
 from setuptools import setup, find_packages
 from pathlib import Path
-import os
 import sys
 
 if sys.version < "3.7":
