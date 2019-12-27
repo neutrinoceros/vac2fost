@@ -64,6 +64,7 @@ class TestMcfostGridGen:
             rmtree(output_dir)
         gen_mcfost_grid(output_dir / "dry_grid")
 
+    @pytest.mark.timeout(60)
     @pytest.mark.skipif(mp.cpu_count() == 1, reason="parallel computation only with Ncpus>=2")
     def test_parallel_instanciation(self):
         """Check that instanciating multiple Interface class object at same
