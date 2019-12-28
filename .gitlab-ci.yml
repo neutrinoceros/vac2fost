@@ -91,6 +91,7 @@ check code quality:
   stage: final
   script:
     - source activate $PYENV
+    - conda install flake8 --yes
     - flake8 vac2fost/*.py
     - pylint --rcfile .pylintrc vac2fost/*.py
 
