@@ -19,6 +19,7 @@ scipy>=1.1
 numpy>=1.15
 astropy>=3.1.1
 f90nml>=1.0.2
+toml>=10.0
 vtk>=8.1.2
 matplotlib>=3.1 #matplotlib 3.0 was unstable on MacOS
 
