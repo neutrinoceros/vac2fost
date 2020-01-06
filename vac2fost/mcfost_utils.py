@@ -248,7 +248,7 @@ def get_mcfost_grid(mcfost_conf_file: str, output_dir: str, require_run: bool) -
                 run(
                     ["mcfost", "mcfost_conf.para", "-disk_struct"],
                     check=True,
-                    capture_output=(log.level < 20),
+                    capture_output=(log.level > 10),
                 )  # if in debug mode, output will be printed
 
                 shutil.move("data_disk/grid.fits.gz", grid_file_name)
