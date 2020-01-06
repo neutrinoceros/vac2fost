@@ -11,6 +11,7 @@ def main(
     override: dict = None,
     output_dir: Path = None,
     loglevel: int = 30,
+    force_preroll = False,
 ) -> AbstractInterface:
     """Transform a .vtu datfile into a .fits
 
@@ -34,7 +35,7 @@ def main(
             if itf.iter_last:
                 break
             continue
-        itf.preroll_mcfost()
+        itf.preroll_mcfost(force=force_preroll)
         itf.write_output()
 
         try:

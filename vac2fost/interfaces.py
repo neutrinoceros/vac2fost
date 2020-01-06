@@ -222,11 +222,10 @@ class AbstractInterface(ABC):
         """Store physical coordinates (vectors) about the input grid specifications."""
 
     # public methods, for direct usage in vac2fost.main()
-    #def preroll_mcfost(self, force=False) -> None: # TOUCHME
-    def preroll_mcfost(self) -> None:
+    def preroll_mcfost(self, force=False) -> None:
         """Output mcfost parafile and store the grid"""
         mcfost_conf_file = self.io.OUT.directory / "mcfost_conf.para"
-        if not mcfost_conf_file.is_file():# or force: #TOUCHME
+        if not mcfost_conf_file.is_file() or force:
             # Create a complete mcfost conf file using (by decreasing priority)
             # - amrvac initial configuration : self._translate_amrvac_config()
             # - user specifications : self.conf['mcfost_output']
@@ -238,7 +237,7 @@ class AbstractInterface(ABC):
             # Star mass is a special case
             mstar = self.conf["mcfost_output"].get("mstar", None)
             if mstar is None:
-                log.warning("&mcfost_output: Mstar not found. Assuming default value.") #TOUCHME
+                log.warning("&mcfost_output: Mstar not found. Assuming default value.")
                 mstar = 1.0
             elif isinstance(mstar, str):
                 namelist, param = mstar.split(".")
