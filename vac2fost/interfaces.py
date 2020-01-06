@@ -328,6 +328,11 @@ class AbstractInterface(ABC):
         """Whether or not we're at last iteration."""
         return self._iter_count == self._iter_max
 
+    @property
+    def output_conf(self):
+        """for convenience"""
+        return f90nml.read(self._output_conf_file)
+
     # private methods
     def _parse_dust_properties(self) -> None:
         """
