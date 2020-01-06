@@ -237,7 +237,7 @@ class AbstractInterface(ABC):
             # Star mass is a special case
             mstar = self.conf["mcfost_output"].get("mstar", None)
             if mstar is None:
-                log.warning("&mcfost_output: Mstar not found. Assuming default value.")
+                log.warning("&mcfost_output: Mstar not found. Assuming default value. (1Msun)")
                 mstar = 1.0
             elif isinstance(mstar, str):
                 namelist, param = mstar.split(".")
