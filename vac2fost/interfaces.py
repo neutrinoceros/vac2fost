@@ -17,6 +17,7 @@ from astropy import units
 from astropy.io import fits
 from scipy.interpolate import interp1d, interp2d
 import f90nml
+import toml
 
 # private externals
 from vtk_vacreader import VacDataSorter
@@ -61,6 +62,17 @@ def read_amrvac_parfiles(parfiles: list, location: str = "") -> f90nml.Namelist:
     conf_tot["filelist"]["base_filename"] = base_filename
     return conf_tot
 
+def read_conf_file(conf_file: Path) -> f90nml.Namelist:
+    """writeme"""
+    if conf_file.suffix not in [".nml", ".namelist", ".toml"]:
+        raise TypeError
+    if conf_file.suffix == ".toml":
+        dconf = toml.load(conf_file)
+        nmlconf = f90nml.Namelist(dconf)
+    else:
+        nmlconf = f90nml.read(conf_file)
+    return nmlconf
+
 
 class AbstractInterface(ABC):
     """A data transforming class. Holds most functionalities useful to
@@ -91,7 +103,7 @@ class AbstractInterface(ABC):
             raise RuntimeError(err)
 
         self.conf_file = Path(conf_file)
-        self.conf = f90nml.read(conf_file)
+        self.conf = read_conf_file(self.conf_file)
         self.conf.patch(override)
 
         flags = self.conf.get("flags", {})
@@ -210,11 +222,11 @@ class AbstractInterface(ABC):
         """Store physical coordinates (vectors) about the input grid specifications."""
 
     # public methods, for direct usage in vac2fost.main()
+    #def preroll_mcfost(self, force=False) -> None: # TOUCHME
     def preroll_mcfost(self) -> None:
         """Output mcfost parafile and store the grid"""
         mcfost_conf_file = self.io.OUT.directory / "mcfost_conf.para"
-
-        if not mcfost_conf_file.is_file():
+        if not mcfost_conf_file.is_file():# or force: #TOUCHME
             # Create a complete mcfost conf file using (by decreasing priority)
             # - amrvac initial configuration : self._translate_amrvac_config()
             # - user specifications : self.conf['mcfost_output']
@@ -226,7 +238,7 @@ class AbstractInterface(ABC):
             # Star mass is a special case
             mstar = self.conf["mcfost_output"].get("mstar", None)
             if mstar is None:
-                log.warning("&mcfost_output: Mstar not found. Assuming default value.")
+                log.warning("&mcfost_output: Mstar not found. Assuming default value.") #TOUCHME
                 mstar = 1.0
             elif isinstance(mstar, str):
                 namelist, param = mstar.split(".")
