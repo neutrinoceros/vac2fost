@@ -11,7 +11,7 @@ def main(
     override: dict = None,
     output_dir: Path = None,
     loglevel: int = 30,
-    force_preroll = False,
+    force_preroll=False,
 ) -> AbstractInterface:
     """Transform a .vtu datfile into a .fits
 

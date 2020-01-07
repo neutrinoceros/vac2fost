@@ -17,7 +17,11 @@ from astropy import units
 from astropy.io import fits
 from scipy.interpolate import interp1d, interp2d
 import f90nml
-import toml
+
+try:
+    import toml
+except ImportError:
+    toml = None
 
 # private externals
 from vtk_vacreader import VacDataSorter
@@ -29,6 +33,10 @@ from .mcfost_utils import MINGRAINSIZE_mum, KNOWN_MCFOST_ARGS
 from .mcfost_utils import get_mcfost_grid, write_mcfost_conf
 from .logger import v2flogger as log
 
+
+ACCEPTED_CONF_FILE_EXTENSTIONS = [".nml", ".namelist"]
+if toml is not None:
+    ACCEPTED_CONF_FILE_EXTENSTIONS.append(".toml")
 
 DEFAULT_UNITS = dict(distance2au=1.0, time2yr=1.0, mass2solar=1.0)
 
@@ -62,9 +70,12 @@ def read_amrvac_parfiles(parfiles: list, location: str = "") -> f90nml.Namelist:
     conf_tot["filelist"]["base_filename"] = base_filename
     return conf_tot
 
+
 def read_conf_file(conf_file: Path) -> f90nml.Namelist:
-    """writeme"""
-    if conf_file.suffix not in [".nml", ".namelist", ".toml"]:
+    """Always return a namelist object even from .toml files
+    Only attempt to parse a .toml file if toml is installed
+    """
+    if conf_file.suffix not in ACCEPTED_CONF_FILE_EXTENSTIONS:
         raise TypeError
     if conf_file.suffix == ".toml":
         dconf = toml.load(conf_file)
