@@ -117,14 +117,23 @@ class AbstractInterface(ABC):
         self.conf = read_conf_file(self.conf_file)
         self.conf.patch(override)
 
-        flags = self.conf.get("flags", {})
-        self._use_settling = flags.get("settling", False)
-        self._use_axisymmetry = flags.get("axisymmetry", False)
-        self._read_gas_velocity = flags.get("read_gas_velocity", False)
+        # parse flags
+        flags = self.conf.get("flags", {}).copy()
+        self._use_settling = flags.pop("settling", False)
+        self._use_axisymmetry = flags.pop("axisymmetry", False)
+        self._read_gas_velocity = flags.pop("read_gas_velocity", False)
+        read_gas_density = flags.pop("read_gas_density", False)
+        self._dbm = flags.pop("dust_bin_mode", None)
+        if self._dbm is not None and self._dbm not in ("dust-only", "mixed", "gas-only"):
+            raise ValueError(f"Unrecognized dust_bin_mode value {self._dbm}")
+        if len(flags) > 0:
+            for flag in flags.keys():
+                log.warning(f"Unrecognized flag {flag}")
 
         # handle special cases
         if self._use_axisymmetry and self._read_gas_velocity:
             raise NotImplementedError
+
         if self._use_axisymmetry and self.conf["mcfost_output"].get("n_az", 2) > 1:
             log.warning("specified n_az > 1 but axisymmetry flag present, overriding n_az = 1")
             self.conf["mcfost_output"].update({"n_az": 1})
@@ -181,7 +190,6 @@ class AbstractInterface(ABC):
 
         self._parse_dust_properties()
 
-        read_gas_density = flags.get("read_gas_density", False)
         if read_gas_density and self._bin_gas:
             log.warning(
                 f"Found redundancy: with dust_bin_mode='{self._dust_bin_mode}'"
@@ -363,12 +371,7 @@ class AbstractInterface(ABC):
         - (dust-only) : use only dust information
         - (mixed)     : use both, assuming gas traces the smallest grains
         """
-        try:
-            dbm = self.conf["flags"]["dust_bin_mode"]
-        except KeyError:
-            dbm = None
-        if dbm is not None and dbm not in ("dust-only", "mixed", "gas-only"):
-            raise ValueError(f"Unrecognized dbm value {dbm}")
+        dbm = self._dbm
 
         mum_sizes = np.empty(0)
         auto_dbm = None
