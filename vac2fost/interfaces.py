@@ -70,6 +70,7 @@ def read_amrvac_parfiles(parfiles: list, location: str = "") -> f90nml.Namelist:
     conf_tot["filelist"]["base_filename"] = base_filename
     return conf_tot
 
+
 def read_conf_file(conf_file: Path) -> f90nml.Namelist:
     """Always return a namelist object even from .toml files
     Only attempt to parse a .toml file if toml is installed
