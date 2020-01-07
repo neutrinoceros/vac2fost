@@ -19,12 +19,12 @@ before_script:
   - export MCFOST_UTILS=`pwd`/deps/mcfost_utils
 
 stages:
+  - code quality
   - build
   - install
   - unit_tests
   - integration_tests
   - final
-  - clean
 
 install or update pyenv:
   stage: build
@@ -87,12 +87,16 @@ regression:
     - source activate $PYENV
     - $SLURM_CMD pytest tests/test_regression.py
 
-check code quality:
-  stage: final
+flake8:
+  stage: code quality
   script:
     - source activate $PYENV
-    - conda install flake8 --yes
     - flake8 vac2fost/*.py
+
+pylint:
+  stage: code quality
+  script:
+    - source activate $PYENV
     - pylint --rcfile .pylintrc vac2fost/*.py
 
 run demo:
