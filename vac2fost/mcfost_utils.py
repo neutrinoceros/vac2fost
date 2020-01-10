@@ -227,7 +227,7 @@ def write_mcfost_conf(output_file: Path, custom_parameters: dict = None):
         fi.write(f"%% run by {os.environ['USER']} on {gethostname()}\n")
 
 
-def get_mcfost_grid(mcfost_conf_file: str, output_dir: str, require_run: bool) -> np.ndarray:
+def get_mcfost_grid(mcfost_conf_file: str, output_dir: str, require_run: bool = True) -> np.ndarray:
     """Pre-run MCFOST with -disk_struct flag to get the exact grid used."""
     output_dir = Path(output_dir).resolve()
     mcfost_conf_path = Path(mcfost_conf_file)
@@ -268,17 +268,15 @@ def get_mcfost_grid(mcfost_conf_file: str, output_dir: str, require_run: bool) -
     return target_grid
 
 
-def get_mcfost_grid_dict(mcfost_conf_file, **kwargs) -> dict:
+def get_mcfost_grid_dict(mcfost_conf_file, output_dir: str, require_run: bool = True) -> dict:
     """Offer a more convenient api to access the grid data as named arrays.
-
-    kwargs are passed directly to get_mcfost_grid()
 
     Naming conventions:
         - 'array' is the full 3D grid
         - 'ticks_<x>' is a 1D coord vector along the x direction
         - '<y>-slice_<x>' is a 2D <x> coord slice (where <y> is the normal direction to the slice)
     """
-    grid = get_mcfost_grid(mcfost_conf_file, **kwargs)
+    grid = get_mcfost_grid(mcfost_conf_file, output_dir, require_run)
     grid_dict = {
         "array": grid,
         # r coords
