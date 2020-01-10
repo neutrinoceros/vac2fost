@@ -271,6 +271,8 @@ def get_mcfost_grid(mcfost_conf_file: str, output_dir: str, require_run: bool) -
 def get_mcfost_grid_dict(mcfost_conf_file, **kwargs) -> dict:
     """Offer a more convenient api to access the grid data as named arrays.
 
+    kwargs are passed directly to get_mcfost_grid()
+
     Naming conventions:
         - 'array' is the full 3D grid
         - 'ticks_<x>' is a 1D coord vector along the x direction
