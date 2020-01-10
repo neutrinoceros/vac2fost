@@ -275,6 +275,10 @@ def get_mcfost_grid_dict(mcfost_conf_file, output_dir: str, require_run: bool = 
         - 'array' is the full 3D grid
         - 'ticks_<x>' is a 1D coord vector along the x direction
         - '<y>-slice_<x>' is a 2D <x> coord slice (where <y> is the normal direction to the slice)
+
+    important note:
+    We purposedly do not define a "ticks_z" 1D array because its value varies with r.
+    What's invariant with respect to r is z/H where H is the local scale height.
     """
     grid = get_mcfost_grid(mcfost_conf_file, output_dir, require_run)
     grid_dict = {
@@ -284,7 +288,6 @@ def get_mcfost_grid_dict(mcfost_conf_file, output_dir: str, require_run: bool = 
         "z-slice_r": grid[0, :, 0, :],
         "phi-slice_r": grid[0, 0, :, :],
         # z coords
-        # note: we purposedly do not define a "ticks-z" 1D array because its value varies with r
         "phi-slice_z": grid[1, 0, :, :],
     }
     if grid.shape[0] > 2:  # usually the case unless 2D axisym grid !
