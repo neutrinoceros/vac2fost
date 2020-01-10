@@ -240,13 +240,13 @@ def get_mcfost_grid(mcfost_conf_file: str, output_dir: str, require_run: bool = 
         # generate a grid data file with mcfost itself and extract it
         pile = Path.cwd()
         with TemporaryDirectory() as tmp_mcfost_dir:
-            shutil.copyfile(
-                mcfost_conf_path.resolve(), Path(tmp_mcfost_dir) / mcfost_conf_path.name
-            )
+            tmp_conf_file = Path(tmp_mcfost_dir) / mcfost_conf_path.name
+            shutil.copyfile(mcfost_conf_path.resolve(), tmp_conf_file)
             os.chdir(tmp_mcfost_dir)
             try:
+                # breakpoint()
                 run(
-                    ["mcfost", "mcfost_conf.para", "-disk_struct"],
+                    ["mcfost", str(tmp_conf_file), "-disk_struct"],
                     check=True,
                     capture_output=(log.level > 10),
                 )  # if in debug mode, output will be printed
