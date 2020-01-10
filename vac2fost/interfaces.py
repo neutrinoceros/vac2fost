@@ -274,7 +274,6 @@ class AbstractInterface(ABC):
             write_mcfost_conf(output_file=mcfost_conf_file, custom_parameters=mcfost_parameters)
             log.info(f"successfully wrote {mcfost_conf_file}")
 
-
         self.output_grid = get_mcfost_grid_dict(
             mcfost_conf_file, output_dir=self.io.OUT.directory, require_run=(self._iter_count == 0)
         )

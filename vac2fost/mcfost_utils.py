@@ -267,29 +267,26 @@ def get_mcfost_grid(mcfost_conf_file: str, output_dir: str, require_run: bool) -
         target_grid = fi[0].data
     return target_grid
 
+
 def get_mcfost_grid_dict(mcfost_conf_file, **kwargs) -> dict:
     """Offer a more convenient api to access the grid data as named arrays.
 
     Naming conventions:
         - 'array' is the full 3D grid
         - 'ticks_<x>' is a 1D coord vector along the x direction
-        - '<y>-slice_<x>' is a 2D <x> coord slice (where <y> is the normal direction to the slice) 
+        - '<y>-slice_<x>' is a 2D <x> coord slice (where <y> is the normal direction to the slice)
     """
-    grid = get_mcfost_grid(
-        mcfost_conf_file, **kwargs
-    )
+    grid = get_mcfost_grid(mcfost_conf_file, **kwargs)
     grid_dict = {
-            "array": grid,
-            # r coords
-            "ticks_r": grid[0, 0, 0, :],
-            "z-slice_r": grid[0, :, 0, :],
-            "phi-slice_r": grid[0, 0, :, :],
-            # z coords
-            # note: we purposedly do not define a "ticks-z" 1D array because its value varies with r
-            "phi-slice_z": grid[1, 0, :, :],
-        }
+        "array": grid,
+        # r coords
+        "ticks_r": grid[0, 0, 0, :],
+        "z-slice_r": grid[0, :, 0, :],
+        "phi-slice_r": grid[0, 0, :, :],
+        # z coords
+        # note: we purposedly do not define a "ticks-z" 1D array because its value varies with r
+        "phi-slice_z": grid[1, 0, :, :],
+    }
     if grid.shape[0] > 2:  # usually the case unless 2D axisym grid !
-            grid_dict.update(
-                {"ticks_phi": grid[2, :, 0, 0], "z-slice_phi": grid[2, :, 0, :]}
-            )
+        grid_dict.update({"ticks_phi": grid[2, :, 0, 0], "z-slice_phi": grid[2, :, 0, :]})
     return grid_dict
