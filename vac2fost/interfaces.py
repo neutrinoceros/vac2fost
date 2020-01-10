@@ -30,7 +30,7 @@ from .info import __version__
 from .utils import shell_path
 from .utils import IOinfo, DataInfo, GridShape
 from .mcfost_utils import MINGRAINSIZE_mum, KNOWN_MCFOST_ARGS
-from .mcfost_utils import get_mcfost_grid, write_mcfost_conf
+from .mcfost_utils import get_mcfost_grid_dict, write_mcfost_conf
 from .logger import v2flogger as log
 
 
@@ -274,24 +274,9 @@ class AbstractInterface(ABC):
             write_mcfost_conf(output_file=mcfost_conf_file, custom_parameters=mcfost_parameters)
             log.info(f"successfully wrote {mcfost_conf_file}")
 
-        grid = get_mcfost_grid(
+        self.output_grid = get_mcfost_grid_dict(
             mcfost_conf_file, output_dir=self.io.OUT.directory, require_run=(self._iter_count == 0)
         )
-
-        self.output_grid = {
-            "array": grid,
-            # r coords
-            "ticks_r": grid[0, 0, 0, :],
-            "z-slice_r": grid[0, :, 0, :],
-            "phi-slice_r": grid[0, 0, :, :],
-            # z coords
-            # note: we purposedly do not define a "ticks-z" 1D array because its value varies with r
-            "phi-slice_z": grid[1, 0, :, :],
-        }
-        if grid.shape[0] > 2:  # usually the case unless 2D axisym grid !
-            self.output_grid.update(
-                {"ticks_phi": grid[2, :, 0, 0], "z-slice_phi": grid[2, :, 0, :]}
-            )
 
     def write_output(self) -> None:
         """Write a .fits file suited for MCFOST input."""
