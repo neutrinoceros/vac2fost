@@ -21,32 +21,18 @@ class TestDBM:
                 override={"flags": dict(dust_bin_mode="not-a-real-dbm-option")},
             )
 
-    def test_gas_only(self):
+    @pytest.mark.parametrize("mode,expected",
+        [("gas-only", [MINGRAINSIZE_mum]),
+         ("dust-only", [MINGRAINSIZE_mum, 1e4, 1e3]),
+         ("mixed", [MINGRAINSIZE_mum, 1e4, 1e3])])
+    def test_grain_sizes_with_mode(self, mode, expected):
         itf = Interface(
             test_dir / "sample/vac2fost_conf_quick.nml",
             output_dir=output_dir,
-            override={"flags": dict(dust_bin_mode="gas-only")},
+            override={"flags": dict(dust_bin_mode=mode)},
         )
-        assert itf._dust_bin_mode == "gas-only"
-        assert itf._grain_micron_sizes == [MINGRAINSIZE_mum]
-
-    def test_dust_only(self):
-        itf = Interface(
-            test_dir / "sample/vac2fost_conf_quick.nml",
-            output_dir=output_dir,
-            override={"flags": dict(dust_bin_mode="dust-only")},
-        )
-        assert itf._dust_bin_mode == "dust-only"
-        np.testing.assert_array_equal(itf._grain_micron_sizes, [MINGRAINSIZE_mum, 1e4, 1e3])
-
-    def test_mixed(self):
-        itf = Interface(
-            test_dir / "sample/vac2fost_conf_quick.nml",
-            output_dir=output_dir,
-            override={"flags": dict(dust_bin_mode="mixed")},
-        )
-        assert itf._dust_bin_mode == "mixed"
-        np.testing.assert_array_equal(itf._grain_micron_sizes, [MINGRAINSIZE_mum, 1e4, 1e3])
+        assert itf._dust_bin_mode == mode
+        np.testing.assert_array_equal(itf._grain_micron_sizes, expected)
 
     def test_auto_into_mixed(self):
         itf = Interface(test_dir / "sample/vac2fost_conf_quick.nml", output_dir=output_dir)
