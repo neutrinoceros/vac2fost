@@ -26,16 +26,6 @@ sampledir = test_dir / "sample"
 
 
 class Test_IO:
-    def test_input_fromloc(self):
-        with secure_chdir(sampledir):
-            itf = Interface("vac2fost_conf.nml")
-        assert itf.io.IN.directory == Path(sampledir).resolve()
-
-    def test_input_fromhome(self):
-        with secure_chdir(os.environ["HOME"]):
-            itf = Interface(sampledir / "vac2fost_conf.nml")
-        assert itf.io.IN.directory == Path(sampledir).resolve()
-
     def test_input_fromhome_fakedata(self):
         with pytest.raises(FileNotFoundError):
             with secure_chdir(os.environ["HOME"]):
