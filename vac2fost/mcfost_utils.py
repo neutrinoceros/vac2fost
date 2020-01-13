@@ -244,7 +244,6 @@ def get_mcfost_grid(mcfost_conf_file: str, output_dir: str, require_run: bool = 
             shutil.copyfile(mcfost_conf_path.resolve(), tmp_conf_file)
             os.chdir(tmp_mcfost_dir)
             try:
-                # breakpoint()
                 run(
                     ["mcfost", str(tmp_conf_file), "-disk_struct"],
                     check=True,
