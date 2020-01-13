@@ -42,20 +42,13 @@ class TestDBM:
         itf = Interface(test_dir / "sample/vac2fost_conf_quick_no_dust.nml", output_dir=output_dir)
         assert itf._dust_bin_mode == "gas-only"
 
-    def test_mixed_into_KeyError(self):
+    @pytest.mark.parametrize("mode", ["mixed", "dust-only"])
+    def test_impossible_mode_into_failure(self, mode):
         with pytest.raises(KeyError):
             Interface(
                 test_dir / "sample/vac2fost_conf_quick_no_dust.nml",
                 output_dir=output_dir,
-                override={"flags": dict(dust_bin_mode="mixed")},
-            )
-
-    def test_dust_only_into_KeyError(self):
-        with pytest.raises(KeyError):
-            Interface(
-                test_dir / "sample/vac2fost_conf_quick_no_dust.nml",
-                output_dir=output_dir,
-                override={"flags": dict(dust_bin_mode="dust-only")},
+                override={"flags": dict(dust_bin_mode=mode)},
             )
 
 
