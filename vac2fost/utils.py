@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 def shell_path(pin: str) -> Path:
     """Transform <pin> to a Path, expanding included env variables."""
-    return Path(expandvars(str(pin)))
+    return Path(expandvars(str(pin))).expanduser()
 
 
 @dataclass

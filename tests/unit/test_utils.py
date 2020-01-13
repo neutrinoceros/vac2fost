@@ -1,21 +1,13 @@
 """Tests related to isolated functions in vac2fost (outside of classes)"""
-from os import environ as env
+import os
 from pathlib import Path
 from vac2fost.utils import shell_path
 
 
-class TestShellPathReader:
-    def test_home(self):
-        assert shell_path("$HOME") == Path.home()
+def test_expandvars():
+    os.environ["VAC2FOST_FAKE"] = "/fake/path/to/nothing"
+    assert shell_path("$VAC2FOST_FAKE") == Path(os.path.expandvars("$VAC2FOST_FAKE"))
 
-    def test_underscore(self):
-        env["MCFOST_NULL"] = "notarealvar"
-        assert shell_path("$HOME/$MCFOST_NULL") == Path.home() / "notarealvar"
-
-    def test_double_underscore(self):
-        env["MCFOST_extra_NULL"] = "notarealvar"
-        assert shell_path("$HOME/$MCFOST_extra_NULL") == Path.home() / "notarealvar"
-
-    def test_digits(self):
-        env["MCFOST_002NotIntersing"] = "notarealvar"
-        assert shell_path("$HOME/$MCFOST_002NotIntersing") == Path.home() / "notarealvar"
+def test_expanduser():
+    assert shell_path("~") == Path("~").expanduser()
+    assert shell_path("$HOME") == Path.home()
