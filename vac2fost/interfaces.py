@@ -340,7 +340,7 @@ class AbstractInterface(ABC):
     @property
     def iter_last(self):
         """Whether or not we're at last iteration."""
-        return self._iter_count == self._iter_max
+        return self._iter_count == self._iter_max - 1
 
     @property
     def output_conf(self):

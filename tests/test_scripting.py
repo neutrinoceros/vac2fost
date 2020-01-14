@@ -17,11 +17,13 @@ def test_python_call():
     main(TEST_DATA_DIR / "vac2fost_conf.nml", output_dir=output_dir)
 
 def test_python_call_multiple():
-    nums = [0, 1]
+    """Note: we purposedly ask to convert data that is not available (n=9999)
+    to check that the main function handles it correctly (warning + resume iteration)"""
+    nums = [0, 9999, 1]
     main(
         TEST_DATA_DIR / "vac2fost_conf.nml",
         output_dir=output_dir,
         override={"amrvac_input": {"nums": nums}},
     )
-    for n in nums:
+    for n in [0, 1]:
         assert (output_dir / f"hd142527_dusty{str(n).zfill(4)}.fits").exists()

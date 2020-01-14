@@ -42,10 +42,10 @@ def main(
             filepath = itf.io.OUT.filepath.relative_to(Path.cwd())
         except ValueError:
             filepath = itf.io.OUT.filepath
-        try:
-            itf.advance_iteration()  # set itf.current_num to next value
-        except StopIteration:
+        if itf.iter_last:
             break
+        else:
+            itf.advance_iteration()  # set itf.current_num to next value
 
     log.debug("end vac2fost")
     return itf  # return the interface object for inspection (tests)
