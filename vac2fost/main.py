@@ -39,10 +39,6 @@ def main(
         itf.preroll_mcfost(force=force_preroll)
         itf.write_output()
 
-        try:
-            filepath = itf.io.OUT.filepath.relative_to(Path.cwd())
-        except ValueError:
-            filepath = itf.io.OUT.filepath
         if itf.iter_last:
             break
         else:
