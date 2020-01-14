@@ -5,6 +5,7 @@ import numpy as np
 from astropy.io import fits
 
 from vac2fost import main
+from vac2fost import VtuFileInterface as Interface
 from vac2fost.logger import v2flogger
 from conftest import TEST_DATA_DIR, TEST_ANSWER_DIR, TEST_ARTIFACTS_DIR
 
@@ -94,3 +95,19 @@ class TestRegressionMain(AbstractTestImage):
     itf = instanciate_interface(conffile="vac2fost_conf_nonaxisym.nml", read_gas_velocity=True)
     itf.preroll_mcfost()
     itf.tag = itf.conf_file.stem
+
+
+def test_dust_mass_estimations():
+    itfs = [
+        Interface(
+            TEST_DATA_DIR / "vac2fost_conf_quick.nml",
+            output_dir=TEST_ARTIFACTS_DIR,
+            override={"flags": dict(dust_bin_mode=dbm)},
+        )
+        for dbm in ("mixed", "gas-only", "dust-only")
+    ]
+    for itf in itfs:
+        itf.load_input_data()
+    estimates = np.array([itf._estimate_dust_mass() for itf in itfs])
+    np.testing.assert_allclose(estimates/estimates.min(), np.ones_like(estimates), rtol=1e-11)
+    np.testing.assert_allclose(estimates, 4e-4, rtol=1e-3)

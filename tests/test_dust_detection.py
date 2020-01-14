@@ -48,22 +48,3 @@ class TestDBM:
                 output_dir=output_dir,
                 override={"flags": dict(dust_bin_mode=mode)},
             )
-
-
-class TestMassEstimate:
-
-    # TODO: move this to regression test to save time
-    def test_dust_mass_estimations_consistency(self):
-        itfs = [
-            Interface(
-                TEST_DATA_DIR / "vac2fost_conf_quick.nml",
-                output_dir=output_dir,
-                override={"flags": dict(dust_bin_mode=dbm)},
-            )
-            for dbm in ("mixed", "gas-only", "dust-only")
-        ]
-        for itf in itfs:
-            itf.load_input_data()
-        estimates = np.array([itf._estimate_dust_mass() for itf in itfs])
-        estimates /= estimates.min()
-        np.testing.assert_allclose(estimates, np.ones_like(estimates), rtol=1e-11)
