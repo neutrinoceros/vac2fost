@@ -74,7 +74,7 @@ integration:
   script:
     - source activate $PYENV
     - cd tests/
-    - $SLURM_CMD pytest test_edge_cases.py tests_scripting.py test_settling.py
+    - $SLURM_CMD pytest test_edge_cases.py test_scripting.py test_settling.py
 
 shell:
   stage: integration_tests
