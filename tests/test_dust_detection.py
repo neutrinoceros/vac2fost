@@ -20,6 +20,13 @@ class TestDBM:
                 override={"flags": dict(dust_bin_mode="not-a-real-dbm-option")},
             )
 
+    def test_conflict_conffile(self):
+        with pytest.raises(RuntimeError):
+            Interface(
+                TEST_DATA_DIR / "vac2fost_conf_conflict_g2d_ratio.nml",
+                output_dir=output_dir,
+            )
+
     @pytest.mark.parametrize("mode,expected",
                              [("gas-only", [MINGRAINSIZE_mum]),
                              ("dust-only", [MINGRAINSIZE_mum, 1e4, 1e3]),
