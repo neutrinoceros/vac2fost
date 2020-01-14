@@ -4,7 +4,7 @@ import shutil
 import numpy as np
 from astropy.io import fits
 
-from vac2fost import main as app
+from vac2fost import main
 from vac2fost.logger import v2flogger
 from conftest import TEST_DATA_DIR, TEST_ANSWER_DIR, TEST_ARTIFACTS_DIR
 
@@ -17,7 +17,7 @@ def instanciate_interface(conffile, **kwargs):
     if outdir.is_dir():
         shutil.rmtree(outdir)
     override = {"flags": {k: v for k, v in kwargs.items()}}
-    itf = app(TEST_DATA_DIR / conffile, override, output_dir=outdir)
+    itf = main(TEST_DATA_DIR / conffile, override, output_dir=outdir)
     return itf
 
 
