@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 import f90nml
-from vtk_vacreader import VacDataSorter as VDS
+from vac2fost._vtk_vacreader import VacDataSorter as VDS
 from vac2fost import VtuFileInterface as Interface
 from vac2fost.mcfost_utils import MINGRAINSIZE_mum
 

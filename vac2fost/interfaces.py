@@ -23,8 +23,7 @@ try:
 except ImportError:
     toml = None
 
-# private externals
-from vtk_vacreader import VacDataSorter
+from ._vtk_vacreader import VacDataSorter
 
 from .info import __version__
 from .utils import shell_path
