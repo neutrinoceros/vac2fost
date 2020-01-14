@@ -67,7 +67,7 @@ unit:
   script:
     - source activate $PYENV
     - cd tests/
-    - $SLURM_CMD pytest test_dust_detection.py test_io.py test_mcfost_api.py test_utils.py
+    - $SLURM_CMD pytest test_dust_detection.py test_mcfost_api.py test_utils.py
 
 integration:
   stage: integration_tests
