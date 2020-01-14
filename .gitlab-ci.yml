@@ -32,10 +32,6 @@ install or update pyenv:
     - export CONDA_INST="--name $PYENV --file environment.yml --channel conda-forge --yes"
     - $SLURM_CMD conda create $CONDA_INST || $SLURM_CMD conda install $CONDA_INST
 
-download private dependencies:
-  stage: build
-  script:
-    - $SLURM_CMD dl_deps.sh
 
 install mcfost:
   stage: build
@@ -54,12 +50,11 @@ install mcfost:
     - which mcfost
     - mcfost -version
 
-install private dependencies:
+install package:
   stage: install
   script:
     - source activate $PYENV
     - which pip
-    - $SLURM_CMD pip install `pwd`/deps/vtk_vacreader-project
     - $SLURM_CMD pip install .
 
 unit:
