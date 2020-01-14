@@ -29,12 +29,14 @@ def main(
         log.info(f"current input number: {itf.current_num}\t({itf.iter_frac})")
         try:
             itf.load_input_data()
-        except FileNotFoundError as err:
-            filepath = Path(str(err)).relative_to(Path.cwd())
-            log.warning(f"missing file: {filepath}, attempting to pursue iteration")
+        except FileNotFoundError as missing_file:
+            log.warning(f"missing file: {missing_file}, attempting to pursue iteration")
+            #breakpoint()
             if itf.iter_last:
                 break
-            continue
+            else:
+                itf.advance_iteration()
+                continue
         itf.preroll_mcfost(force=force_preroll)
         itf.write_output()
 
