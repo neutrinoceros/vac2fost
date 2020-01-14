@@ -6,7 +6,6 @@ import pytest
 from vac2fost import main
 from vac2fost.mcfost_utils import blocks_descriptors, write_mcfost_conf, get_mcfost_grid, get_mcfost_grid_dict
 from vac2fost.logger import v2flogger as log
-#from vac2fost import VtuFileInterface as Interface, main as app
 
 from conftest import TEST_DATA_DIR, TEST_ARTIFACTS_DIR
 
