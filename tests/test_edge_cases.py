@@ -7,18 +7,17 @@ import f90nml
 from vac2fost import main as app
 from vac2fost.logger import v2flogger
 
-testdir = Path(__file__).parent.parent
-OUT = testdir / "output"
+from conftest import TEST_DIR, TEST_DATA_DIR, TEST_ARTIFACTS_DIR
 densfile = "hd142527_dusty0000.fits"
 
 
 class TestReadGasVelocity:
     def test_read_gas_vel_gas_only(self):
-        outdir = OUT / "gasvel_gasonly"
+        outdir = TEST_ARTIFACTS_DIR / "gasvel_gasonly"
         if outdir.exists():
             rmtree(outdir)
         app(
-            testdir / "sample/vac2fost_conf_quick.nml",
+            TEST_DATA_DIR / "vac2fost_conf_quick.nml",
             override={"flags": dict(read_gas_velocity=True, dust_bin_mode="gas-only")},
             output_dir=outdir,
         )
@@ -31,11 +30,11 @@ class TestReadGasVelocity:
         run(["mcfost", "mcfost_conf.para", "-3D", "-density_file", densfile], check=True)
 
     def test_read_gas_vel_dust_only(self):
-        outdir = OUT / "gasvel_dustonly"
+        outdir = TEST_ARTIFACTS_DIR / "gasvel_dustonly"
         if outdir.exists():
             rmtree(outdir)
         app(
-            testdir / "sample/vac2fost_conf_quick.nml",
+            TEST_DATA_DIR / "vac2fost_conf_quick.nml",
             override={"flags": dict(read_gas_velocity=True, dust_bin_mode="dust-only")},
             output_dir=outdir,
         )
@@ -48,11 +47,11 @@ class TestReadGasVelocity:
         run(["mcfost", "mcfost_conf.para", "-3D", "-density_file", densfile], check=True)
 
     def test_read_gas_vel_mixed(self):
-        outdir = OUT / "gasvel_mixed"
+        outdir = TEST_ARTIFACTS_DIR / "gasvel_mixed"
         if outdir.exists():
             rmtree(outdir)
         app(
-            testdir / "sample/vac2fost_conf_quick.nml",
+            TEST_DATA_DIR / "vac2fost_conf_quick.nml",
             override={"flags": dict(read_gas_velocity=True, dust_bin_mode="mixed")},
             output_dir=outdir,
         )
@@ -67,10 +66,10 @@ class TestReadGasVelocity:
 
 # @pytest.mark.incremental #each test is run only if the previous one passed
 class TestReadGasDensity:
-    outdir = testdir / "output/test_read_gas_density"
+    outdir = TEST_ARTIFACTS_DIR / "test_read_gas_density"
     if outdir.is_dir():
         rmtree(outdir)
-    conf_file = testdir / "sample/vac2fost_conf_quick.nml"
+    conf_file = TEST_DATA_DIR / "vac2fost_conf_quick.nml"
     v2flogger.setLevel(10)
     itf = app(
         conf_file,

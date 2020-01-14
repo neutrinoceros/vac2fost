@@ -6,18 +6,15 @@ from astropy.io import fits
 
 from vac2fost import main as app
 from vac2fost.logger import v2flogger
-
-test_dir = Path(__file__).parent.resolve()
-REFOUT_DIR = test_dir / "ref"
-OUT = test_dir / "output"
+from conftest import TEST_DIR, TEST_DATA_DIR, TEST_ANSWER_DIR, TEST_ARTIFACTS_DIR
 
 
 def instanciate_interface(conffile, **kwargs):
-    outdir = OUT / f"test_reg_{Path(conffile).stem}"
+    outdir = TEST_ARTIFACTS_DIR / f"test_reg_{Path(conffile).stem}"
     if outdir.is_dir():
         shutil.rmtree(outdir)
     override = {"flags": {k: v for k, v in kwargs.items()}}
-    itf = app(test_dir / "sample" / conffile, override, output_dir=outdir)
+    itf = app(TEST_DATA_DIR / conffile, override, output_dir=outdir)
     return itf
 
 
@@ -35,7 +32,7 @@ def regold(itf, reffile, morekeys: list = None):
 
 
 class TestRegressionMain:
-    subrefdir = REFOUT_DIR / "default"
+    subrefdir = TEST_ANSWER_DIR / "default"
     v2flogger.setLevel(10)  # debug
     itf = instanciate_interface(conffile="vac2fost_conf.nml", read_gas_velocity=True)
     itf.preroll_mcfost()
@@ -105,9 +102,9 @@ class TestRegressionMain:
 
 
 class TestRegressionMutliNums:
-    subrefdir = REFOUT_DIR / "multinums"
-    conffile = test_dir / "sample/vac2fost_conf_quick.nml"
-    outdir = OUT / f"test_reg_{Path(conffile).stem}"
+    subrefdir = TEST_ANSWER_DIR / "multinums"
+    conffile = TEST_DATA_DIR / "vac2fost_conf_quick.nml"
+    outdir = TEST_ARTIFACTS_DIR / f"test_reg_{Path(conffile).stem}"
     if outdir.is_dir():
         shutil.rmtree(outdir)
     itf = app(conffile, output_dir=outdir, override={"amrvac_input": {"nums": [0, 1, 2]}})
@@ -127,7 +124,7 @@ class TestRegressionMutliNums:
 
 
 class TestRegressionNonAxisym:
-    subrefdir = REFOUT_DIR / "nonaxisym"
+    subrefdir = TEST_ANSWER_DIR / "nonaxisym"
     itf = instanciate_interface(conffile="vac2fost_conf_nonaxisym.nml", read_gas_velocity=True)
     itf.preroll_mcfost()
     itf.tag = itf.conf_file.stem
@@ -176,7 +173,7 @@ class TestRegressionNonAxisym:
 
 
 class TestRegressionAutoGasOnly:
-    subrefdir = REFOUT_DIR / "autogasonly"
+    subrefdir = TEST_ANSWER_DIR / "autogasonly"
     itf = instanciate_interface(conffile="autogasonly/rwi.nml")
     itf.preroll_mcfost()
     itf.tag = itf.conf_file.stem
