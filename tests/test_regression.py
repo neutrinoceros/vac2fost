@@ -6,7 +6,10 @@ from astropy.io import fits
 
 from vac2fost import main as app
 from vac2fost.logger import v2flogger
-from conftest import TEST_DIR, TEST_DATA_DIR, TEST_ANSWER_DIR, TEST_ARTIFACTS_DIR
+from conftest import TEST_DATA_DIR, TEST_ANSWER_DIR, TEST_ARTIFACTS_DIR
+
+
+v2flogger.setLevel(10)
 
 
 def instanciate_interface(conffile, **kwargs):
@@ -63,47 +66,22 @@ class AbstractTestRegression:
                 itf.get_gas_velocity_ndarray(), out_ref["output_gas_velocity"], rtol=5e-14
             )
 
+
 class AbstractTestImage(AbstractTestRegression):
     def test_image(self):
         itf = self.__class__.itf
         # get the Primary (only image available),
         # and exctract its first 3d array (density field)
         itf.write_output()
-        ref_file = self.__class__.subrefdir / "hd142527_dusty0000.fits"
         new_file = itf.io.OUT.filepath
+        ref_file = self.__class__.subrefdir / new_file.name
         # shutil.copyfile(new_file, ref_file) # to regold ...
         ref = fits.open(ref_file)[0].data[0]
         new = fits.open(new_file)[0].data[0]
         np.testing.assert_allclose(new, ref, rtol=5e-14)
 
-class AbstractTestConf(AbstractTestRegression):
-    def test_mcfost_conf(self):
-        itf = self.__class__.itf
-        with open(itf.io.OUT.directory / "mcfost_conf.para") as fi:
-            new_lines = fi.readlines()
-        # with open(__class__.subrefdir / "mcfost_conf.para", mode="wt") as fi: #regold...
-        #    fi.write("".join(new_lines))
-        with open(self.__class__.subrefdir / "mcfost_conf.para") as fi:
-            ref_lines = fi.readlines()
-        for n, r in zip(new_lines[2:-3], ref_lines[2:]):
-            assert n == r
 
 # Actual test classes:
-
-class TestRegressionMain(AbstractTestConf, AbstractTestImage):
-    subrefdir = TEST_ANSWER_DIR / "default"
-    v2flogger.setLevel(10)  # debug
-    itf = instanciate_interface(conffile="vac2fost_conf.nml", read_gas_velocity=True)
-    itf.preroll_mcfost()
-    itf.tag = itf.conf_file.stem
-
-class TestRegressionNonAxisym(AbstractTestImage):
-    subrefdir = TEST_ANSWER_DIR / "nonaxisym"
-    itf = instanciate_interface(conffile="vac2fost_conf_nonaxisym.nml", read_gas_velocity=True)
-    itf.preroll_mcfost()
-    itf.tag = itf.conf_file.stem
-
-
 class TestRegressionAutoGasOnly(AbstractTestRegression):
     subrefdir = TEST_ANSWER_DIR / "autogasonly"
     itf = instanciate_interface(conffile="autogasonly/rwi.nml")
@@ -111,23 +89,8 @@ class TestRegressionAutoGasOnly(AbstractTestRegression):
     itf.tag = itf.conf_file.stem
 
 
-class TestRegressionMutliNums:
-    subrefdir = TEST_ANSWER_DIR / "multinums"
-    conffile = TEST_DATA_DIR / "vac2fost_conf_quick.nml"
-    outdir = TEST_ARTIFACTS_DIR / f"test_reg_{Path(conffile).stem}"
-    if outdir.is_dir():
-        shutil.rmtree(outdir)
-    itf = app(conffile, output_dir=outdir, override={"amrvac_input": {"nums": [0, 1, 2]}})
+class TestRegressionMain(AbstractTestImage):
+    subrefdir = TEST_ANSWER_DIR / "default"
+    itf = instanciate_interface(conffile="vac2fost_conf_nonaxisym.nml", read_gas_velocity=True)
     itf.preroll_mcfost()
-    itf.tag = itf.conf_file.stem + "multinums"
-
-    def test_multinums_output(self):
-        filename = self.__class__.itf.io.OUT.filepath.stem[:-4]
-        for n in (0, 1, 2):
-            new_file = self.__class__.itf.io.OUT.directory / f"{filename}{str(n).zfill(4)}.fits"
-            ref_file = self.__class__.subrefdir / f"hd142527_dusty{str(n).zfill(4)}.fits"
-            assert new_file.exists()
-            # shutil.copyfile(new_file, ref_file) # to regold ...
-            np.testing.assert_allclose(
-                fits.open(new_file)[0].data, fits.open(ref_file)[0].data, rtol=5e-14
-            )
+    itf.tag = itf.conf_file.stem
