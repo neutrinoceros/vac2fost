@@ -1,67 +1,36 @@
 from os import chdir
 from shutil import rmtree
 from subprocess import run
-from pathlib import Path
 from astropy.io import fits
 import f90nml
+
 from vac2fost import main as app
 from vac2fost.logger import v2flogger
 
-from conftest import TEST_DIR, TEST_DATA_DIR, TEST_ARTIFACTS_DIR
+import pytest
+from conftest import TEST_DATA_DIR, TEST_ARTIFACTS_DIR
 densfile = "hd142527_dusty0000.fits"
 
 
-class TestReadGasVelocity:
-    def test_read_gas_vel_gas_only(self):
-        outdir = TEST_ARTIFACTS_DIR / "gasvel_gasonly"
-        if outdir.exists():
-            rmtree(outdir)
-        app(
-            TEST_DATA_DIR / "vac2fost_conf_quick.nml",
-            override={"flags": dict(read_gas_velocity=True, dust_bin_mode="gas-only")},
-            output_dir=outdir,
-        )
-        chdir(outdir)
-        with fits.open(densfile) as dfile:
-            assert len(dfile) == 2
-            dat = dfile[1].data
-            assert dat.shape == (3, 10, 2, 10)
+@pytest.mark.parametrize("mode,expected_n_hdu",
+                        [("gas-only", 2), ("dust-only", 3), ("mixed", 3)])
+def test_read_gas_vel_with_dbm_mode(mode, expected_n_hdu):
+    outdir = TEST_ARTIFACTS_DIR / f"gasvel_{mode}"
+    if outdir.exists():
+        rmtree(outdir)
+    app(
+        TEST_DATA_DIR / "vac2fost_conf_quick.nml",
+        override={"flags": dict(read_gas_velocity=True, dust_bin_mode=mode)},
+        output_dir=outdir,
+    )
+    chdir(outdir)
+    with fits.open(densfile) as dfile:
+        assert len(dfile) == expected_n_hdu
+        dat = dfile[-1].data
+        assert dat.shape == (3, 10, 2, 10)
 
-        run(["mcfost", "mcfost_conf.para", "-3D", "-density_file", densfile], check=True)
-
-    def test_read_gas_vel_dust_only(self):
-        outdir = TEST_ARTIFACTS_DIR / "gasvel_dustonly"
-        if outdir.exists():
-            rmtree(outdir)
-        app(
-            TEST_DATA_DIR / "vac2fost_conf_quick.nml",
-            override={"flags": dict(read_gas_velocity=True, dust_bin_mode="dust-only")},
-            output_dir=outdir,
-        )
-        chdir(outdir)
-        with fits.open(densfile) as dfile:
-            assert len(dfile) == 3
-            dat = dfile[2].data
-            assert dat.shape == (3, 10, 2, 10)
-
-        run(["mcfost", "mcfost_conf.para", "-3D", "-density_file", densfile], check=True)
-
-    def test_read_gas_vel_mixed(self):
-        outdir = TEST_ARTIFACTS_DIR / "gasvel_mixed"
-        if outdir.exists():
-            rmtree(outdir)
-        app(
-            TEST_DATA_DIR / "vac2fost_conf_quick.nml",
-            override={"flags": dict(read_gas_velocity=True, dust_bin_mode="mixed")},
-            output_dir=outdir,
-        )
-        chdir(outdir)
-        with fits.open(densfile) as dfile:
-            assert len(dfile) == 3
-            dat = dfile[2].data
-            assert dat.shape == (3, 10, 2, 10)
-
-        run(["mcfost", "mcfost_conf.para", "-3D", "-density_file", densfile], check=True)
+    # check mcfost can still be run
+    run(["mcfost", "mcfost_conf.para", "-3D", "-density_file", densfile], check=True)
 
 
 # @pytest.mark.incremental #each test is run only if the previous one passed
