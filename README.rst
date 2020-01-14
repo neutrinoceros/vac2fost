@@ -13,19 +13,10 @@ Installation (via conda)
 It is recommended to create a separate conda enviromnent before installing.
 See https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html
 
-**prerequisite:** ``vac2fost`` currently relies on a derived project, vtk_vacreader_: a small
-module to read VTK files from MPI-AMRVAC (restricted to non-AMR files
-atm).
-It can can be installed with the interactive script `install_deps.sh`.
-Please make sure to run it from your dedicated python environment, be
-it conda or pipenv... This script will ask for your prefered installer (pip or conda ?).
-
-
 The minimal working installation script is
 
 .. code-block:: bash
 
-    bash install_deps.sh
     conda install --file environment.yml --channel conda-forge
     conda install .
 
@@ -116,5 +107,3 @@ itself to mcfost with "read_gas_density". Within other DBMs, this
 parameter is ignored because mcfost is already assuming that gas and
 smallest grains are perfectly coupled.
 
-
-.. _vtk_vacreader: https://gitlab.oca.eu/crobert/vtk_vacreader-project
