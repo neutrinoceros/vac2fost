@@ -66,13 +66,15 @@ unit:
   stage: unit_tests
   script:
     - source activate $PYENV
-    - $SLURM_CMD pytest tests/unit
+    - cd tests/
+    - $SLURM_CMD pytest test_dust_detection.py test_mcfost_api.py test_utils.py
 
 integration:
   stage: integration_tests
   script:
     - source activate $PYENV
-    - $SLURM_CMD pytest tests/int
+    - cd tests/
+    - $SLURM_CMD pytest test_edge_cases.py test_scripting.py test_settling.py
 
 shell:
   stage: integration_tests

@@ -12,7 +12,7 @@ from astropy.io import fits as pyfits
 from vac2fost import main as vac2fost
 
 doc_dir = pathlib.Path(__file__).absolute().parent
-conf = doc_dir.parent / "tests/sample/vac2fost_conf_nonaxisym.nml"
+conf = doc_dir.parent / "tests/data/vac2fost_conf_nonaxisym.nml"
 output_dir = doc_dir.parent / "demo_out"
 
 if __name__ == "__main__":
