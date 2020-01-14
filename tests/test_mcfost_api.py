@@ -40,7 +40,6 @@ def test_unrecognized_mcfost_parameter():
         )
 
 
-# TODO: move this to regression, add reference arrays
 def test_get_grid():
     output_dir = TEST_ARTIFACTS_DIR / "test_mcfost_api/"
     kwargs = dict(mcfost_conf_file=TEST_DATA_DIR/"ref3.0.para",
