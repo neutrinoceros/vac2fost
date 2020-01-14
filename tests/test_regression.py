@@ -86,14 +86,12 @@ class AbstractTestImage(AbstractTestRegression):
 class TestRegressionAutoGasOnly(AbstractTestRegression):
     subrefdir = TEST_ANSWER_DIR / "autogasonly"
     itf = instanciate_interface(conffile="autogasonly/rwi.nml")
-    itf.preroll_mcfost()
     itf.tag = itf.conf_file.stem
 
 
 class TestRegressionMain(AbstractTestImage):
     subrefdir = TEST_ANSWER_DIR / "default"
     itf = instanciate_interface(conffile="vac2fost_conf_nonaxisym.nml", read_gas_velocity=True)
-    itf.preroll_mcfost()
     itf.tag = itf.conf_file.stem
 
 

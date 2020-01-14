@@ -18,7 +18,7 @@
 *__pycache__*
 .cache
 .pytest_cache
-tests/output
+tests/.artifacts
 
 # distro and misc
 # ---------------
