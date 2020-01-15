@@ -29,20 +29,14 @@ def main(
         log.info(f"current input number: {itf.current_num}\t({itf.iter_frac})")
         try:
             itf.load_input_data()
+            itf.preroll_mcfost(force=force_preroll)
+            itf.write_output()
         except FileNotFoundError as missing_file:
             log.warning(f"missing file: {missing_file}, attempting to pursue iteration")
-            if itf.iter_last:
-                break
-            else:
-                itf.advance_iteration()
-                continue
-        itf.preroll_mcfost(force=force_preroll)
-        itf.write_output()
 
         if itf.iter_last:
             break
-        else:
-            itf.advance_iteration()  # set itf.current_num to next value
+        itf.advance_iteration()  # set itf.current_num to next value
 
     log.debug("end vac2fost")
     return itf  # return the interface object for inspection (tests)
