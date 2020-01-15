@@ -4,7 +4,8 @@ variables:
 cache:
   paths:
     - deps/
-  untracked: false
+  key: "$CI_COMMIT_REF_NAME"
+  untracked: true
 
 before_script:
   - hostname
