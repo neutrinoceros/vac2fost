@@ -36,7 +36,5 @@ def main(
                 log.warning(f"missing file: {missing_file}, resuming iteration.")
             itf.advance_iteration()  # set itf.current_num to next value
     except StopIteration:
-        pass
-    finally:
         log.debug("end vac2fost")
     return itf  # return the interface object for inspection (tests)
