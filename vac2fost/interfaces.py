@@ -119,7 +119,6 @@ class AbstractInterface(ABC):
         # parse flags
         flags = self.conf.get("flags", {}).copy()
         self._use_settling = flags.pop("settling", False)
-        self._use_axisymmetry = flags.pop("axisymmetry", False)
         self._read_gas_velocity = flags.pop("read_gas_velocity", False)
         read_gas_density = flags.pop("read_gas_density", False)
         self._dbm = flags.pop("dust_bin_mode", None)
@@ -130,12 +129,9 @@ class AbstractInterface(ABC):
                 log.warning(f"Unrecognized flag {flag}")
 
         # handle special cases
+        self._use_axisymmetry = self.conf["mcfost_output"].get("n_az") == 1
         if self._use_axisymmetry and self._read_gas_velocity:
             raise NotImplementedError
-
-        if self._use_axisymmetry and self.conf["mcfost_output"].get("n_az", 2) > 1:
-            log.warning("specified n_az > 1 but axisymmetry flag present, overriding n_az = 1")
-            self.conf["mcfost_output"].update({"n_az": 1})
 
         # init iteration counter
         nums = self.conf["amrvac_input"]["nums"]  # mandatory argument
