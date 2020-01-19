@@ -124,9 +124,8 @@ class AbstractInterface(ABC):
         self._dbm = flags.pop("dust_bin_mode", None)
         if self._dbm is not None and self._dbm not in ("dust-only", "mixed", "gas-only"):
             raise ValueError(f"Unrecognized dust_bin_mode value {self._dbm}")
-        if len(flags) > 0:
-            for flag in flags.keys():
-                log.warning(f"Unrecognized flag {flag}")
+        if flags:
+            log.warning(f"Unrecognized flag {', '.join(flags.keys())}")
 
         # handle special cases
         self._use_axisymmetry = self.conf["mcfost_output"].get("n_az") == 1
