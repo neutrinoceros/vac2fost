@@ -36,13 +36,13 @@ expect_failure () {
 mkdir -p $OUT
 
 echo "Test 1: normal call"
-$EXE $TESTDIR/sample/vac2fost_conf_quick.nml --output $OUT/shell_1
+$EXE $TESTDIR/data/vac2fost_conf_quick.nml --output $OUT/shell_1
 expect_success
 
 # <- this one is SUPPOSED to fail because the mandatory "nums" argument is not provided
 echo
 echo "Test 2: Broken call"
-$EXE $TESTDIR/sample/vac2fost_conf_quick_no_number.nml --output $OUT/shell_2
+$EXE $TESTDIR/data/vac2fost_conf_quick_no_number.nml --output $OUT/shell_2
 expect_failure
 
 echo "Test 3: display version"

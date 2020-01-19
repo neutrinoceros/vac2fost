@@ -205,7 +205,7 @@ def write_mcfost_conf(output_file: Path, custom_parameters: dict = None):
     if custom_parameters is None:
         custom_parameters = {}
     if Path(output_file).exists():
-        log.warning(f"{output_file} already exists, and will be overwritten.")
+        log.info(f"{output_file} will be overwritten.")
     with open(output_file, mode="wt") as fi:
         fi.write(
             ".".join(MIN_MCFOST_VERSION.split(".")[:2]).ljust(10)
@@ -227,7 +227,7 @@ def write_mcfost_conf(output_file: Path, custom_parameters: dict = None):
         fi.write(f"%% run by {os.environ['USER']} on {gethostname()}\n")
 
 
-def get_mcfost_grid(mcfost_conf_file: str, output_dir: str, require_run: bool) -> np.ndarray:
+def get_mcfost_grid(mcfost_conf_file: str, output_dir: str, require_run: bool = True) -> np.ndarray:
     """Pre-run MCFOST with -disk_struct flag to get the exact grid used."""
     output_dir = Path(output_dir).resolve()
     mcfost_conf_path = Path(mcfost_conf_file)
@@ -240,15 +240,14 @@ def get_mcfost_grid(mcfost_conf_file: str, output_dir: str, require_run: bool) -
         # generate a grid data file with mcfost itself and extract it
         pile = Path.cwd()
         with TemporaryDirectory() as tmp_mcfost_dir:
-            shutil.copyfile(
-                mcfost_conf_path.resolve(), Path(tmp_mcfost_dir) / mcfost_conf_path.name
-            )
+            tmp_conf_file = Path(tmp_mcfost_dir) / mcfost_conf_path.name
+            shutil.copyfile(mcfost_conf_path.resolve(), tmp_conf_file)
             os.chdir(tmp_mcfost_dir)
             try:
                 run(
-                    ["mcfost", "mcfost_conf.para", "-disk_struct"],
+                    ["mcfost", str(tmp_conf_file), "-disk_struct"],
                     check=True,
-                    capture_output=(log.level < 20),
+                    capture_output=(log.level > 10),
                 )  # if in debug mode, output will be printed
 
                 shutil.move("data_disk/grid.fits.gz", grid_file_name)
@@ -266,3 +265,30 @@ def get_mcfost_grid(mcfost_conf_file: str, output_dir: str, require_run: bool) -
     with fits.open(grid_file_name, mode="readonly") as fi:
         target_grid = fi[0].data
     return target_grid
+
+
+def get_mcfost_grid_dict(mcfost_conf_file, output_dir: str, require_run: bool = True) -> dict:
+    """Offer a more convenient api to access the grid data as named arrays.
+
+    Naming conventions:
+        - 'array' is the full 3D grid
+        - 'ticks_<x>' is a 1D coord vector along the x direction
+        - '<y>-slice_<x>' is a 2D <x> coord slice (where <y> is the normal direction to the slice)
+
+    important note:
+    We purposedly do not define a "ticks_z" 1D array because its value varies with r.
+    What's invariant with respect to r is z/H where H is the local scale height.
+    """
+    grid = get_mcfost_grid(mcfost_conf_file, output_dir, require_run)
+    grid_dict = {
+        "array": grid,
+        # r coords
+        "ticks_r": grid[0, 0, 0, :],
+        "z-slice_r": grid[0, :, 0, :],
+        "phi-slice_r": grid[0, 0, :, :],
+        # z coords
+        "phi-slice_z": grid[1, 0, :, :],
+    }
+    if grid.shape[0] > 2:  # usually the case unless 2D axisym grid !
+        grid_dict.update({"ticks_phi": grid[2, :, 0, 0], "z-slice_phi": grid[2, :, 0, :]})
+    return grid_dict

@@ -18,16 +18,24 @@ from astropy.io import fits
 from scipy.interpolate import interp1d, interp2d
 import f90nml
 
-# private externals
-from vtk_vacreader import VacDataSorter
+try:
+    import toml
+except ImportError:
+    toml = None
+
+from ._vtk_vacreader import VacDataSorter
 
 from .info import __version__
 from .utils import shell_path
 from .utils import IOinfo, DataInfo, GridShape
 from .mcfost_utils import MINGRAINSIZE_mum, KNOWN_MCFOST_ARGS
-from .mcfost_utils import get_mcfost_grid, write_mcfost_conf
+from .mcfost_utils import get_mcfost_grid_dict, write_mcfost_conf
 from .logger import v2flogger as log
 
+
+ACCEPTED_CONF_FILE_EXTENSTIONS = [".nml", ".namelist"]
+if toml is not None:
+    ACCEPTED_CONF_FILE_EXTENSTIONS.append(".toml")
 
 DEFAULT_UNITS = dict(distance2au=1.0, time2yr=1.0, mass2solar=1.0)
 
@@ -62,6 +70,20 @@ def read_amrvac_parfiles(parfiles: list, location: str = "") -> f90nml.Namelist:
     return conf_tot
 
 
+def read_conf_file(conf_file: Path) -> f90nml.Namelist:
+    """Always return a namelist object even from .toml files
+    Only attempt to parse a .toml file if toml is installed
+    """
+    if conf_file.suffix not in ACCEPTED_CONF_FILE_EXTENSTIONS:
+        raise TypeError
+    if conf_file.suffix == ".toml":
+        dconf = toml.load(conf_file)
+        nmlconf = f90nml.Namelist(dconf)
+    else:
+        nmlconf = f90nml.read(conf_file)
+    return nmlconf
+
+
 class AbstractInterface(ABC):
     """A data transforming class. Holds most functionalities useful to
     vac2fost.main()"""
@@ -91,20 +113,24 @@ class AbstractInterface(ABC):
             raise RuntimeError(err)
 
         self.conf_file = Path(conf_file)
-        self.conf = f90nml.read(conf_file)
+        self.conf = read_conf_file(self.conf_file)
         self.conf.patch(override)
 
-        flags = self.conf.get("flags", {})
-        self._use_settling = flags.get("settling", False)
-        self._use_axisymmetry = flags.get("axisymmetry", False)
-        self._read_gas_velocity = flags.get("read_gas_velocity", False)
+        # parse flags
+        flags = self.conf.get("flags", {}).copy()
+        self._use_settling = flags.pop("settling", False)
+        self._read_gas_velocity = flags.pop("read_gas_velocity", False)
+        read_gas_density = flags.pop("read_gas_density", False)
+        self._dbm = flags.pop("dust_bin_mode", None)
+        if self._dbm is not None and self._dbm not in ("dust-only", "mixed", "gas-only"):
+            raise ValueError(f"Unrecognized dust_bin_mode value {self._dbm}")
+        if flags:
+            log.warning(f"Unrecognized flag {', '.join(flags.keys())}")
 
         # handle special cases
+        self._use_axisymmetry = self.conf["mcfost_output"].get("n_az") == 1
         if self._use_axisymmetry and self._read_gas_velocity:
             raise NotImplementedError
-        if self._use_axisymmetry and self.conf["mcfost_output"].get("n_az", 2) > 1:
-            log.warning("specified n_az > 1 but axisymmetry flag present, overriding n_az = 1")
-            self.conf["mcfost_output"].update({"n_az": 1})
 
         # init iteration counter
         nums = self.conf["amrvac_input"]["nums"]  # mandatory argument
@@ -158,7 +184,6 @@ class AbstractInterface(ABC):
 
         self._parse_dust_properties()
 
-        read_gas_density = flags.get("read_gas_density", False)
         if read_gas_density and self._bin_gas:
             log.warning(
                 f"Found redundancy: with dust_bin_mode='{self._dust_bin_mode}'"
@@ -210,11 +235,10 @@ class AbstractInterface(ABC):
         """Store physical coordinates (vectors) about the input grid specifications."""
 
     # public methods, for direct usage in vac2fost.main()
-    def preroll_mcfost(self) -> None:
+    def preroll_mcfost(self, force=False) -> None:
         """Output mcfost parafile and store the grid"""
         mcfost_conf_file = self.io.OUT.directory / "mcfost_conf.para"
-
-        if not mcfost_conf_file.is_file():
+        if not mcfost_conf_file.is_file() or force:
             # Create a complete mcfost conf file using (by decreasing priority)
             # - amrvac initial configuration : self._translate_amrvac_config()
             # - user specifications : self.conf['mcfost_output']
@@ -226,7 +250,7 @@ class AbstractInterface(ABC):
             # Star mass is a special case
             mstar = self.conf["mcfost_output"].get("mstar", None)
             if mstar is None:
-                log.warning("&mcfost_output: Mstar not found. Assuming default value.")
+                log.warning("&mcfost_output: Mstar not found. Assuming default value. (1Msun)")
                 mstar = 1.0
             elif isinstance(mstar, str):
                 namelist, param = mstar.split(".")
@@ -244,24 +268,9 @@ class AbstractInterface(ABC):
             write_mcfost_conf(output_file=mcfost_conf_file, custom_parameters=mcfost_parameters)
             log.info(f"successfully wrote {mcfost_conf_file}")
 
-        grid = get_mcfost_grid(
+        self.output_grid = get_mcfost_grid_dict(
             mcfost_conf_file, output_dir=self.io.OUT.directory, require_run=(self._iter_count == 0)
         )
-
-        self.output_grid = {
-            "array": grid,
-            # r coords
-            "ticks_r": grid[0, 0, 0, :],
-            "z-slice_r": grid[0, :, 0, :],
-            "phi-slice_r": grid[0, 0, :, :],
-            # z coords
-            # note: we purposedly do not define a "ticks-z" 1D array because its value varies with r
-            "phi-slice_z": grid[1, 0, :, :],
-        }
-        if grid.shape[0] > 2:  # usually the case unless 2D axisym grid !
-            self.output_grid.update(
-                {"ticks_phi": grid[2, :, 0, 0], "z-slice_phi": grid[2, :, 0, :]}
-            )
 
     def write_output(self) -> None:
         """Write a .fits file suited for MCFOST input."""
@@ -324,9 +333,9 @@ class AbstractInterface(ABC):
         return f"{self._iter_count+1}/{self._iter_max}"
 
     @property
-    def iter_last(self):
-        """Whether or not we're at last iteration."""
-        return self._iter_count == self._iter_max
+    def output_conf(self):
+        """for convenience"""
+        return f90nml.read(self._output_conf_file)
 
     # private methods
     def _parse_dust_properties(self) -> None:
@@ -336,12 +345,7 @@ class AbstractInterface(ABC):
         - (dust-only) : use only dust information
         - (mixed)     : use both, assuming gas traces the smallest grains
         """
-        try:
-            dbm = self.conf["flags"]["dust_bin_mode"]
-        except KeyError:
-            dbm = None
-        if dbm is not None and dbm not in ("dust-only", "mixed", "gas-only"):
-            raise ValueError(f"Unrecognized dbm value {dbm}")
+        dbm = self._dbm
 
         mum_sizes = np.empty(0)
         auto_dbm = None

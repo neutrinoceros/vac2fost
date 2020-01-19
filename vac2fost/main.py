@@ -11,6 +11,7 @@ def main(
     override: dict = None,
     output_dir: Path = None,
     loglevel: int = 30,
+    force_preroll=False,
 ) -> AbstractInterface:
     """Transform a .vtu datfile into a .fits
 
@@ -24,27 +25,16 @@ def main(
     log.setLevel(loglevel)
     log.debug(f"start vac2fost {__version__} main loop")
     itf = VtuFileInterface(conf_file, override=override, output_dir=output_dir)
-    while 1:
-        log.info(f"current input number: {itf.current_num}\t({itf.iter_frac})")
-        try:
-            itf.load_input_data()
-        except FileNotFoundError as err:
-            filepath = Path(str(err)).relative_to(Path.cwd())
-            log.warning(f"missing file: {filepath}, attempting to pursue iteration")
-            if itf.iter_last:
-                break
-            continue
-        itf.preroll_mcfost()
-        itf.write_output()
-
-        try:
-            filepath = itf.io.OUT.filepath.relative_to(Path.cwd())
-        except ValueError:
-            filepath = itf.io.OUT.filepath
-        try:
+    try:
+        while True:
+            log.info(f"current input number: {itf.current_num}\t({itf.iter_frac})")
+            try:
+                itf.load_input_data()
+                itf.preroll_mcfost(force=force_preroll)
+                itf.write_output()
+            except FileNotFoundError as missing_file:
+                log.warning(f"missing file: {missing_file}, resuming iteration.")
             itf.advance_iteration()  # set itf.current_num to next value
-        except StopIteration:
-            break
-
-    log.debug("end vac2fost")
+    except StopIteration:
+        log.debug("end vac2fost")
     return itf  # return the interface object for inspection (tests)
