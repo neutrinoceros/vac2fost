@@ -614,16 +614,48 @@ class DatFileInterface(AbstractInterface):
     @property
     def io(self) -> IOinfo:
         """Give up-to-date information on data location and naming (.i: input, .o: output)"""
-        pass
+        """Give up-to-date information on data location and naming (.i: input, .o: output)"""
+        datfile_name = "".join(
+            [self.amrvac_conf["filelist"]["base_filename"], str(self.current_num).zfill(4), ".dat"]
+        )
+
+        _input = DataInfo(
+            directory=shell_path(self.conf["amrvac_input"]["hydro_data_dir"]).resolve(),
+            filename=datfile_name,
+            gridshape=GridShape(*self._grid_dims),
+        )
+
+        trad_keys = {"nr": "n_rad", "nphi": "n_az", "nz": "nz"}
+        _output = DataInfo(
+            directory=Path(self._output_dir),
+            filename=_input.filestem + ".fits",
+            gridshape=GridShape(
+                **{k1: self.conf["mcfost_output"][k2] for k1, k2 in trad_keys.items()}
+            ),
+        )
+        self.io = IOinfo(IN=_input, OUT=_output)
 
     def load_input_data(self) -> None:
         """wip"""
         import yt
         from yt import mylog as ytlogger
-        ytlogger.setLevel(50) # silence all but critical messages from yt
-        dims = self.io.IN.gridshape
-        print(dims)
-        ag = ds.arbitrary_grid(ds.domain_left_edge, ds.domain_right_edge, dims=dims)
-        d = ag["rho"].squeeze().to_ndarray()
+        ytlogger.setLevel(log.level)
+
+        ds = yt.load(self.io.IN.filename)
+        self._dataset = ds  # keep a reference
+
+        # detect available density fields
+        self._density_keys = sorted([k for _, k in ds.field_list if "rho" in k])
+
+        # regrid to uniform grid (with maximum level)
+        dims = np.ones(3)
+        dims[:ds.dimensionality] = ds.parameters["domain_nx"] * ds.refine_by**ds.index.max_level
+        self._grid_dims = dims
+
+        cg = ds.covering_grid(level=maxlevel,
+                              left_edge=ds.domain_left_edge,
+                              dims=dims,
+                              fields=self._density_keys)#, use_pbar=False)
+        self._input_data = {k: cg[k].squeeze().to_ndarray() for k in self._density_keys}
         # TODO: use yt to set self._input_data here
-        #log.info(f"successfully loaded {filename}")
+        log.info(f"successfully loaded {filename}")
