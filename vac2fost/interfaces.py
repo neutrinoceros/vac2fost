@@ -23,6 +23,9 @@ try:
 except ImportError:
     toml = None
 
+import yt
+from yt import mylog as ytlogger
+
 from ._vtk_vacreader import VacDataSorter
 
 from .info import __version__
@@ -611,17 +614,26 @@ class VtuFileInterface(AbstractInterface):
 
 
 class DatFileInterface(AbstractInterface):
-    @property
+
     def _set_io(self) -> IOinfo:
         """Give up-to-date information on data location and naming (.i: input, .o: output)"""
-        """Give up-to-date information on data location and naming (.i: input, .o: output)"""
-        datfile_name = "".join(
-            [self.amrvac_conf["filelist"]["base_filename"], str(self.current_num).zfill(4), ".dat"]
-        )
+        basename = self.amrvac_conf["filelist"]["base_filename"]
+        numtag = str(self.current_num).zfill(4)
+        filename = f"{basename}{numtag}.dat"
+
+        indir = shell_path(self.conf["amrvac_input"]["hydro_data_dir"]).resolve()
+        ds = yt.load(os.path.join(indir, filename))
+        if ds.dimensionality != 2 or ds.geometry != "polar":
+            raise NotImplementedError
+
+        self._dataset = ds  # keep a reference
+        dims = np.ones(3, dtype="int64")
+        dims[:ds.dimensionality] = ds.parameters["domain_nx"] * ds.refine_by**ds.index.max_level
+        self._grid_dims = dims
 
         _input = DataInfo(
-            directory=shell_path(self.conf["amrvac_input"]["hydro_data_dir"]).resolve(),
-            filename=datfile_name,
+            directory=indir,
+            filename=filename,
             gridshape=GridShape(*self._grid_dims),
         )
 
@@ -646,30 +658,20 @@ class DatFileInterface(AbstractInterface):
 
     def load_input_data(self) -> None:
         """wip"""
-        import yt
-        from yt import mylog as ytlogger
-        ytlogger.setLevel(log.level)
+        ytlogger.setLevel(log.level) # todo: move to init
 
-        ds = yt.load(self.io.IN.filename)
-        if ds.dimensionality != 2 or ds.geometry != "polar":
-            raise NotImplementedError
-
-        self._dataset = ds  # keep a reference
+        ds = self._dataset
 
         # detect available density fields
         self._density_keys = sorted([k for _, k in ds.field_list if "rho" in k])
 
         # regrid to uniform grid (with maximum level)
-        dims = np.ones(3)
-        dims[:ds.dimensionality] = ds.parameters["domain_nx"] * ds.refine_by**ds.index.max_level
-        self._grid_dims = dims
-
         cg = ds.covering_grid(level=ds.index.max_level,
                               left_edge=ds.domain_left_edge,
-                              dims=dims,
+                              dims= self._grid_dims,
                               fields=self._density_keys)#, use_pbar=False)
 
         load_keys = self._density_keys + ["r", "theta"]
         self._input_data = {k: cg[k].to_ndarray().squeeze() for k in load_keys}
         # TODO: use yt to set self._input_data here
-        log.info(f"successfully loaded {filename}")
+        log.info(f"successfully loaded {self.io.IN.filepath}")
