@@ -338,11 +338,6 @@ class AbstractInterface(ABC):
         return f"{self._iter_count+1}/{self._iter_max}"
 
     @property
-    def iter_last(self):
-        """Whether or not we're at last iteration."""
-        return self._iter_count == self._iter_max - 1
-
-    @property
     def output_conf(self):
         """for convenience"""
         return f90nml.read(self._output_conf_file)
