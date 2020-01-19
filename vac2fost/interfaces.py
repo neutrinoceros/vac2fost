@@ -651,8 +651,8 @@ class DatFileInterface(AbstractInterface):
     def input_grid(self) -> dict:
         """Describe the amrvac grid."""
         ig = {
-            "ticks_r": self._input_data["r"] * self.conf["units"]["distance2au"],
-            "ticks_phi": self._input_data["theta"],
+            "ticks_r": self._input_data["r"][:,0] * self.conf["units"]["distance2au"],
+            "ticks_phi": self._input_data["theta"][0,:],
         }
         return ig
 
@@ -665,7 +665,7 @@ class DatFileInterface(AbstractInterface):
         # detect available density fields
         self._density_keys = sorted([k for _, k in ds.field_list if "rho" in k])
 
-        # regrid to uniform grid (with maximum level)
+        # regrid to uniform grid (with maximum resolution level)
         cg = ds.covering_grid(level=ds.index.max_level,
                               left_edge=ds.domain_left_edge,
                               dims= self._grid_dims,
