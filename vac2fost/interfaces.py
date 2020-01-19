@@ -612,7 +612,7 @@ class VtuFileInterface(AbstractInterface):
 
 class DatFileInterface(AbstractInterface):
     @property
-    def io(self) -> IOinfo:
+    def _set_io(self) -> IOinfo:
         """Give up-to-date information on data location and naming (.i: input, .o: output)"""
         """Give up-to-date information on data location and naming (.i: input, .o: output)"""
         datfile_name = "".join(
@@ -635,6 +635,15 @@ class DatFileInterface(AbstractInterface):
         )
         self.io = IOinfo(IN=_input, OUT=_output)
 
+    @property
+    def input_grid(self) -> dict:
+        """Describe the amrvac grid."""
+        ig = {
+            "ticks_r": self._input_data["r"] * self.conf["units"]["distance2au"],
+            "ticks_phi": self._input_data["theta"],
+        }
+        return ig
+
     def load_input_data(self) -> None:
         """wip"""
         import yt
@@ -642,6 +651,9 @@ class DatFileInterface(AbstractInterface):
         ytlogger.setLevel(log.level)
 
         ds = yt.load(self.io.IN.filename)
+        if ds.dimensionality != 2 or ds.geometry != "polar":
+            raise NotImplementedError
+
         self._dataset = ds  # keep a reference
 
         # detect available density fields
@@ -652,10 +664,12 @@ class DatFileInterface(AbstractInterface):
         dims[:ds.dimensionality] = ds.parameters["domain_nx"] * ds.refine_by**ds.index.max_level
         self._grid_dims = dims
 
-        cg = ds.covering_grid(level=maxlevel,
+        cg = ds.covering_grid(level=ds.index.max_level,
                               left_edge=ds.domain_left_edge,
                               dims=dims,
                               fields=self._density_keys)#, use_pbar=False)
-        self._input_data = {k: cg[k].squeeze().to_ndarray() for k in self._density_keys}
+
+        load_keys = self._density_keys + ["r", "theta"]
+        self._input_data = {k: cg[k].to_ndarray().squeeze() for k in load_keys}
         # TODO: use yt to set self._input_data here
         log.info(f"successfully loaded {filename}")

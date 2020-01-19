@@ -12,6 +12,7 @@ def main(
     output_dir: Path = None,
     loglevel: int = 30,
     force_preroll=False,
+    file_type="vtk"
 ) -> AbstractInterface:
     """Transform a .vtu datfile into a .fits
 
@@ -24,7 +25,11 @@ def main(
     """
     log.setLevel(loglevel)
     log.debug(f"start vac2fost {__version__} main loop")
-    itf = VtuFileInterface(conf_file, override=override, output_dir=output_dir)
+    if file_type.lower() in ["vtu", "vtk"]:
+        Interface = VtuFileInterface
+    else:
+        Interface = DatFileInterface
+    itf = Interface(conf_file, override=override, output_dir=output_dir)
     try:
         while True:
             log.info(f"current input number: {itf.current_num}\t({itf.iter_frac})")
