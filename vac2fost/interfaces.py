@@ -609,11 +609,11 @@ class DatFileInterface(AbstractInterface):
         u = self.conf["units"]
         units_ = dict(
             length_unit=(u["distance2au"], "au"),
-            mass_unit=(u["mass2solar"], yt.units.mass_sun),
+            mass_unit=(u["mass2solar"], "msun"),
             time_unit=(u["time2yr"], "yr"),
         )
         ds = yt.load(
-            os.path.join(indir, filename), # units_override=units_, # TODO: units here
+            os.path.join(indir, filename), units_override=units_,
             parfiles=self.get_amrvac_parfiles(),
         )
         if ds.dimensionality != 2 or ds.geometry != "polar":
@@ -640,8 +640,7 @@ class DatFileInterface(AbstractInterface):
     def input_grid(self) -> dict:
         """Describe the amrvac grid (as regridded by yt)."""
         ig = {
-            # TODO: units here
-            "ticks_r": self._input_data["r"][:, 0] * self.conf["units"]["distance2au"],
+            "ticks_r": self._input_data["r"][:, 0],
             "ticks_phi": self._input_data["theta"][0, :],
         }
         return ig
@@ -665,8 +664,10 @@ class DatFileInterface(AbstractInterface):
             use_pbar=False,
         )
 
-        load_keys = self._density_keys + ["r", "theta"]
-        self._input_data = {k: cg[k].to_ndarray().squeeze() for k in load_keys}
+        load_keys = {k: "msun / au**3" for k in self._density_keys}
+        load_keys.update({"r": "au", "theta": "dimensionless"})
+        self._density_keys + ["r", "theta"]
+        self._input_data = {k: cg[k].to(u).to_ndarray().squeeze() for k, u in load_keys.items()}
         log.info(f"successfully loaded {self.io.IN.filepath}")
 
     def _estimate_dust_mass(self) -> float:
