@@ -608,7 +608,9 @@ class DatFileInterface(AbstractInterface):
         flags = read_conf_file(Path(conf_file)).get("flags", {})
         unsupported = {f: f in self.__class__._unsupported_flags for f in flags}
         if any(unsupported.values()):
-            mess = "the following flags are not yet supported with .dat files: " + ", ".join([f for f, v in unsupported.items() if v])
+            mess = "the following flags are not yet supported with .dat files: " + ", ".join(
+                [f for f, v in unsupported.items() if v]
+            )
             raise NotImplementedError(mess)
         super().__init__(conf_file, *args, **kwargs)
 
@@ -626,7 +628,8 @@ class DatFileInterface(AbstractInterface):
             time_unit=(u["time2yr"], "yr"),
         )
         ds = yt.load(
-            os.path.join(indir, filename), units_override=units_,
+            os.path.join(indir, filename),
+            units_override=units_,
             parfiles=self.get_amrvac_parfiles(),
         )
         if ds.dimensionality != 2 or ds.geometry != "polar":
@@ -652,10 +655,7 @@ class DatFileInterface(AbstractInterface):
     @property
     def input_grid(self) -> dict:
         """Describe the amrvac grid (as regridded by yt)."""
-        ig = {
-            "ticks_r": self._input_data["r"][:, 0],
-            "ticks_phi": self._input_data["theta"][0, :],
-        }
+        ig = {"ticks_r": self._input_data["r"][:, 0], "ticks_phi": self._input_data["theta"][0, :]}
         return ig
 
     def load_input_data(self) -> None:
@@ -679,7 +679,6 @@ class DatFileInterface(AbstractInterface):
 
         load_keys = {k: "msun / au**3" for k in self._density_keys}
         load_keys.update({"r": "au", "theta": "dimensionless"})
-        self._density_keys + ["r", "theta"]
         self._input_data = {k: cg[k].to(u).to_ndarray().squeeze() for k, u in load_keys.items()}
         log.info(f"successfully loaded {self.io.IN.filepath}")
 
