@@ -206,6 +206,10 @@ class AbstractInterface(ABC):
     def input_grid(self) -> dict:
         """Store physical coordinates (vectors) about the input grid specifications."""
 
+    @abstractmethod
+    def _estimate_dust_mass(self) -> float:
+        """Estimate the total dust mass in the grid, in solar masses"""
+
     def get_amrvac_parfiles(self) -> list:
         """Parse self.conf["amrvac_input"] arguments into a list of str absolute paths of parfiles."""
         pathloc = shell_path(self.conf["amrvac_input"]["hydro_data_dir"])
@@ -391,31 +395,6 @@ class AbstractInterface(ABC):
         else:
             self._gas_to_dust_ratio = None
 
-    def _estimate_dust_mass(self) -> float:
-        """Estimate the total dust mass in the grid, in solar masses"""
-        # devnote : this assumes a linearly spaced grid
-        dphi = 2 * np.pi / self.io.IN.gridshape.nphi
-        rvect = self._input_data.get_ticks("r")
-        dr = rvect[1] - rvect[0]
-        cell_surfaces = dphi / 2 * ((rvect + dr / 2) ** 2 - (rvect - dr / 2) ** 2)
-
-        if self._dust_bin_mode == "gas-only":
-            keys = ["rho"]
-        else:
-            keys = [k for k, _ in self._input_data if "rhod" in k]
-        mass = 0.0
-        for key in keys:
-            mass += np.sum(
-                [
-                    cell_surfaces * self._input_data[key][:, i]
-                    for i in range(self.io.IN.gridshape.nphi)
-                ]
-            )
-        if self._dust_bin_mode == "gas-only":
-            mass /= 100
-        mass *= self.conf["units"]["mass2solar"]
-        return mass
-
     def _translate_amrvac_config(self) -> dict:
         """Get some mcfost parameters directly from amrvac."""
         parameters = {}
@@ -591,6 +570,31 @@ class VtuFileInterface(AbstractInterface):
         }
         return ig
 
+    def _estimate_dust_mass(self) -> float:
+        """Estimate the total dust mass in the grid, in solar masses"""
+        # devnote : this assumes a linearly spaced grid
+        dphi = 2 * np.pi / self.io.IN.gridshape.nphi
+        rvect = self._input_data.get_ticks("r")
+        dr = rvect[1] - rvect[0]
+        cell_surfaces = dphi / 2 * ((rvect + dr / 2) ** 2 - (rvect - dr / 2) ** 2)
+
+        if self._dust_bin_mode == "gas-only":
+            keys = ["rho"]
+        else:
+            keys = [k for k, _ in self._input_data if "rhod" in k]
+        mass = 0.0
+        for key in keys:
+            mass += np.sum(
+                [
+                    cell_surfaces * self._input_data[key][:, i]
+                    for i in range(self.io.IN.gridshape.nphi)
+                ]
+            )
+        if self._dust_bin_mode == "gas-only":
+            mass /= 100
+        mass *= self.conf["units"]["mass2solar"]
+        return mass
+
 
 class DatFileInterface(AbstractInterface):
     """An interface dedicated raw datfiles from AMRVAC, supported by yt."""
@@ -639,9 +643,12 @@ class DatFileInterface(AbstractInterface):
         # detect available density fields
         self._density_keys = sorted([k for _, k in ds.field_list if "rho" in k])
 
+        # devnote: a more efficient regriding scheme here would be to use the final grid (mcfost)
+        # resolution in the phi-z plane (in r it's basically infeasible)
+
         # regrid to uniform grid (with maximum resolution level)
         cg = ds.covering_grid(
-            level=ds.index.max_level,
+            level=ds.max_level,
             left_edge=ds.domain_left_edge,
             dims=self._grid_dims,
             fields=self._density_keys,
@@ -651,3 +658,10 @@ class DatFileInterface(AbstractInterface):
         load_keys = self._density_keys + ["r", "theta"]
         self._input_data = {k: cg[k].to_ndarray().squeeze() for k in load_keys}
         log.info(f"successfully loaded {self.io.IN.filepath}")
+
+    def _estimate_dust_mass(self) -> float:
+        ds = self._dataset
+        ad = ds.all_data()
+        total_dust_mass = (ad["total_dust_density"] * ad["cell_volume"]).sum()
+        # convert to float with correct unit
+        return total_dust_mass
