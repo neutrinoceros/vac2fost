@@ -251,7 +251,7 @@ class AbstractInterface(ABC):
                 raise ValueError(f"Unrecognized MCFOST argument(s): {unknown_args}")
 
             write_mcfost_conf(output_file=mcfost_conf_file, custom_parameters=mcfost_parameters)
-            log.info(f"successfully wrote {mcfost_conf_file}")
+            log.info(f"wrote {mcfost_conf_file}")
 
         self.output_grid = get_mcfost_grid_dict(
             mcfost_conf_file, output_dir=self.io.OUT.directory, require_run=(self._iter_count == 0)
@@ -562,7 +562,7 @@ class VtuFileInterface(AbstractInterface):
         # ordered list of density keys (gas, ds1, ds2, ds3...)
         # where 'ds' reads 'dust species'
         self._density_keys = sorted(filter(lambda k: "rho" in k, self._input_data.fields.keys()))
-        log.info(f"successfully loaded {self.io.IN.filepath}")
+        log.info(f"loaded {self.io.IN.filepath}")
 
     @property
     def input_grid(self) -> dict:

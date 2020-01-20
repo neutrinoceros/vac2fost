@@ -205,7 +205,7 @@ def write_mcfost_conf(output_file: Path, custom_parameters: dict = None):
     if custom_parameters is None:
         custom_parameters = {}
     if Path(output_file).exists():
-        log.info(f"{output_file} will be overwritten.")
+        log.info(f"overwritting {output_file}")
     with open(output_file, mode="wt") as fi:
         fi.write(
             ".".join(MIN_MCFOST_VERSION.split(".")[:2]).ljust(10)
