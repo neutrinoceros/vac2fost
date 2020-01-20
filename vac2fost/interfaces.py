@@ -623,7 +623,7 @@ class DatFileInterface(AbstractInterface):
 
     @property
     def input_grid(self) -> dict:
-        """Describe the amrvac grid."""
+        """Describe the amrvac grid (as regridded by yt)."""
         ig = {
             "ticks_r": self._input_data["r"][:, 0] * self.conf["units"]["distance2au"],
             "ticks_phi": self._input_data["theta"][0, :],
