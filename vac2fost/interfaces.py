@@ -395,7 +395,9 @@ class AbstractInterface(ABC):
                 if isinstance(value, str):
                     namelist, arg = value.split(".")
                     dustlist.update({param: self.amrvac_conf[namelist][arg]})
-            if "gas_to_dust_ratio" and "dust_to_gas_ratio" in dustlist:
+
+            # py38: walrus here
+            if "gas_to_dust_ratio" in dustlist and "dust_to_gas_ratio" in dustlist:
                 raise RuntimeError("Can not set both 'gas_to_dust_ratio' and 'dust_to_gas_ratio'")
             if "gas_to_dust_ratio" in dustlist:
                 g2d = dustlist["gas_to_dust_ratio"]
