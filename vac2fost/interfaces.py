@@ -606,7 +606,16 @@ class DatFileInterface(AbstractInterface):
         filename = f"{basename}{numtag}.dat"
 
         indir = shell_path(self.conf["amrvac_input"]["hydro_data_dir"]).resolve()
-        ds = yt.load(os.path.join(indir, filename), parfiles=self.get_amrvac_parfiles())
+        u = self.conf["units"]
+        units_ = dict(
+            length_unit=(u["distance2au"], "au"),
+            mass_unit=(u["mass2solar"], yt.units.mass_sun),
+            time_unit=(u["time2yr"], "yr"),
+        )
+        ds = yt.load(
+            os.path.join(indir, filename),  # units_override=units_,
+            parfiles=self.get_amrvac_parfiles(),
+        )
         if ds.dimensionality != 2 or ds.geometry != "polar":
             raise NotImplementedError
 
