@@ -1,7 +1,6 @@
 """This main routine creates and uses an interface instance."""
 from pathlib import Path
 
-from yt import mylog as ytlog
 from .info import __version__
 from .interfaces import AbstractInterface, VtuFileInterface, DatFileInterface
 from .logger import v2flogger as log
@@ -30,7 +29,6 @@ def main(
         Interface = VtuFileInterface
     else:
         Interface = DatFileInterface
-        ytlog.setLevel(loglevel)
     itf = Interface(conf_file, override=override, output_dir=output_dir)
     try:
         while True:
