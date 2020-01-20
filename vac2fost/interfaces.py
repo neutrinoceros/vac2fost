@@ -25,6 +25,7 @@ except ImportError:
 
 import yt
 from yt import mylog as ytlogger
+from yt.frontends.amrvac import read_amrvac_namelist
 
 from ._vtk_vacreader import VacDataSorter
 
@@ -43,10 +44,12 @@ if toml is not None:
 DEFAULT_UNITS = dict(distance2au=1.0, time2yr=1.0, mass2solar=1.0)
 
 
-def read_amrvac_parfiles(parfiles: list, location: str = "") -> f90nml.Namelist:
+def read_amrvac_parfiles(parfiles: list, path: str = "") -> f90nml.Namelist:
+    # this is now merely an extension of the yt function read_amrvac_namelist
+    # and could be replaced completely.
     """Parse one, or a list of MPI-AMRVAC parfiles into a consistent configuration.
 
-    <location> : pathlike of the directory where parfiles are found.
+    <path> : pathlike of the directory where parfiles are found.
     Can be either a PathLike object or a str. The later can include
     "$" shell env variables such as "$HOME".
 
@@ -54,23 +57,12 @@ def read_amrvac_parfiles(parfiles: list, location: str = "") -> f90nml.Namelist:
     for parameters redundant across parfiles, only last values are kept,
     except "&filelist:base_filename", for which values are cumulated.
     """
-    pathloc = shell_path(location)
+    pathloc = shell_path(path)
 
     if isinstance(parfiles, (str, os.PathLike)):
-        pfs = [parfiles]
-    else:
-        pfs = parfiles
-    assert all([isinstance(pf, (str, os.PathLike)) for pf in pfs])
-
-    confs = [f90nml.read((pathloc / pf).resolve()) for pf in pfs]
-    conf_tot = f90nml.Namelist()
-    for c in confs:
-        conf_tot.patch(c)
-
-    base_filename = "".join([c.get("filelist", {}).get("base_filename", "") for c in confs])
-    assert base_filename != ""
-    conf_tot["filelist"]["base_filename"] = base_filename
-    return conf_tot
+        parfiles = [parfiles]
+    parfiles = [str(pathloc / p) for p in parfiles]
+    return read_amrvac_namelist(parfiles)
 
 
 def read_conf_file(conf_file: Path) -> f90nml.Namelist:
@@ -614,6 +606,7 @@ class VtuFileInterface(AbstractInterface):
 
 class DatFileInterface(AbstractInterface):
     """An interface dedicated raw datfiles from AMRVAC, supported by yt."""
+
     def _set_io(self) -> IOinfo:
         """Give up-to-date information on data location and naming (.i: input, .o: output)"""
         basename = self.amrvac_conf["filelist"]["base_filename"]
@@ -621,11 +614,11 @@ class DatFileInterface(AbstractInterface):
         filename = f"{basename}{numtag}.dat"
 
         indir = shell_path(self.conf["amrvac_input"]["hydro_data_dir"]).resolve()
-        ds = yt.load(os.path.join(indir, filename))
+        ds = yt.load(os.path.join(indir, filename))  # , parfiles=)
         if ds.dimensionality != 2 or ds.geometry != "polar":
             raise NotImplementedError
 
-        self._dataset = ds  # keep a reference
+        self._dataset = ds  # keep a reference for later usage in self.load_input_data()
         dims = np.ones(3, dtype="int64")
         dims[: ds.dimensionality] = ds.parameters["domain_nx"] * ds.refine_by ** ds.index.max_level
         self._grid_dims = dims
