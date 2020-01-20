@@ -602,6 +602,16 @@ class VtuFileInterface(AbstractInterface):
 class DatFileInterface(AbstractInterface):
     """An interface dedicated raw datfiles from AMRVAC, supported by yt."""
 
+    _unsupported_flags = ["read_gas_velocity", "read_gas_density"]
+
+    def __init__(self, conf_file, *args, **kwargs):
+        flags = read_conf_file(Path(conf_file)).get("flags", {})
+        unsupported = {f: f in self.__class__._unsupported_flags for f in flags}
+        if any(unsupported.values()):
+            mess = "the following flags are not yet supported with .dat files: " + ", ".join([f for f, v in unsupported.items() if v])
+            raise NotImplementedError(mess)
+        super().__init__(conf_file, *args, **kwargs)
+
     def _set_io(self) -> IOinfo:
         """Give up-to-date information on data location and naming (.i: input, .o: output)"""
         basename = self.amrvac_conf["filelist"]["base_filename"]
