@@ -671,8 +671,7 @@ class DatFileInterface(AbstractInterface):
         log.info(f"successfully loaded {self.io.IN.filepath}")
 
     def _estimate_dust_mass(self) -> float:
-        ds = self._dataset
-        ad = ds.all_data()
-        total_dust_mass = (ad["total_dust_density"] * ad["cell_volume"]).sum()
-        # convert to float with correct unit
-        return total_dust_mass
+        """Interpret dust mass in solar masses as a float. This is trivial with yt."""
+        ad = self._dataset.all_data()
+        total_dust_mass = (ad["total_dust_density"] * ad["cell_volume"]).sum().to("msun")
+        return float(total_dust_mass)
