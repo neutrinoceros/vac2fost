@@ -613,7 +613,7 @@ class DatFileInterface(AbstractInterface):
             time_unit=(u["time2yr"], "yr"),
         )
         ds = yt.load(
-            os.path.join(indir, filename),  # units_override=units_,
+            os.path.join(indir, filename), # units_override=units_, # TODO: units here
             parfiles=self.get_amrvac_parfiles(),
         )
         if ds.dimensionality != 2 or ds.geometry != "polar":
@@ -640,6 +640,7 @@ class DatFileInterface(AbstractInterface):
     def input_grid(self) -> dict:
         """Describe the amrvac grid (as regridded by yt)."""
         ig = {
+            # TODO: units here
             "ticks_r": self._input_data["r"][:, 0] * self.conf["units"]["distance2au"],
             "ticks_phi": self._input_data["theta"][0, :],
         }
