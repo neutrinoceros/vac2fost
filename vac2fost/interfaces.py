@@ -43,27 +43,6 @@ if toml is not None:
 DEFAULT_UNITS = dict(distance2au=1.0, time2yr=1.0, mass2solar=1.0)
 
 
-def read_amrvac_parfiles(parfiles: list, path: str = "") -> f90nml.Namelist:
-    # this is now merely an extension of the yt function read_amrvac_namelist
-    # and could be replaced completely.
-    """Parse one, or a list of MPI-AMRVAC parfiles into a consistent configuration.
-
-    <path> : pathlike of the directory where parfiles are found.
-    Can be either a PathLike object or a str. The later can include
-    "$" shell env variables such as "$HOME".
-
-    This function replicates that of MPI-AMRVAC, with a patching logic:
-    for parameters redundant across parfiles, only last values are kept,
-    except "&filelist:base_filename", for which values are cumulated.
-    """
-    pathloc = shell_path(path)
-
-    if isinstance(parfiles, (str, os.PathLike)):
-        parfiles = [parfiles]
-    parfiles = [str(pathloc / p) for p in parfiles]
-    return read_amrvac_namelist(parfiles)
-
-
 def read_conf_file(conf_file: Path) -> f90nml.Namelist:
     """Always return a namelist object even from .toml files
     Only attempt to parse a .toml file if toml is installed
@@ -164,10 +143,9 @@ class AbstractInterface(ABC):
             p = (p1, p2)[found.index(True)]
             log.warning("Relative path found for hydro_data_dir, overriding to absolute path.")
             self.conf["amrvac_input"].update({"hydro_data_dir": str(p.resolve())})
-        self.amrvac_conf = read_amrvac_parfiles(
-            parfiles=self.conf["amrvac_input"]["config"],
-            location=self.conf["amrvac_input"]["hydro_data_dir"],
-        )
+
+        parfiles = self.get_amrvac_parfiles()
+        self.amrvac_conf = read_amrvac_namelist(parfiles)
 
         self._set_io()
 
@@ -227,6 +205,15 @@ class AbstractInterface(ABC):
     @abstractmethod
     def input_grid(self) -> dict:
         """Store physical coordinates (vectors) about the input grid specifications."""
+
+    def get_amrvac_parfiles(self) -> list:
+        """Parse self.conf["amrvac_input"] arguments into a list of str absolute paths of parfiles."""
+        pathloc = shell_path(self.conf["amrvac_input"]["hydro_data_dir"])
+        parfiles = self.conf["amrvac_input"]["config"]
+        if isinstance(parfiles, (str, os.PathLike)):
+            parfiles = [parfiles]
+        parfiles = [str(pathloc / p) for p in parfiles]
+        return parfiles
 
     # public methods, for direct usage in vac2fost.main()
     def preroll_mcfost(self, force=False) -> None:
@@ -613,7 +600,7 @@ class DatFileInterface(AbstractInterface):
         filename = f"{basename}{numtag}.dat"
 
         indir = shell_path(self.conf["amrvac_input"]["hydro_data_dir"]).resolve()
-        ds = yt.load(os.path.join(indir, filename))  # , parfiles=)
+        ds = yt.load(os.path.join(indir, filename), parfiles=self.get_amrvac_parfiles())
         if ds.dimensionality != 2 or ds.geometry != "polar":
             raise NotImplementedError
 
