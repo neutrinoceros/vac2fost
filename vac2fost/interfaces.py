@@ -337,7 +337,10 @@ class AbstractInterface(ABC):
 
         # automatic setup
         if "dust" in self.conf:
-            grain_size2micron = self.conf["dust"].get("grain_size2micron", 1.0)
+            grain_size2micron = self.conf["dust"].get("grain_size2micron")
+            if grain_size2micron is None:
+                log.warning("Could not find grain_size2micron in [dust] section, assumed unity.")
+                grain_size2micron = 1.0
             grain_sizes = self.conf["dust"]["grain_sizes"]
             if isinstance(grain_sizes, str):
                 namelist, item = grain_sizes.split(".")
