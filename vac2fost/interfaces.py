@@ -613,6 +613,7 @@ class VtuFileInterface(AbstractInterface):
 
 
 class DatFileInterface(AbstractInterface):
+    """An interface dedicated raw datfiles from AMRVAC, supported by yt."""
     def _set_io(self) -> IOinfo:
         """Give up-to-date information on data location and naming (.i: input, .o: output)"""
         basename = self.amrvac_conf["filelist"]["base_filename"]
