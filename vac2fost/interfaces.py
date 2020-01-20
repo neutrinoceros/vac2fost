@@ -612,9 +612,7 @@ class VtuFileInterface(AbstractInterface):
         return ig
 
 
-
 class DatFileInterface(AbstractInterface):
-
     def _set_io(self) -> IOinfo:
         """Give up-to-date information on data location and naming (.i: input, .o: output)"""
         basename = self.amrvac_conf["filelist"]["base_filename"]
@@ -628,14 +626,10 @@ class DatFileInterface(AbstractInterface):
 
         self._dataset = ds  # keep a reference
         dims = np.ones(3, dtype="int64")
-        dims[:ds.dimensionality] = ds.parameters["domain_nx"] * ds.refine_by**ds.index.max_level
+        dims[: ds.dimensionality] = ds.parameters["domain_nx"] * ds.refine_by ** ds.index.max_level
         self._grid_dims = dims
 
-        _input = DataInfo(
-            directory=indir,
-            filename=filename,
-            gridshape=GridShape(*self._grid_dims),
-        )
+        _input = DataInfo(directory=indir, filename=filename, gridshape=GridShape(*self._grid_dims))
 
         trad_keys = {"nr": "n_rad", "nphi": "n_az", "nz": "nz"}
         _output = DataInfo(
@@ -651,14 +645,14 @@ class DatFileInterface(AbstractInterface):
     def input_grid(self) -> dict:
         """Describe the amrvac grid."""
         ig = {
-            "ticks_r": self._input_data["r"][:,0] * self.conf["units"]["distance2au"],
-            "ticks_phi": self._input_data["theta"][0,:],
+            "ticks_r": self._input_data["r"][:, 0] * self.conf["units"]["distance2au"],
+            "ticks_phi": self._input_data["theta"][0, :],
         }
         return ig
 
     def load_input_data(self) -> None:
         """wip"""
-        ytlogger.setLevel(log.level) # todo: move to init
+        ytlogger.setLevel(log.level)  # todo: move to init
 
         ds = self._dataset
 
@@ -666,10 +660,13 @@ class DatFileInterface(AbstractInterface):
         self._density_keys = sorted([k for _, k in ds.field_list if "rho" in k])
 
         # regrid to uniform grid (with maximum resolution level)
-        cg = ds.covering_grid(level=ds.index.max_level,
-                              left_edge=ds.domain_left_edge,
-                              dims= self._grid_dims,
-                              fields=self._density_keys)#, use_pbar=False)
+        cg = ds.covering_grid(
+            level=ds.index.max_level,
+            left_edge=ds.domain_left_edge,
+            dims=self._grid_dims,
+            fields=self._density_keys,
+            use_pbar=False,
+        )
 
         load_keys = self._density_keys + ["r", "theta"]
         self._input_data = {k: cg[k].to_ndarray().squeeze() for k in load_keys}
