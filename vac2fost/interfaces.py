@@ -414,7 +414,7 @@ class AbstractInterface(ABC):
             parameters.update(
                 {
                     "gas_to_dust_ratio": self._gas_to_dust_ratio,
-                    "dust_mass": self._estimate_dust_mass(),
+                    "disk_dust_mass": self._estimate_dust_mass(),
                 }
             )
             # Grains
