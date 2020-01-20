@@ -543,7 +543,7 @@ class VtuFileInterface(AbstractInterface):
             ),
         )
 
-        trad_keys = {"nr": "n_rad", "nphi": "n_az", "nz": "nz"}
+        trad_keys = {"nr": "n_rad", "nphi": "n_az", "nz": "n_z"}
         _output = DataInfo(
             directory=Path(self._output_dir),
             filename=_input.filestem + ".fits",
@@ -642,7 +642,7 @@ class DatFileInterface(AbstractInterface):
 
         _input = DataInfo(directory=indir, filename=filename, gridshape=GridShape(*self._grid_dims))
 
-        trad_keys = {"nr": "n_rad", "nphi": "n_az", "nz": "nz"}
+        trad_keys = {"nr": "n_rad", "nphi": "n_az", "nz": "n_z"}
         _output = DataInfo(
             directory=Path(self._output_dir),
             filename=_input.filestem + ".fits",
