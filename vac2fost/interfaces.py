@@ -24,7 +24,6 @@ except ImportError:
     toml = None
 
 import yt
-from yt import mylog as ytlogger
 from yt.frontends.amrvac import read_amrvac_namelist
 
 from ._vtk_vacreader import VacDataSorter
@@ -645,9 +644,7 @@ class DatFileInterface(AbstractInterface):
         return ig
 
     def load_input_data(self) -> None:
-        """wip"""
-        ytlogger.setLevel(log.level)  # todo: move to init
-
+        """Use yt to regrid AMR data to a uniform grid."""
         ds = self._dataset
 
         # detect available density fields
@@ -664,5 +661,4 @@ class DatFileInterface(AbstractInterface):
 
         load_keys = self._density_keys + ["r", "theta"]
         self._input_data = {k: cg[k].to_ndarray().squeeze() for k in load_keys}
-        # TODO: use yt to set self._input_data here
         log.info(f"successfully loaded {self.io.IN.filepath}")
