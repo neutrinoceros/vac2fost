@@ -627,11 +627,12 @@ class DatFileInterface(AbstractInterface):
             mass_unit=(u["mass2solar"], "msun"),
             time_unit=(u["time2yr"], "yr"),
         )
-        ds = yt.load(
-            os.path.join(indir, filename),
-            units_override=units_,
-            parfiles=self.get_amrvac_parfiles(),
-        )
+        load_path = os.path.join(indir, filename)
+        load_kwargs = dict(units_override=units_, parfiles=self.get_amrvac_parfiles())
+        ds = yt.load(load_path, **load_kwargs)
+        if ds.parameters["datfile_version"] < 5:
+            log.warning("old datfile detected, no geometry information, reloading as 'polar'.")
+            ds = yt.load(load_path, units_override="polar", **load_kwargs)
         if ds.dimensionality != 2 or ds.geometry != "polar":
             raise NotImplementedError
 
