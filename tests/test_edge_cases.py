@@ -63,7 +63,7 @@ class TestReadGasDensity:
     def test_read_gas_density_shape(self):
         gas_density = fits.open(__class__.itf.io.OUT.filepath)[-1].data
         conf = f90nml.read(__class__.conf_file)["mcfost_output"]
-        target_shape = tuple([conf[k] for k in ("n_rad", "nz", "n_az")])
+        target_shape = tuple([conf[k] for k in ("n_rad", "n_z", "n_az")])
         assert gas_density.shape == target_shape
 
     def test_read_gas_density_is_valid(self):

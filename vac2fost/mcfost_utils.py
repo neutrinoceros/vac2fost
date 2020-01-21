@@ -75,7 +75,7 @@ blocks_descriptors = od(
             "Grid",
             (
                 od([("grid_type", 1)]),
-                od([("n_rad", 100), ("nz", 10), ("n_az", 100), ("n_rad_in", 30)]),
+                od([("n_rad", 100), ("n_z", 10), ("n_az", 100), ("n_rad_in", 30)]),
             ),
         ),
         (

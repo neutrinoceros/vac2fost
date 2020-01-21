@@ -1,7 +1,7 @@
 &mcfost_output
     n_rad   = 150
     n_az = 100
-    nz   = 25
+    n_z   = 25
     n_rad_in = 30
     Mstar    = 1.8  ! [M_sun] (Casassus et al 2015)
     Teff    = 6550 ! [K]     (Mendiguita et al 2014)

@@ -543,7 +543,7 @@ class VtuFileInterface(AbstractInterface):
             ),
         )
 
-        trad_keys = {"nr": "n_rad", "nphi": "n_az", "nz": "nz"}
+        trad_keys = {"nr": "n_rad", "nphi": "n_az", "nz": "n_z"}
         _output = DataInfo(
             directory=Path(self._output_dir),
             filename=_input.filestem + ".fits",
@@ -642,7 +642,7 @@ class DatFileInterface(AbstractInterface):
 
         _input = DataInfo(directory=indir, filename=filename, gridshape=GridShape(*self._grid_dims))
 
-        trad_keys = {"nr": "n_rad", "nphi": "n_az", "nz": "nz"}
+        trad_keys = {"nr": "n_rad", "nphi": "n_az", "nz": "n_z"}
         _output = DataInfo(
             directory=Path(self._output_dir),
             filename=_input.filestem + ".fits",
@@ -679,7 +679,7 @@ class DatFileInterface(AbstractInterface):
 
         load_keys = {k: "msun / au**3" for k in self._density_keys}
         load_keys.update({"r": "au", "theta": "dimensionless"})
-        self._input_data = {k: cg[k].to(u).to_ndarray().squeeze() for k, u in load_keys.items()}
+        self._input_data = {k: cg[k].to_value(u).squeeze() for k, u in load_keys.items()}
         log.info(f"successfully loaded {self.io.IN.filepath}")
 
     def _estimate_dust_mass(self) -> float:
