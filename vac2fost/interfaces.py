@@ -679,7 +679,7 @@ class DatFileInterface(AbstractInterface):
 
         load_keys = {k: "msun / au**3" for k in self._density_keys}
         load_keys.update({"r": "au", "theta": "dimensionless"})
-        self._input_data = {k: cg[k].to(u).to_ndarray().squeeze() for k, u in load_keys.items()}
+        self._input_data = {k: cg[k].to_value(u).squeeze() for k, u in load_keys.items()}
         log.info(f"successfully loaded {self.io.IN.filepath}")
 
     def _estimate_dust_mass(self) -> float:

@@ -1,7 +1,7 @@
 &mcfost_output
     n_rad   = 10
     n_az = 10
-    nz   = 2
+    n_z   = 2
     n_rad_in = 2
 
     flaring_exp = 1.125

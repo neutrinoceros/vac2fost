@@ -13,7 +13,7 @@
     n_az = 128
     n_rad = 128
     n_rad_in = 4
-    nz = 10
+    n_z = 10
     reference_radius = 100.0
     scale_height = 10.0
 /
