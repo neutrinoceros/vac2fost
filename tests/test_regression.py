@@ -66,7 +66,7 @@ class AbstractTestImage(AbstractTestRegression):
         # and exctract its first 3d array (density field)
         itf.write_output()
         new_file = itf.io.OUT.filepath
-        ref_file = self.__class__.subrefdir / new_file.name
+        ref_file = self.__class__.answerdir / new_file.name
         # shutil.copyfile(new_file, ref_file) # to regold ...
         ref = fits.open(ref_file)[0].data[0]
         new = fits.open(new_file)[0].data[0]
@@ -84,14 +84,17 @@ class TestRegressionAutoGasOnly(AbstractTestRegression):
     answerfile = answerdir / "answer.pickle"
     # regold(itf, answerfile)
 
-"""
-class TestRegressionVtuRef(AbstractTestImage):
-    subrefdir = TEST_VTU_DATA_DIR / "ref"
-    itf = instanciate_interface(conffile="vtu/vac2fost_conf_nonaxisym.nml", read_gas_velocity=True)
-    itf.tag = itf.conf_file.stem
-    reffile = subrefdir / "answer.pickle"
-    # regold(itf, reffile)
 
+class TestRegressionVtuRef(AbstractTestImage):
+    stem = "ref"
+    answerdir = TEST_VTU_DATA_DIR / stem
+    conffile = answerdir / "vac2fost_conf_nonaxisym.nml"
+    outdir = TEST_ARTIFACTS_DIR / stem
+    itf = main(conffile, output_dir=outdir, override={"flags": dict(read_gas_velocity=True)})
+    answerfile = answerdir / "answer.pickle"
+    # regold(itf, answerfile)
+
+"""
 class TestRegressionDatRef(AbstractTestRegression):
     subrefdir = TEST_DAT_DATA_DIR / "ref"
     itf = instanciate_interface(conffile="dat/ref/v2fconf.toml", hydro_file_type="dat")
