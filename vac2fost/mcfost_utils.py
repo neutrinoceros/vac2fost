@@ -4,7 +4,7 @@ import os
 import shutil
 from pathlib import Path
 from socket import gethostname
-from subprocess import run, CalledProcessError
+from subprocess import run, CalledProcessError, TimeoutExpired
 from collections import OrderedDict as od
 from tempfile import TemporaryDirectory
 
@@ -21,17 +21,21 @@ MINGRAINSIZE_mum = 0.1
 if shutil.which("mcfost") is None:
     raise OSError("could not find mcfost. Please install mcfost before using vac2fost")
 try:
-    out = run("mcfost -version", shell=True, capture_output=True, check=True).stdout
+    out = run("mcfost -version", shell=True, capture_output=True, check=True, timeout=1).stdout
     out = "".join(map(chr, out))
     DETECTED_MCFOST_VERSION = out.split("\n")[0].split()[-1]
     del out
+    if not (Path.home() / f".mcfost/accept_disclaimer_{DETECTED_MCFOST_VERSION}").is_file():
+        raise OSError("you need to accept mcfost's diclaimer for {MIN_MCFOST_VERSION}")
+    if DETECTED_MCFOST_VERSION < MIN_MCFOST_VERSION:
+        raise OSError(f"mcfost version must be >= {MIN_MCFOST_VERSION}")
 except CalledProcessError:
     raise OSError("could not parse mcfost version")
-
-if not (Path.home() / f".mcfost/accept_disclaimer_{DETECTED_MCFOST_VERSION}").is_file():
-    raise OSError("you need to accept mcfost's diclaimer for {MIN_MCFOST_VERSION}")
-if DETECTED_MCFOST_VERSION < MIN_MCFOST_VERSION:
-    raise OSError(f"mcfost version must be >= {MIN_MCFOST_VERSION}")
+except TimeoutExpired:
+    # sadly, this is necessary because running "mcfost -version" will not only display the current
+    # version number, but also send a request to the ipag server to check for new versions.
+    log.warning("On a slow web connection, pass mcfost version checking. Assuming minimal requirements are met.")
+    DETECTED_MCFOST_VERSION = MIN_MCFOST_VERSION
 
 
 # Definitions =======================================================================
