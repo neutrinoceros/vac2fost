@@ -1,11 +1,14 @@
 .. image:: http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat
 
-python macro
+vac2fost 3.1
 ============
 
-``vac2fost`` is a Python 3.7 macro that converts `.vtu` formatted
-MPI-AMRVAC output files into `.fits` files compatible with mcfost 3D
-model input format.
+``vac2fost`` is a Python 3.7 macro that converts `.dat` MPI-AMRVAC output files
+into `.fits` files compatible with mcfost 3D model input format.
+
+> important note:
+> It was historically written and tested for fixed-resolution-only (no AMR)
+> `.vtu` files.
 
 Installation (via conda)
 ------------------------
@@ -16,6 +19,10 @@ See https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environmen
 The minimal working installation script is
 
 .. code-block:: bash
+
+    # yt is a newly added dependency
+    # atm, one needs to use a nightly build to get the features used is the present code.
+    conda install -c yt-project/label/dev -c conda-forge yt
 
     conda install --file environment.yml --channel conda-forge
     conda install .
@@ -45,8 +52,8 @@ Usage
 Testing
 -------
 
-Run ``pytest`` from the installation directory to check that the program behaves
-normally.
+Run ``pytest`` from the installation directory to check that the program
+behaves normally.
 
 
 
@@ -59,7 +66,8 @@ Installation
  **note** the command line tool relies on the package being installed
  
 The file is found in the ``app/`` folder.
-The recommended installation method is to alias it with a symbolic link such as:
+The recommended installation method is to alias it with a symbolic link
+such as:
 
     .. code-block:: bash
         ln -s path/to/vac2fost-project/app/v2f.py /usr/bin/vac2fost
@@ -92,8 +100,8 @@ encoded in a parameter called `dust-binning-mode` (or *DBM* for
 shorts):
 
 - if ``&dust`` namelist is ommited in the configuration file,
-  gas will be used as a proxy, and all grain sizes will be assumed to follow gas
-  distribution (DBM = "gas-only")
+  gas will be used as a proxy, and all grain sizes will be assumed to follow
+  gas distribution (DBM = "gas-only")
 - if dust is found but no one species is smaller than 0.1 micron, gas
   is still used to trace the smallest grains (DBM = "mixed")
 

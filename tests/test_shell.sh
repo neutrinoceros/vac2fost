@@ -13,7 +13,7 @@ fi
 echo "install dir used : $VAC2FOST_INSTALL_DIR"
 
 TESTDIR=$VAC2FOST_INSTALL_DIR/tests
-OUT=$TESTDIR/output
+OUT=$TESTDIR/.artifacts
 EXE=$VAC2FOST_INSTALL_DIR/app/v2f.py
 
 expect_success () {

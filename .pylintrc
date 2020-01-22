@@ -135,7 +135,8 @@ disable=print-statement,
         too-many-locals,
         logging-format-interpolation,
 	wrong-import-order,
-	bad-continuation
+	bad-continuation,
+	no-name-in-module
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option

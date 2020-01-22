@@ -23,6 +23,9 @@ try:
 except ImportError:
     toml = None
 
+import yt
+from yt.frontends.amrvac import read_amrvac_namelist
+
 from ._vtk_vacreader import VacDataSorter
 
 from .info import __version__
@@ -38,36 +41,6 @@ if toml is not None:
     ACCEPTED_CONF_FILE_EXTENSTIONS.append(".toml")
 
 DEFAULT_UNITS = dict(distance2au=1.0, time2yr=1.0, mass2solar=1.0)
-
-
-def read_amrvac_parfiles(parfiles: list, location: str = "") -> f90nml.Namelist:
-    """Parse one, or a list of MPI-AMRVAC parfiles into a consistent configuration.
-
-    <location> : pathlike of the directory where parfiles are found.
-    Can be either a PathLike object or a str. The later can include
-    "$" shell env variables such as "$HOME".
-
-    This function replicates that of MPI-AMRVAC, with a patching logic:
-    for parameters redundant across parfiles, only last values are kept,
-    except "&filelist:base_filename", for which values are cumulated.
-    """
-    pathloc = shell_path(location)
-
-    if isinstance(parfiles, (str, os.PathLike)):
-        pfs = [parfiles]
-    else:
-        pfs = parfiles
-    assert all([isinstance(pf, (str, os.PathLike)) for pf in pfs])
-
-    confs = [f90nml.read((pathloc / pf).resolve()) for pf in pfs]
-    conf_tot = f90nml.Namelist()
-    for c in confs:
-        conf_tot.patch(c)
-
-    base_filename = "".join([c.get("filelist", {}).get("base_filename", "") for c in confs])
-    assert base_filename != ""
-    conf_tot["filelist"]["base_filename"] = base_filename
-    return conf_tot
 
 
 def read_conf_file(conf_file: Path) -> f90nml.Namelist:
@@ -170,10 +143,9 @@ class AbstractInterface(ABC):
             p = (p1, p2)[found.index(True)]
             log.warning("Relative path found for hydro_data_dir, overriding to absolute path.")
             self.conf["amrvac_input"].update({"hydro_data_dir": str(p.resolve())})
-        self.amrvac_conf = read_amrvac_parfiles(
-            parfiles=self.conf["amrvac_input"]["config"],
-            location=self.conf["amrvac_input"]["hydro_data_dir"],
-        )
+
+        parfiles = self.get_amrvac_parfiles()
+        self.amrvac_conf = read_amrvac_namelist(parfiles)
 
         self._set_io()
 
@@ -233,6 +205,19 @@ class AbstractInterface(ABC):
     @abstractmethod
     def input_grid(self) -> dict:
         """Store physical coordinates (vectors) about the input grid specifications."""
+
+    @abstractmethod
+    def _estimate_dust_mass(self) -> float:
+        """Estimate the total dust mass in the grid, in solar masses"""
+
+    def get_amrvac_parfiles(self) -> list:
+        """Parse self.conf["amrvac_input"] arguments into a list of str absolute paths of parfiles."""
+        pathloc = shell_path(self.conf["amrvac_input"]["hydro_data_dir"])
+        parfiles = self.conf["amrvac_input"]["config"]
+        if isinstance(parfiles, (str, os.PathLike)):
+            parfiles = [parfiles]
+        parfiles = [str(pathloc / p) for p in parfiles]
+        return parfiles
 
     # public methods, for direct usage in vac2fost.main()
     def preroll_mcfost(self, force=False) -> None:
@@ -413,31 +398,6 @@ class AbstractInterface(ABC):
         else:
             self._gas_to_dust_ratio = None
 
-    def _estimate_dust_mass(self) -> float:
-        """Estimate the total dust mass in the grid, in solar masses"""
-        # devnote : this assumes a linearly spaced grid
-        dphi = 2 * np.pi / self.io.IN.gridshape.nphi
-        rvect = self._input_data.get_ticks("r")
-        dr = rvect[1] - rvect[0]
-        cell_surfaces = dphi / 2 * ((rvect + dr / 2) ** 2 - (rvect - dr / 2) ** 2)
-
-        if self._dust_bin_mode == "gas-only":
-            keys = ["rho"]
-        else:
-            keys = [k for k, _ in self._input_data if "rhod" in k]
-        mass = 0.0
-        for key in keys:
-            mass += np.sum(
-                [
-                    cell_surfaces * self._input_data[key][:, i]
-                    for i in range(self.io.IN.gridshape.nphi)
-                ]
-            )
-        if self._dust_bin_mode == "gas-only":
-            mass /= 100
-        mass *= self.conf["units"]["mass2solar"]
-        return mass
-
     def _translate_amrvac_config(self) -> dict:
         """Get some mcfost parameters directly from amrvac."""
         parameters = {}
@@ -583,7 +543,7 @@ class VtuFileInterface(AbstractInterface):
             ),
         )
 
-        trad_keys = {"nr": "n_rad", "nphi": "n_az", "nz": "nz"}
+        trad_keys = {"nr": "n_rad", "nphi": "n_az", "nz": "n_z"}
         _output = DataInfo(
             directory=Path(self._output_dir),
             filename=_input.filestem + ".fits",
@@ -612,3 +572,119 @@ class VtuFileInterface(AbstractInterface):
             "ticks_phi": self._input_data.get_ticks("phi"),
         }
         return ig
+
+    def _estimate_dust_mass(self) -> float:
+        """Estimate the total dust mass in the grid, in solar masses"""
+        # devnote : this assumes a linearly spaced grid
+        dphi = 2 * np.pi / self.io.IN.gridshape.nphi
+        rvect = self._input_data.get_ticks("r")
+        dr = rvect[1] - rvect[0]
+        cell_surfaces = dphi / 2 * ((rvect + dr / 2) ** 2 - (rvect - dr / 2) ** 2)
+
+        if self._dust_bin_mode == "gas-only":
+            keys = ["rho"]
+        else:
+            keys = [k for k, _ in self._input_data if "rhod" in k]
+        mass = 0.0
+        for key in keys:
+            mass += np.sum(
+                [
+                    cell_surfaces * self._input_data[key][:, i]
+                    for i in range(self.io.IN.gridshape.nphi)
+                ]
+            )
+        if self._dust_bin_mode == "gas-only":
+            mass /= 100
+        mass *= self.conf["units"]["mass2solar"]
+        return mass
+
+
+class DatFileInterface(AbstractInterface):
+    """An interface dedicated raw datfiles from AMRVAC, supported by yt."""
+
+    _unsupported_flags = ["read_gas_velocity", "read_gas_density"]
+
+    def __init__(self, conf_file, *args, **kwargs):
+        flags = read_conf_file(Path(conf_file)).get("flags", {})
+        unsupported = {f: f in self.__class__._unsupported_flags for f in flags}
+        if any(unsupported.values()):
+            mess = "the following flags are not yet supported with .dat files: " + ", ".join(
+                [f for f, v in unsupported.items() if v]
+            )
+            raise NotImplementedError(mess)
+        super().__init__(conf_file, *args, **kwargs)
+
+    def _set_io(self) -> IOinfo:
+        """Give up-to-date information on data location and naming (.i: input, .o: output)"""
+        basename = self.amrvac_conf["filelist"]["base_filename"]
+        numtag = str(self.current_num).zfill(4)
+        filename = f"{basename}{numtag}.dat"
+
+        indir = shell_path(self.conf["amrvac_input"]["hydro_data_dir"]).resolve()
+        u = self.conf["units"]
+        units_ = dict(
+            length_unit=(u["distance2au"], "au"),
+            mass_unit=(u["mass2solar"], "msun"),
+            time_unit=(u["time2yr"], "yr"),
+        )
+        load_path = os.path.join(indir, filename)
+        load_kwargs = dict(units_override=units_, parfiles=self.get_amrvac_parfiles())
+        ds = yt.load(load_path, **load_kwargs)
+        if ds.parameters["datfile_version"] < 5:
+            log.warning("old datfile detected, no geometry information, reloading as 'polar'.")
+            ds = yt.load(load_path, units_override="polar", **load_kwargs)
+        if ds.dimensionality != 2 or ds.geometry != "polar":
+            raise NotImplementedError
+
+        self._dataset = ds  # keep a reference for later usage in self.load_input_data()
+        dims = np.ones(3, dtype="int64")
+        dims[: ds.dimensionality] = ds.parameters["domain_nx"] * ds.refine_by ** ds.index.max_level
+        self._grid_dims = dims
+
+        _input = DataInfo(directory=indir, filename=filename, gridshape=GridShape(*self._grid_dims))
+
+        trad_keys = {"nr": "n_rad", "nphi": "n_az", "nz": "n_z"}
+        _output = DataInfo(
+            directory=Path(self._output_dir),
+            filename=_input.filestem + ".fits",
+            gridshape=GridShape(
+                **{k1: self.conf["mcfost_output"][k2] for k1, k2 in trad_keys.items()}
+            ),
+        )
+        self.io = IOinfo(IN=_input, OUT=_output)
+
+    @property
+    def input_grid(self) -> dict:
+        """Describe the amrvac grid (as regridded by yt)."""
+        ig = {"ticks_r": self._input_data["r"][:, 0], "ticks_phi": self._input_data["theta"][0, :]}
+        return ig
+
+    def load_input_data(self) -> None:
+        """Use yt to regrid AMR data to a uniform grid."""
+        ds = self._dataset
+
+        # detect available density fields
+        self._density_keys = sorted([k for _, k in ds.field_list if "rho" in k])
+
+        # devnote: a more efficient regriding scheme here would be to use the final grid (mcfost)
+        # resolution in the phi-z plane (in r it's basically infeasible)
+
+        # regrid to uniform grid (with maximum resolution level)
+        cg = ds.covering_grid(
+            level=ds.max_level,
+            left_edge=ds.domain_left_edge,
+            dims=self._grid_dims,
+            fields=self._density_keys,
+            use_pbar=False,
+        )
+
+        load_keys = {k: "msun / au**3" for k in self._density_keys}
+        load_keys.update({"r": "au", "theta": "dimensionless"})
+        self._input_data = {k: cg[k].to_value(u).squeeze() for k, u in load_keys.items()}
+        log.info(f"successfully loaded {self.io.IN.filepath}")
+
+    def _estimate_dust_mass(self) -> float:
+        """Interpret dust mass in solar masses as a float. This is trivial with yt."""
+        ad = self._dataset.all_data()
+        total_dust_mass = (ad["total_dust_density"] * ad["cell_volume"]).sum().to("msun")
+        return float(total_dust_mass)

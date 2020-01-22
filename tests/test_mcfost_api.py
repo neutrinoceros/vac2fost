@@ -7,7 +7,7 @@ from vac2fost import main
 from vac2fost.mcfost_utils import blocks_descriptors, write_mcfost_conf, get_mcfost_grid, get_mcfost_grid_dict
 from vac2fost.logger import v2flogger as log
 
-from conftest import TEST_DATA_DIR, TEST_ARTIFACTS_DIR
+from conftest import TEST_DATA_DIR, TEST_VTU_DATA_DIR, TEST_ARTIFACTS_DIR
 
 
 def test_unicity():
@@ -34,14 +34,14 @@ def test_writter_args():
 def test_unrecognized_mcfost_parameter():
     with pytest.raises(ValueError):
         main(
-            str(TEST_DATA_DIR / "vac2fost_conf_fake_params.nml"),
+            str(TEST_VTU_DATA_DIR / "vac2fost_conf_fake_params.nml"),
             output_dir=TEST_ARTIFACTS_DIR / "fake_params",
         )
 
 
 def test_get_grid():
     output_dir = TEST_ARTIFACTS_DIR / "test_mcfost_api/"
-    kwargs = dict(mcfost_conf_file=TEST_DATA_DIR/"ref3.0.para",
+    kwargs = dict(mcfost_conf_file=TEST_VTU_DATA_DIR/"ref3.0.para",
                 output_dir=output_dir / "dry_grid", require_run=True)
     grid = get_mcfost_grid(**kwargs)
     grid_dict = get_mcfost_grid_dict(**kwargs)

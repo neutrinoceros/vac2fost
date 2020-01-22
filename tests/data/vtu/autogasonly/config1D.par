@@ -1,0 +1,68 @@
+&meshlist
+  ! prevent amr refining
+  refine_max_level = 1
+  
+  !> radial domain (unit is defined is mod_usr.t)
+  xprobmin1 = 0.2
+  xprobmax1 = 2.4
+  domain_nx1 = 312
+  block_nx1  = 78
+/
+
+
+&boundlist
+  nghostcells = 2
+  
+  !> radial boundaries
+  typeboundary_min1 = 3*'special' !'cont'
+  typeboundary_max1 = 3*'special' !'noinflow' !
+/
+
+&hd_list
+  hd_gamma = 1. !1.4
+  hd_energy = .false.
+  hd_gravity = .true.
+/
+
+&my_disk_list
+  rhomin        = 1.d-6
+  temp_exp      = 0.d0
+/
+
+&disk_list
+    rho0          = 1.d0
+    rho_slope     = 0.d0
+    aspect_ratio  = 0.1 !0.016
+/
+    
+&methodlist
+  small_density    = 1e-15
+  !time_integrator  = 'twostep'
+  flux_scheme      = 20*'hllc'
+  limiter          = 20*'koren'
+  gradient_limiter = 20*'koren'
+/
+
+
+&filelist
+  base_filename = 'rwi'
+  convert_type  = 'vtuBCCmpi'
+  autoconvert   = F           ! convert to vtu files for visualization 
+  nocartesian   = T           ! do not convert my output to cartesian coordinates
+/
+
+
+&savelist
+  itsave(1,1) = 0             ! sepcific times for log
+  itsave(1,2) = 0             ! sepcific times for .dat outputs
+  dtsave_dat = 10. !6.283185307179586d0
+  ditsave_log = 1000
+  !ditsave     = 1
+/
+
+
+&stoplist
+  time_max = 50.0
+!6.283185307179587d1              ! must be stricly greater than the time of last output you want
+  !it_max = 10
+/

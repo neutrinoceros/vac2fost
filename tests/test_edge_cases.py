@@ -9,14 +9,14 @@ from vac2fost.logger import v2flogger
 from vac2fost.interfaces import VtuFileInterface
 
 import pytest
-from conftest import TEST_DATA_DIR, TEST_ARTIFACTS_DIR
+from conftest import TEST_VTU_DATA_DIR, TEST_ARTIFACTS_DIR
 densfile = "hd142527_dusty0000.fits"
 
 
 def test_init_from_toml():
     try:
         import toml
-        VtuFileInterface(TEST_DATA_DIR / "vac2fost_conf_base.toml")
+        VtuFileInterface(TEST_VTU_DATA_DIR / "vac2fost_conf_base.toml")
     except ImportError:
         pass
 
@@ -28,7 +28,7 @@ def test_read_gas_vel_with_dbm_mode(mode, expected_n_hdu):
     if outdir.exists():
         rmtree(outdir)
     main(
-        TEST_DATA_DIR / "vac2fost_conf_quick.nml",
+        TEST_VTU_DATA_DIR / "vac2fost_conf_quick.nml",
         override={"flags": dict(read_gas_velocity=True, dust_bin_mode=mode)},
         output_dir=outdir,
     )
@@ -47,7 +47,7 @@ class TestReadGasDensity:
     outdir = TEST_ARTIFACTS_DIR / "test_read_gas_density"
     if outdir.is_dir():
         rmtree(outdir)
-    conf_file = TEST_DATA_DIR / "vac2fost_conf_quick.nml"
+    conf_file = TEST_VTU_DATA_DIR / "vac2fost_conf_quick.nml"
     v2flogger.setLevel(10)
     itf = main(
         conf_file,
@@ -63,7 +63,7 @@ class TestReadGasDensity:
     def test_read_gas_density_shape(self):
         gas_density = fits.open(__class__.itf.io.OUT.filepath)[-1].data
         conf = f90nml.read(__class__.conf_file)["mcfost_output"]
-        target_shape = tuple([conf[k] for k in ("n_rad", "nz", "n_az")])
+        target_shape = tuple([conf[k] for k in ("n_rad", "n_z", "n_az")])
         assert gas_density.shape == target_shape
 
     def test_read_gas_density_is_valid(self):

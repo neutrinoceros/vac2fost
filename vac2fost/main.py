@@ -2,7 +2,7 @@
 from pathlib import Path
 
 from .info import __version__
-from .interfaces import AbstractInterface, VtuFileInterface
+from .interfaces import AbstractInterface, VtuFileInterface, DatFileInterface
 from .logger import v2flogger as log
 
 
@@ -12,8 +12,9 @@ def main(
     output_dir: Path = None,
     loglevel: int = 30,
     force_preroll=False,
+    hydro_file_type="vtu",
 ) -> AbstractInterface:
-    """Transform a .vtu datfile into a .fits
+    """Transform a .dat/.vtu datfile into a .fits
 
     conf_file and overrides are passed down to Interface.__init__()
     loglevel values: 10 debug
@@ -24,7 +25,11 @@ def main(
     """
     log.setLevel(loglevel)
     log.debug(f"start vac2fost {__version__} main loop")
-    itf = VtuFileInterface(conf_file, override=override, output_dir=output_dir)
+    if hydro_file_type.lower() in ["vtu", ".vtu"]:
+        Interface = VtuFileInterface
+    else:
+        Interface = DatFileInterface
+    itf = Interface(conf_file, override=override, output_dir=output_dir)
     try:
         while True:
             log.info(f"current input number: {itf.current_num}\t({itf.iter_frac})")

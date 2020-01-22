@@ -38,7 +38,7 @@ mcfost_list = dict(
     n_rad=128,
     n_rad_in=4,
     n_az=128,
-    nz=10,
+    n_z=10,
     # aspect ratio is implied by those parameters
     flaring_exp=1.125,
     reference_radius=100.0,
