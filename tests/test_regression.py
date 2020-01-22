@@ -7,7 +7,7 @@ from astropy.io import fits
 from vac2fost import main
 from vac2fost import VtuFileInterface as Interface
 from vac2fost.logger import v2flogger
-from conftest import TEST_DATA_DIR, TEST_ANSWER_DIR, TEST_ARTIFACTS_DIR
+from conftest import TEST_DATA_DIR, TEST_VTU_DATA_DIR, TEST_DAT_DATA_DIR, TEST_ARTIFACTS_DIR
 
 
 v2flogger.setLevel(10)
@@ -82,21 +82,21 @@ class AbstractTestImage(AbstractTestRegression):
 
 # Actual test classes:
 class TestRegressionAutoGasOnly(AbstractTestRegression):
-    subrefdir = TEST_DATA_DIR / "vtu/autogasonly"
+    subrefdir = TEST_VTU_DATA_DIR / "autogasonly"
     itf = instanciate_interface(conffile="vtu/autogasonly/rwi.nml")
     itf.tag = itf.conf_file.stem
     reffile = subrefdir / f"answer.pickle"
     # regold(itf, reffile)
 
 class TestRegressionMain(AbstractTestImage):
-    subrefdir = TEST_DATA_DIR / "vtu/answer/default"
+    subrefdir = TEST_VTU_DATA_DIR / "answer/default"
     itf = instanciate_interface(conffile="vtu/vac2fost_conf_nonaxisym.nml", read_gas_velocity=True)
     itf.tag = itf.conf_file.stem
     reffile = subrefdir / f"{itf.tag}.p"
     # regold(itf, reffile)
 
 class TestRegressionDatFile(AbstractTestRegression):
-    subrefdir = TEST_DATA_DIR / "dat/ref"
+    subrefdir = TEST_DAT_DATA_DIR / "ref"
     itf = instanciate_interface(conffile="dat/ref/v2fconf.toml", file_type="dat")
     itf.tag = itf.conf_file.stem
     reffile = subrefdir / "answer.pickle"
@@ -106,7 +106,7 @@ class TestRegressionDatFile(AbstractTestRegression):
 def test_dust_mass_estimations():
     itfs = [
         Interface(
-            TEST_DATA_DIR / "vac2fost_conf_quick.nml",
+            TEST_VTU_DATA_DIR / "vac2fost_conf_quick.nml",
             output_dir=TEST_ARTIFACTS_DIR,
             override={"flags": dict(dust_bin_mode=dbm)},
         )
