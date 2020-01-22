@@ -12,9 +12,9 @@ def main(
     output_dir: Path = None,
     loglevel: int = 30,
     force_preroll=False,
-    file_type="vtk"
+    hydro_file_type="vtu",
 ) -> AbstractInterface:
-    """Transform a .vtu datfile into a .fits
+    """Transform a .dat/.vtu datfile into a .fits
 
     conf_file and overrides are passed down to Interface.__init__()
     loglevel values: 10 debug
@@ -25,7 +25,7 @@ def main(
     """
     log.setLevel(loglevel)
     log.debug(f"start vac2fost {__version__} main loop")
-    if file_type.lower() in ["vtu", "vtk"]:
+    if hydro_file_type.lower() in ["vtu", ".vtu"]:
         Interface = VtuFileInterface
     else:
         Interface = DatFileInterface

@@ -13,12 +13,12 @@ from conftest import TEST_DATA_DIR, TEST_VTU_DATA_DIR, TEST_DAT_DATA_DIR, TEST_A
 v2flogger.setLevel(10)
 
 
-def instanciate_interface(conffile, file_type="vtu", **kwargs):
+def instanciate_interface(conffile, hydro_file_type="vtu", **kwargs):
     outdir = TEST_ARTIFACTS_DIR / f"test_reg_{Path(conffile).stem}"
     if outdir.is_dir():
         shutil.rmtree(outdir)
     override = {"flags": {k: v for k, v in kwargs.items()}}
-    itf = main(TEST_DATA_DIR / conffile, override, output_dir=outdir, file_type=file_type)
+    itf = main(TEST_DATA_DIR / conffile, override, output_dir=outdir, hydro_file_type=hydro_file_type)
     return itf
 
 
@@ -97,7 +97,7 @@ class TestRegressionVtuRef(AbstractTestImage):
 
 class TestRegressionDatRef(AbstractTestRegression):
     subrefdir = TEST_DAT_DATA_DIR / "ref"
-    itf = instanciate_interface(conffile="dat/ref/v2fconf.toml", file_type="dat")
+    itf = instanciate_interface(conffile="dat/ref/v2fconf.toml", hydro_file_type="dat")
     itf.tag = itf.conf_file.stem
     reffile = subrefdir / "answer.pickle"
     #regold(itf, reffile)
