@@ -4,12 +4,12 @@ from shutil import rmtree
 from vac2fost.logger import v2flogger as log
 from vac2fost import main as app
 
-from conftest import TEST_DATA_DIR, TEST_ARTIFACTS_DIR
+from conftest import TEST_VTU_DATA_DIR, TEST_ARTIFACTS_DIR
 
 outdir = TEST_ARTIFACTS_DIR / "test_settling"
 if outdir.is_dir():
     rmtree(outdir)
-conf_file = TEST_DATA_DIR / "vac2fost_conf_quick.nml"
+conf_file = TEST_VTU_DATA_DIR / "vac2fost_conf_quick.nml"
 
 
 def test_default_setting():

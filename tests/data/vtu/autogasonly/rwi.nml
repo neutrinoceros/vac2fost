@@ -1,0 +1,20 @@
+&amrvac_input
+    config = 'config1D.par','to2D.par'
+    hydro_data_dir = "."
+    nums = 0
+/
+
+&units
+    distance2au = 100
+/
+
+&mcfost_output
+    flaring_exp = 1.
+    n_az = 128
+    n_rad = 128
+    n_rad_in = 4
+    n_z = 10
+    reference_radius = 100.0
+    scale_height = 10.0
+/
+%% automatically generated with vac2fost 2.2

@@ -1,0 +1,26 @@
+### this is a conffile for vac2fost meant for testing the datfile interface
+[amrvac_input]
+hydro_data_dir = "."
+config = ["conf.nml", "dust.par"]
+nums = 50
+
+[dust]
+dust_to_gas_ratio = 0.01
+grain_sizes = "usr_dust_list.grain_size_cm"
+grain_size2micron = 1e4
+
+[mcfost_output]
+n_az = 64
+n_rad = 128
+n_rad_in = 16
+n_z = 9
+map_size = 900
+Mstar = 2.2
+
+reference_radius = 100
+scale_height = 1.0
+
+[units]
+distance2au = 100
+mass2solar = 1
+time2yr = 1300  # approx, only useful to rescale velocities, which I don't care about right now
