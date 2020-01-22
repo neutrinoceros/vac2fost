@@ -13,7 +13,7 @@
 /
 
 &amrvac_input
-    hydro_data_dir = 'nonaxisym' ! relative to the present configuration file
+    hydro_data_dir = '.' ! relative to the present configuration file
     config = 'hd142527_rphi.nml', 'dust_rphi.par'
     nums = 20
 /
