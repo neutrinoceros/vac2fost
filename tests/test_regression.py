@@ -88,14 +88,14 @@ class TestRegressionAutoGasOnly(AbstractTestRegression):
     reffile = subrefdir / f"answer.pickle"
     # regold(itf, reffile)
 
-class TestRegressionMain(AbstractTestImage):
-    subrefdir = TEST_VTU_DATA_DIR / "answer/default"
+class TestRegressionVtuRef(AbstractTestImage):
+    subrefdir = TEST_VTU_DATA_DIR / "ref"
     itf = instanciate_interface(conffile="vtu/vac2fost_conf_nonaxisym.nml", read_gas_velocity=True)
     itf.tag = itf.conf_file.stem
-    reffile = subrefdir / f"{itf.tag}.p"
+    reffile = subrefdir / "answer.pickle"
     # regold(itf, reffile)
 
-class TestRegressionDatFile(AbstractTestRegression):
+class TestRegressionDatRef(AbstractTestRegression):
     subrefdir = TEST_DAT_DATA_DIR / "ref"
     itf = instanciate_interface(conffile="dat/ref/v2fconf.toml", file_type="dat")
     itf.tag = itf.conf_file.stem
