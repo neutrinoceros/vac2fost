@@ -13,13 +13,6 @@ from conftest import TEST_DATA_DIR, TEST_VTU_DATA_DIR, TEST_DAT_DATA_DIR, TEST_A
 v2flogger.setLevel(10)
 
 
-def instanciate_interface(conffile, hydro_file_type="vtu", **kwargs):
-    outdir = TEST_ARTIFACTS_DIR / f"test_reg_{Path(conffile).stem}"
-    if outdir.is_dir():
-        shutil.rmtree(outdir)
-    override = {"flags": {k: v for k, v in kwargs.items()}}
-    itf = main(TEST_DATA_DIR / conffile, override, output_dir=outdir, hydro_file_type=hydro_file_type)
-    return itf
 
 
 # to regold tests
@@ -39,7 +32,7 @@ class AbstractTestRegression:
     def test_out(self):
         itf = self.__class__.itf
 
-        out_ref = pickle.load(open(self.__class__.reffile, mode="rb"))
+        out_ref = pickle.load(open(self.__class__.answerfile, mode="rb"))
         assert itf._dust_bin_mode == out_ref["_dust_bin_mode"]
         assert itf.amrvac_conf == out_ref["amrvac_conf"]
         np.testing.assert_array_equal(itf.input_grid["ticks_r"], out_ref["input_grid"]["ticks_r"])
@@ -73,7 +66,7 @@ class AbstractTestImage(AbstractTestRegression):
         # and exctract its first 3d array (density field)
         itf.write_output()
         new_file = itf.io.OUT.filepath
-        ref_file = self.__class__.subrefdir / new_file.name
+        ref_file = self.__class__.answerdir / new_file.name
         # shutil.copyfile(new_file, ref_file) # to regold ...
         ref = fits.open(ref_file)[0].data[0]
         new = fits.open(new_file)[0].data[0]
@@ -82,25 +75,33 @@ class AbstractTestImage(AbstractTestRegression):
 
 # Actual test classes:
 class TestRegressionAutoGasOnly(AbstractTestRegression):
-    subrefdir = TEST_VTU_DATA_DIR / "autogasonly"
-    itf = instanciate_interface(conffile="vtu/autogasonly/rwi.nml")
-    itf.tag = itf.conf_file.stem
-    reffile = subrefdir / f"answer.pickle"
-    # regold(itf, reffile)
+    stem = "autogasonly"
+    answerdir = TEST_VTU_DATA_DIR / stem
+    conffile = answerdir / "rwi.nml"
+    outdir = TEST_ARTIFACTS_DIR / stem
+    itf = main(conffile, output_dir=outdir)
+    answerfile = answerdir / "answer.pickle"
+    # regold(itf, answerfile)
+
 
 class TestRegressionVtuRef(AbstractTestImage):
-    subrefdir = TEST_VTU_DATA_DIR / "ref"
-    itf = instanciate_interface(conffile="vtu/vac2fost_conf_nonaxisym.nml", read_gas_velocity=True)
-    itf.tag = itf.conf_file.stem
-    reffile = subrefdir / "answer.pickle"
-    # regold(itf, reffile)
+    stem = "ref"
+    answerdir = TEST_VTU_DATA_DIR / stem
+    conffile = answerdir / "vac2fost_conf_nonaxisym.nml"
+    outdir = TEST_ARTIFACTS_DIR /  f"vtu/{stem}"
+    itf = main(conffile, output_dir=outdir, force_preroll=True, override={"flags": dict(read_gas_velocity=True)})
+    answerfile = answerdir / "answer.pickle"
+    # regold(itf, answerfile)
+
 
 class TestRegressionDatRef(AbstractTestRegression):
-    subrefdir = TEST_DAT_DATA_DIR / "ref"
-    itf = instanciate_interface(conffile="dat/ref/v2fconf.toml", hydro_file_type="dat")
-    itf.tag = itf.conf_file.stem
-    reffile = subrefdir / "answer.pickle"
-    #regold(itf, reffile)
+    stem = "ref"
+    answerdir = TEST_DAT_DATA_DIR / stem
+    conffile = answerdir / "v2fconf.toml"
+    outdir = TEST_ARTIFACTS_DIR / f"dat/{stem}"
+    itf = main(conffile, output_dir=outdir, hydro_file_type="dat", force_preroll=True)
+    answerfile = answerdir / "answer.pickle"
+    # regold(itf, answerfile)
 
 
 def test_dust_mass_estimations():
