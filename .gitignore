@@ -26,3 +26,7 @@ tests/.artifacts
 dist/*
 *egg-info*
 tmp/*
+
+# demo
+# ----
+demo_out/*
